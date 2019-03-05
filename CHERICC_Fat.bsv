@@ -27,9 +27,10 @@
  * @BERI_LICENSE_HEADER_END@
  */
 
-package Capability128ccLibs;
+package CHERICC_Fat;
 
-import DefaultValue::*;
+import DefaultValue :: *;
+import CHERICap     :: *;
 
 // ===============================================================================
 
@@ -332,7 +333,7 @@ function Bit#(n) smearMSBRight(Bit#(n) x);
     return res;
 endfunction
 
-function Tuple2#(CapFat, Bool) setBounds(CapFat cap, Address lengthFull);
+function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
         CapFat ret = cap;
         // Find new exponent by finding the index of the most significant bit of the
         // length, or counting leading zeros in the high bits of the length, and
@@ -637,7 +638,7 @@ instance DefaultValue #(CapFat);
     };
 endinstance
 
-CapFat nullCap = CapFat {
+CapFat null_cap = CapFat {
     isCapability: False,
     perms       : unpack(0),
     reserved    : 0,
@@ -767,4 +768,238 @@ function MetaInfo getMetaInfo (CapFat cap);
         baseCorrection : baseCorrection
     };
 endfunction
+
+// ===============================================================================
+// Typeclass instance for interface
+
+typedef Bit#(129) CapMem;
+
+typedef CapFat CapReg;
+
+typedef Tuple2#(CapFat, TempFields) CapPipe;
+
+instance CHERICap #(CapMem, 18, 64);
+  function isValidCap = error("feature not implemented for this cap type");
+  function setValidCap = error("feature not implemented for this cap type");
+  function getHardPerms = error("feature not implemented for this cap type");
+  function setHardPerms = error("feature not implemented for this cap type");
+  function getSoftPerms = error("feature not implemented for this cap type");
+  function setSoftPerms = error("feature not implemented for this cap type");
+  function getKind = error("feature not implemented for this cap type");
+  function getType = error("feature not implemented for this cap type");
+  function setType = error("feature not implemented for this cap type");
+  function getAddr = error("feature not implemented for this cap type");
+  function setAddr = error("feature not implemented for this cap type");
+  function getOffset = error("feature not implemented for this cap type");
+  function setOffset = error("feature not implemented for this cap type");
+  function getBase = error("feature not implemented for this cap type");
+  function getTop = error("feature not implemented for this cap type");
+  function getLength = error("feature not implemented for this cap type");
+  function isInBounds = error("feature not implemented for this cap type");
+  function setBounds = error("feature not implemented for this cap type");
+  function nullWithAddr = error("feature not implemented for this cap type");
+  function almightyCap = error("feature not implemented for this cap type");
+  function nullCap = error("feature not implemented for this cap type");
+endinstance
+
+instance CHERICap #(CapReg, 18, 64);
+  function isValidCap = error("feature not implemented for this cap type");
+  function setValidCap = error("feature not implemented for this cap type");
+  function getHardPerms = error("feature not implemented for this cap type");
+  function setHardPerms = error("feature not implemented for this cap type");
+  function getSoftPerms = error("feature not implemented for this cap type");
+  function setSoftPerms = error("feature not implemented for this cap type");
+  function getKind = error("feature not implemented for this cap type");
+  function getType = error("feature not implemented for this cap type");
+  function setType = error("feature not implemented for this cap type");
+  function getAddr = error("feature not implemented for this cap type");
+  function setAddr = error("feature not implemented for this cap type");
+  function getOffset = error("feature not implemented for this cap type");
+  function setOffset = error("feature not implemented for this cap type");
+  function getBase = error("feature not implemented for this cap type");
+  function getTop = error("feature not implemented for this cap type");
+  function getLength = error("feature not implemented for this cap type");
+  function isInBounds = error("feature not implemented for this cap type");
+  function setBounds = error("feature not implemented for this cap type");
+  function nullWithAddr = error("feature not implemented for this cap type");
+  function almightyCap = defaultCapFat;
+  function nullCap = null_cap;
+endinstance
+
+instance CHERICap #(CapPipe, 18, 64);
+
+  function isValidCap (x) = tpl_1(x).isCapability;
+
+  function CapPipe setValidCap (CapPipe cap, Bool tag);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    capReg.isCapability = tag;
+    return tuple2(capReg, tempFields);
+  endfunction
+
+  function HardPerms getHardPerms (CapPipe cap);
+    let capReg = tpl_1(cap);
+    return HardPerms {
+      accessSysRegs: capReg.perms.hard.acces_sys_regs,
+      permitUnseal: capReg.perms.hard.permit_unseal,
+      permitCCall: capReg.perms.hard.permit_ccall,
+      permitSeal: capReg.perms.hard.permit_seal,
+      permitStoreLocalCap: capReg.perms.hard.permit_store_ephemeral_cap,
+      permitStoreCap: capReg.perms.hard.permit_store_cap,
+      permitLoadCap: capReg.perms.hard.permit_load_cap,
+      permitStore: capReg.perms.hard.permit_store,
+      permitLoad: capReg.perms.hard.permit_load,
+      permitExecute: capReg.perms.hard.permit_execute,
+      global: capReg.perms.hard.non_ephemeral
+    };
+  endfunction
+
+  function CapPipe setHardPerms (CapPipe cap, HardPerms perms);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    capReg.perms.hard = HPerms {
+      reserved: ?,
+      acces_sys_regs: perms.accessSysRegs,
+      permit_unseal: perms.accessSysRegs,
+      permit_ccall: perms.accessSysRegs,
+      permit_seal: perms.accessSysRegs,
+      permit_store_ephemeral_cap: perms.accessSysRegs,
+      permit_store_cap: perms.accessSysRegs,
+      permit_load_cap: perms.accessSysRegs,
+      permit_store: perms.accessSysRegs,
+      permit_load: perms.accessSysRegs,
+      permit_execute: perms.accessSysRegs,
+      non_ephemeral: perms.accessSysRegs
+    };
+    return tuple2(capReg, tempFields);
+  endfunction
+
+  function SoftPerms getSoftPerms (CapPipe cap);
+    let capReg = tpl_1(cap);
+    return zeroExtend(capReg.perms.soft);
+  endfunction
+
+  function CapPipe setSoftPerms (CapPipe cap, SoftPerms perms);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    capReg.perms.soft = truncate(perms);
+    return tuple2(capReg, tempFields);
+  endfunction
+
+  function Kind getKind (CapPipe cap);
+    let capReg = tpl_1(cap);
+    case (capReg.otype)
+      otype_unsealed: return UNSEALED;
+      otype_sentry: return SENTRY;
+      default: return (capReg.otype <= otype_max) ? SEALED_WITH_TYPE : RES0;
+    endcase
+  endfunction
+
+  function getType (x) = getType(tpl_1(x)).d;
+
+  function Exact#(CapPipe) setType (CapPipe cap, Bit #(18) otype);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    if (otype == -1) begin
+      capReg = unseal(capReg, ?);
+    end else begin
+      capReg = seal(capReg, ?, VnD {v: True, d:otype});
+    end
+    return Exact {
+      exact: True,
+      value: tuple2(capReg, tempFields)
+    };
+  endfunction
+
+  function getAddr (x) = truncate(getAddress(tpl_1(x)));
+
+  function Exact#(CapPipe) setAddr (CapPipe cap, Bit#(64) address);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    capReg = setAddress(capReg, zeroExtend(address), tempFields);
+    return Exact {exact: capReg.isCapability, value: tuple2(capReg, getTempFields(capReg))};
+  endfunction
+
+  function getOffset (x) = getOffsetFat(tpl_1(x), tpl_2(x));
+
+  function Exact#(CapPipe) setOffset (CapPipe cap, Bit#(64) offset);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    capReg = incOffset(capReg, ?, zeroExtend(offset), tempFields, True); //TODO split into separate incOffset and setOffset functions?
+    return Exact {exact: capReg.isCapability, value: tuple2(capReg, getTempFields(capReg))};
+  endfunction
+
+  function Bit#(64) getBase (CapPipe cap);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    return truncate(getBotFat(capReg, tempFields));
+  endfunction
+
+  function Bit#(65) getTop (CapPipe cap);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    return truncate(getTopFat(capReg, tempFields));
+  endfunction
+
+  function Bit#(65) getLength (CapPipe cap);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    return truncate(getLengthFat(capReg, tempFields));
+  endfunction
+
+  function Bool isInBounds (CapPipe cap, Bool inclusive);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    return capInBounds(capReg, tempFields, inclusive);
+  endfunction
+
+  function Exact#(CapPipe) setBounds (CapPipe cap, Bit#(64) length);
+    let capReg = tpl_1(cap);
+    let tempFields = tpl_2(cap);
+    match {.result, .exact} = setBoundsFat(capReg, length);
+    return Exact {exact: exact, value: tuple2(result, getTempFields(result))};
+  endfunction
+
+  function CapPipe nullWithAddr (Bit#(64) addr);
+    let res = setAddress (nullCap, zeroExtend(addr), getTempFields(nullCap));
+    return tuple2(res, getTempFields(res));
+  endfunction
+
+  function almightyCap = tuple2(defaultCapFat, getTempFields(defaultCapFat));
+
+  function nullCap = tuple2(nullCap, getTempFields(nullCap));
+
+endinstance
+
+instance Cast#(CapMem, CapReg);
+  function CapReg cast (CapMem thin);
+    return unpackCap(thin);
+  endfunction
+endinstance
+
+instance Cast#(CapReg, CapMem);
+  function CapMem cast (CapReg fat);
+     return pack(packCap(fat));
+  endfunction
+endinstance
+
+instance Cast#(CapReg, CapPipe);
+  function CapPipe cast (CapReg thin);
+    return tuple2(thin, getTempFields(thin));
+  endfunction
+endinstance
+
+instance Cast#(CapPipe, CapReg);
+  function CapReg cast (CapPipe fat);
+    return tpl_1(fat);
+  endfunction
+endinstance
+
+instance Cast#(Bit#(129), CapPipe);
+  function cast(x);
+    CapReg fat = cast(x);
+    return tuple2(fat, getTempFields(fat));
+  endfunction
+endinstance
+
 endpackage

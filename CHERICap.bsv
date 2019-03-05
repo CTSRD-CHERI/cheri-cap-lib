@@ -129,7 +129,12 @@ typeclass CHERICap#(type t, numeric type ot, numeric type n)
   function Bit#(TAdd#(n, 1)) getLength (t cap);
 
   // Assertion that address is between base and top
-  function Bool isInBounds (t cap, Bool inclusive);
+  function Bool isInBounds (t cap, Bool isTopIncluded);
+    Bool isNotTooHigh = isTopIncluded ? zeroExtend(getAddr(cap)) <= getTop(cap)
+                                      : zeroExtend(getAddr(cap)) < getTop(cap);
+    Bool isNotTooLow = getAddr(cap) >= getBase(cap);
+    return isNotTooLow && isNotTooHigh;
+  endfunction
 
   // Set the length of the capability. Inexact: result length may be different to requested
   function Exact#(t) setBounds (t cap, Bit#(n) length);
@@ -154,12 +159,12 @@ function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, n));
          $format(" Length: 0x%0x", getLength(cap));
 endfunction
 
-typeclass Cast #(type src, type dest);
+typeclass Cast#(type src, type dest);
   function dest cast (src x);
 endtypeclass
 
-instance Cast #(t, t);
-    function t cast (t x) = x;
+instance Cast#(t, t);
+  function cast = id;
 endinstance
 
 endpackage
