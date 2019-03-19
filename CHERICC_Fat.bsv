@@ -889,16 +889,16 @@ instance CHERICap #(CapPipe, 18, 64);
       reserved: ?,
       permit_set_CID: perms.permitSetCID,
       acces_sys_regs: perms.accessSysRegs,
-      permit_unseal: perms.accessSysRegs,
-      permit_ccall: perms.accessSysRegs,
-      permit_seal: perms.accessSysRegs,
-      permit_store_ephemeral_cap: perms.accessSysRegs,
-      permit_store_cap: perms.accessSysRegs,
-      permit_load_cap: perms.accessSysRegs,
-      permit_store: perms.accessSysRegs,
-      permit_load: perms.accessSysRegs,
-      permit_execute: perms.accessSysRegs,
-      non_ephemeral: perms.accessSysRegs
+      permit_unseal: perms.permitUnseal,
+      permit_ccall: perms.permitCCall,
+      permit_seal: perms.permitSeal,
+      permit_store_ephemeral_cap: perms.permitStoreLocalCap,
+      permit_store_cap: perms.permitStoreCap,
+      permit_load_cap: perms.permitLoadCap,
+      permit_store: perms.permitStore,
+      permit_load: perms.permitLoad,
+      permit_execute: perms.permitExecute,
+      non_ephemeral: perms.global
     };
     return cap;
   endfunction
