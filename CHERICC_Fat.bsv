@@ -802,7 +802,10 @@ typedef Bit#(129) CapMem;
 
 typedef CapFat CapReg;
 
-typedef Tuple2#(CapFat, TempFields) CapPipe;
+typedef struct {
+  CapFat capFat;
+  TempFields tempFields;
+} CapPipe deriving (Bits, FShow);
 
 instance CHERICap #(CapMem, 18, 64);
   function isValidCap = error("feature not implemented for this cap type");
@@ -854,36 +857,31 @@ endinstance
 
 instance CHERICap #(CapPipe, 18, 64);
 
-  function isValidCap (x) = tpl_1(x).isCapability;
+  function isValidCap (x) = x.capFat.isCapability;
 
   function CapPipe setValidCap (CapPipe cap, Bool tag);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
-    capReg.isCapability = tag;
-    return tuple2(capReg, tempFields);
+    cap.capFat.isCapability = tag;
+    return cap;
   endfunction
 
   function HardPerms getHardPerms (CapPipe cap);
-    let capReg = tpl_1(cap);
     return HardPerms {
-      accessSysRegs: capReg.perms.hard.acces_sys_regs,
-      permitUnseal: capReg.perms.hard.permit_unseal,
-      permitCCall: capReg.perms.hard.permit_ccall,
-      permitSeal: capReg.perms.hard.permit_seal,
-      permitStoreLocalCap: capReg.perms.hard.permit_store_ephemeral_cap,
-      permitStoreCap: capReg.perms.hard.permit_store_cap,
-      permitLoadCap: capReg.perms.hard.permit_load_cap,
-      permitStore: capReg.perms.hard.permit_store,
-      permitLoad: capReg.perms.hard.permit_load,
-      permitExecute: capReg.perms.hard.permit_execute,
-      global: capReg.perms.hard.non_ephemeral
+      accessSysRegs: cap.capFat.perms.hard.acces_sys_regs,
+      permitUnseal: cap.capFat.perms.hard.permit_unseal,
+      permitCCall: cap.capFat.perms.hard.permit_ccall,
+      permitSeal: cap.capFat.perms.hard.permit_seal,
+      permitStoreLocalCap: cap.capFat.perms.hard.permit_store_ephemeral_cap,
+      permitStoreCap: cap.capFat.perms.hard.permit_store_cap,
+      permitLoadCap: cap.capFat.perms.hard.permit_load_cap,
+      permitStore: cap.capFat.perms.hard.permit_store,
+      permitLoad: cap.capFat.perms.hard.permit_load,
+      permitExecute: cap.capFat.perms.hard.permit_execute,
+      global: cap.capFat.perms.hard.non_ephemeral
     };
   endfunction
 
   function CapPipe setHardPerms (CapPipe cap, HardPerms perms);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
-    capReg.perms.hard = HPerms {
+    cap.capFat.perms.hard = HPerms {
       reserved: ?,
       acces_sys_regs: perms.accessSysRegs,
       permit_unseal: perms.accessSysRegs,
@@ -897,103 +895,85 @@ instance CHERICap #(CapPipe, 18, 64);
       permit_execute: perms.accessSysRegs,
       non_ephemeral: perms.accessSysRegs
     };
-    return tuple2(capReg, tempFields);
+    return cap;
   endfunction
 
   function SoftPerms getSoftPerms (CapPipe cap);
-    let capReg = tpl_1(cap);
-    return zeroExtend(capReg.perms.soft);
+    return zeroExtend(cap.capFat.perms.soft);
   endfunction
 
   function CapPipe setSoftPerms (CapPipe cap, SoftPerms perms);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
-    capReg.perms.soft = truncate(perms);
-    return tuple2(capReg, tempFields);
+    cap.capFat.perms.soft = truncate(perms);
+    return cap;
   endfunction
 
   function Kind getKind (CapPipe cap);
-    let capReg = tpl_1(cap);
-    case (capReg.otype)
+    case (cap.capFat.otype)
       otype_unsealed: return UNSEALED;
       otype_sentry: return SENTRY;
-      default: return (capReg.otype <= otype_max) ? SEALED_WITH_TYPE : RES0;
+      default: return (cap.capFat.otype <= otype_max) ? SEALED_WITH_TYPE : RES0;
     endcase
   endfunction
 
-  function getType (x) = getType(tpl_1(x)).d;
+  function getType (x) = getType(x.capFat).d;
 
   function Exact#(CapPipe) setType (CapPipe cap, Bit #(18) otype);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
     if (otype == -1) begin
-      capReg = unseal(capReg, ?);
+      cap.capFat = unseal(cap.capFat, ?);
     end else begin
-      capReg = seal(capReg, ?, VnD {v: True, d:otype});
+      cap.capFat = seal(cap.capFat, ?, VnD {v: True, d:otype});
     end
     return Exact {
       exact: True,
-      value: tuple2(capReg, tempFields)
+      value: cap
     };
   endfunction
 
-  function getAddr (x) = truncate(getAddress(tpl_1(x)));
+  function getAddr (x) = truncate(getAddress(x.capFat));
 
   function Exact#(CapPipe) setAddr (CapPipe cap, Bit#(64) address);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
-    capReg = setAddress(capReg, zeroExtend(address), tempFields);
-    return Exact {exact: capReg.isCapability, value: tuple2(capReg, getTempFields(capReg))};
+    cap.capFat = setAddress(cap.capFat, zeroExtend(address), cap.tempFields);
+    return Exact {exact: cap.capFat.isCapability, value: cap};
   endfunction
 
-  function getOffset (x) = getOffsetFat(tpl_1(x), tpl_2(x));
+  function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
 
   function Exact#(CapPipe) setOffset (CapPipe cap, Bit#(64) offset);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
-    capReg = incOffset(capReg, ?, zeroExtend(offset), tempFields, True); //TODO split into separate incOffset and setOffset functions?
-    return Exact {exact: capReg.isCapability, value: tuple2(capReg, getTempFields(capReg))};
+    let result = incOffset(cap.capFat, ?, zeroExtend(offset), cap.tempFields, True); //TODO split into separate incOffset and setOffset functions?
+    cap.capFat = result;
+    cap.tempFields = getTempFields(cap.capFat);
+    return Exact {exact: isValidCap(result), value: cap};
   endfunction
 
   function Bit#(64) getBase (CapPipe cap);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
-    return truncate(getBotFat(capReg, tempFields));
+    return truncate(getBotFat(cap.capFat, cap.tempFields));
   endfunction
 
   function Bit#(65) getTop (CapPipe cap);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
-    return truncate(getTopFat(capReg, tempFields));
+    return truncate(getTopFat(cap.capFat, cap.tempFields));
   endfunction
 
   function Bit#(65) getLength (CapPipe cap);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
-    return truncate(getLengthFat(capReg, tempFields));
+    return truncate(getLengthFat(cap.capFat, cap.tempFields));
   endfunction
 
   function Bool isInBounds (CapPipe cap, Bool inclusive);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
-    return capInBounds(capReg, tempFields, inclusive);
+    return capInBounds(cap.capFat, cap.tempFields, inclusive);
   endfunction
 
   function Exact#(CapPipe) setBounds (CapPipe cap, Bit#(64) length);
-    let capReg = tpl_1(cap);
-    let tempFields = tpl_2(cap);
-    match {.result, .exact} = setBoundsFat(capReg, length);
-    return Exact {exact: exact, value: tuple2(result, getTempFields(result))};
+    match {.result, .exact} = setBoundsFat(cap.capFat, length);
+    return Exact {exact: exact, value: CapPipe {capFat: result, tempFields: getTempFields(result)}};
   endfunction
 
   function CapPipe nullWithAddr (Bit#(64) addr);
     let res = setAddress (nullCap, zeroExtend(addr), getTempFields(nullCap));
-    return tuple2(res, getTempFields(res));
+    return CapPipe {capFat: res, tempFields: getTempFields(res)};
   endfunction
 
-  function almightyCap = tuple2(defaultCapFat, getTempFields(defaultCapFat));
+  function almightyCap = CapPipe { capFat: defaultCapFat, tempFields: getTempFields(defaultCapFat) };
 
-  function nullCap = tuple2(nullCap, getTempFields(nullCap));
+  function nullCap = CapPipe { capFat: nullCap, tempFields: getTempFields(nullCap) };
 
 endinstance
 
@@ -1005,26 +985,33 @@ endinstance
 
 instance Cast#(CapReg, CapMem);
   function CapMem cast (CapReg fat);
-     return pack(packCap(fat));
+    return packCap(fat);
   endfunction
 endinstance
 
 instance Cast#(CapReg, CapPipe);
   function CapPipe cast (CapReg thin);
-    return tuple2(thin, getTempFields(thin));
+    return CapPipe { capFat: thin, tempFields: getTempFields(thin) };
   endfunction
 endinstance
 
 instance Cast#(CapPipe, CapReg);
   function CapReg cast (CapPipe fat);
-    return tpl_1(fat);
+    return fat.capFat;
   endfunction
 endinstance
 
-instance Cast#(Bit#(129), CapPipe);
+instance Cast#(CapMem, CapPipe);
   function cast(x);
     CapReg fat = cast(x);
-    return tuple2(fat, getTempFields(fat));
+    return cast(fat);
+  endfunction
+endinstance
+
+instance Cast#(CapPipe, CapMem);
+  function cast(x);
+    CapReg fat = cast(x);
+    return cast(fat);
   endfunction
 endinstance
 
