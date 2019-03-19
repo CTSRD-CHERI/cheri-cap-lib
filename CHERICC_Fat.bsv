@@ -830,6 +830,7 @@ instance CHERICap #(CapMem, 18, 64);
   function nullWithAddr = error("feature not implemented for this cap type");
   function almightyCap = error("feature not implemented for this cap type");
   function nullCap = error("feature not implemented for this cap type");
+  function validAsType = error("feature not implemented for this cap type");
 endinstance
 
 instance CHERICap #(CapReg, 18, 64);
@@ -854,6 +855,7 @@ instance CHERICap #(CapReg, 18, 64);
   function nullWithAddr = error("feature not implemented for this cap type");
   function almightyCap = defaultCapFat;
   function nullCap = null_cap;
+  function validAsType = error("feature not implemented for this cap type");
 endinstance
 
 instance CHERICap #(CapPipe, 18, 64);
@@ -978,6 +980,11 @@ instance CHERICap #(CapPipe, 18, 64);
 
   function nullCap = CapPipe { capFat: nullCap, tempFields: getTempFields(nullCap) };
 
+  function Bool validAsType (CapPipe dummy, Bit#(64) checkType);
+      UInt#(64) checkTypeUnsigned = unpack(checkType);
+      UInt#(64) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
+      return checkTypeUnsigned <= otypeMaxUnsigned;
+  endfunction
 endinstance
 
 instance Cast#(CapMem, CapReg);

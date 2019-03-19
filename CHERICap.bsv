@@ -151,6 +151,9 @@ typeclass CHERICap#(type t, numeric type ot, numeric type n)
   // Return the null capability
   function t nullCap;
 
+  // Check if a type is valid
+  function Bool validAsType (t dummy, Bit#(n) checkType);
+
 endtypeclass
 
 function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, n));
