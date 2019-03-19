@@ -94,6 +94,7 @@ typedef Bit#(CapAddressW) CapAddress;
 // The Hardware permissions type
 typedef struct {
     Bool reserved;
+    Bool permit_set_CID;
     Bool acces_sys_regs;
     Bool permit_unseal;
     Bool permit_ccall;
@@ -866,6 +867,7 @@ instance CHERICap #(CapPipe, 18, 64);
 
   function HardPerms getHardPerms (CapPipe cap);
     return HardPerms {
+      permitSetCID: cap.capFat.perms.hard.permit_set_CID,
       accessSysRegs: cap.capFat.perms.hard.acces_sys_regs,
       permitUnseal: cap.capFat.perms.hard.permit_unseal,
       permitCCall: cap.capFat.perms.hard.permit_ccall,
@@ -883,6 +885,7 @@ instance CHERICap #(CapPipe, 18, 64);
   function CapPipe setHardPerms (CapPipe cap, HardPerms perms);
     cap.capFat.perms.hard = HPerms {
       reserved: ?,
+      permit_set_CID: perms.permitSetCID,
       acces_sys_regs: perms.accessSysRegs,
       permit_unseal: perms.accessSysRegs,
       permit_ccall: perms.accessSysRegs,

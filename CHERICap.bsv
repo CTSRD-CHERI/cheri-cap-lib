@@ -35,6 +35,7 @@ package CHERICap;
 
 typedef Bit#(16) SoftPerms;
 typedef struct {
+  Bool     permitSetCID;
   Bool     accessSysRegs;
   Bool     permitUnseal;
   Bool     permitCCall;
@@ -95,7 +96,7 @@ typeclass CHERICap#(type t, numeric type ot, numeric type n)
   function t setSoftPerms (t cap, SoftPerms softperms);
   // Get the architectural permissions
   function Bit#(31) getPerms (t cap) =
-    zeroExtend({pack(getSoftPerms(cap)), 4'h0, pack(getHardPerms(cap))});
+    zeroExtend({pack(getSoftPerms(cap)), 3'h0, pack(getHardPerms(cap))});
   // Set the architectural permissions
   function t setPerms (t cap, Bit#(31) perms) =
     setSoftPerms(setHardPerms(cap, unpack(perms[11:0])), unpack(truncate(perms[30:15])));
