@@ -349,7 +349,7 @@ endfunction
 
 function Bool boundsCheck(CapFat cap, Bit#(64) off, TempFields tf);
     Bit#(66) bo = zeroExtend(off);
-    cap = incOffset(cap, cap.address+truncate(bo), off, tf, False);
+    cap = incOffset(cap, cap.address+truncate(bo), off, tf, False).d;
     return cap.isCapability && capInBounds(cap, tf, False);
 endfunction
 
@@ -476,7 +476,7 @@ function CapFat unseal(CapFat cap, x _);
         ret.otype = otype_unsealed;
         return ret;
 endfunction
-function CapFat incOffset(CapFat cap, LCapAddress pointer, Bit#(64) offset/*this is the increment in inc offset, and the offset in set offset*/, TempFields tf, Bool setOffset);
+function VnD#(CapFat) incOffset(CapFat cap, LCapAddress pointer, Bit#(64) offset/*this is the increment in inc offset, and the offset in set offset*/, TempFields tf, Bool setOffset);
 // NOTE:
 // The 'offset' argument is the "increment" value when setOffset is false,
 // and the actual "offset" value when setOffset is true.
@@ -593,7 +593,7 @@ function CapFat incOffset(CapFat cap, LCapAddress pointer, Bit#(64) offset/*this
         if (!inBounds) ret.isCapability = False;//nullifyCap(ret);
 
         // return updated / invalid capability
-        return ret;
+        return VnD {v: inBounds, d: ret};
 endfunction
 function CapFat setAddress(CapFat cap, LCapAddress address, TempFields tf);
         CapFat ret = cap;
@@ -945,9 +945,9 @@ instance CHERICap #(CapPipe, 18, 64);
 
   function Exact#(CapPipe) setOffset (CapPipe cap, Bit#(64) offset);
     let result = incOffset(cap.capFat, ?, zeroExtend(offset), cap.tempFields, True); //TODO split into separate incOffset and setOffset functions?
-    cap.capFat = result;
+    cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
-    return Exact {exact: isValidCap(result), value: cap};
+    return Exact {exact: result.v, value: cap};
   endfunction
 
   function Bit#(64) getBase (CapPipe cap);
