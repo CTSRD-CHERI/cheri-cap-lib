@@ -96,6 +96,9 @@ typeclass CHERICap#(type t, numeric type ot, numeric type n)
   // Get the architectural permissions
   function Bit#(31) getPerms (t cap) =
     zeroExtend({pack(getSoftPerms(cap)), 4'h0, pack(getHardPerms(cap))});
+  // Set the architectural permissions
+  function t setPerms (t cap, Bit#(31) perms) =
+    setSoftPerms(setHardPerms(cap, unpack(perms[11:0])), unpack(truncate(perms[30:15])));
 
   // Get the kind of the capability, i.e. whether it is sealed, sentry, unsealed, ...
   function Kind getKind (t cap);
