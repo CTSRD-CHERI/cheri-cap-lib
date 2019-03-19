@@ -32,6 +32,32 @@ package CHERICC_Fat;
 import DefaultValue :: *;
 import CHERICap     :: *;
 
+export CapMem;
+export CapReg;
+export CapPipe;
+
+// -----
+// Auxiliary requried imports. TODO find a way around this?
+
+export CapFat;
+export MW;
+export OTypeW;
+export Perms;
+export ResW;
+export LCapAddress;
+export Format;
+export TempFields;
+export Bounds;
+export UPermW;
+export CapW;
+export ExpW;
+export CapAddressW;
+export CBoundsW;
+export HPerms;
+export PermsW;
+export Exp;
+export MetaInfo;
+
 // ===============================================================================
 
 typedef struct {
