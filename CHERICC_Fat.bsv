@@ -250,13 +250,15 @@ Bool imprecise = True;
 function LCapAddress getBotFat(CapFat cap, TempFields tf);
     // First, construct a full length value with the base bits and the
     // correction bits above, and shift that value to the appropriate spot.
-    LCapAddress addBase = signExtend({pack(tf.baseCorrection), cap.bounds.baseBits}) << cap.bounds.exp;
+    CapAddress addBase = signExtend({pack(tf.baseCorrection), cap.bounds.baseBits}) << cap.bounds.exp;
     // Build a mask on the high bits of a full length value to extract the high
     // bits of the address.
-    Bit#(TSub#(SizeOf#(LCapAddress),MW)) mask = ~0 << cap.bounds.exp;
+    Bit#(TSub#(SizeOf#(CapAddress),MW)) mask = ~0 << cap.bounds.exp;
     // Extract the high bits of the address (and append the implied zeros at the
     // bottom), and add with the previously prepared value.
-    return {truncateLSB(cap.address)&mask,0} + addBase;
+    CapAddress adr = truncate(cap.address); // Trim top bits of address.
+    CapAddress bot = {truncateLSB(adr)&mask,0} + addBase;
+    return zeroExtend(bot);
 endfunction
 function LCapAddress getTopFat(CapFat cap, TempFields tf);
     // First, construct a full length value with the top bits and the
@@ -265,9 +267,18 @@ function LCapAddress getTopFat(CapFat cap, TempFields tf);
     // Build a mask on the high bits of a full length value to extract the high
     // bits of the address.
     Bit#(TSub#(SizeOf#(LCapAddress),MW)) mask = ~0 << cap.bounds.exp;
+    Bool baseBelow = (tf.addrHi && !tf.baseHi);
+    Bool upperBitsZero = (truncateLSB(cap.address) & mask)==0;
+    Bit#(2) topBitsOfAddress = (baseBelow && upperBitsZero) ? 1:0;
+    cap.address = {topBitsOfAddress,truncate(cap.address)};
     // Extract the high bits of the address (and append the implied zeros at the
     // bottom), and add with the previously prepared value.
-    return {truncateLSB(cap.address)&mask,0} + addTop;
+    LCapAddress ret = {truncateLSB(cap.address)&mask,0} + addTop;
+    // Zero the top two bits of top is top and base are in the same region as the base
+    // can never have the top bit set. This solves the wrap-around at the bottom of
+    // the address space.
+    if ((tf.baseHi == tf.topHi) && (cap.bounds.exp < (resetExp - 1))) ret = ret & {2'b0,-1};
+    return ret;
 endfunction
 function LCapAddress getLengthFat(CapFat cap, TempFields tf);
     // Get the top and base bits with the 2 correction bits prepended
@@ -329,6 +340,8 @@ function CapFat nullifyCap(CapFat cap);
     CapAddress tmpAddr = truncate(cap.address);
     ret.addrBits    = {2'b0,truncateLSB(tmpAddr)};
     ret.address     = cap.address;
+    //CapFat ret = cap;
+    //ret.isCapability = False;
     return ret;
 endfunction
 function CapFat pccJumpUpdate(CapFat pcc, LCapAddress fullBot);
