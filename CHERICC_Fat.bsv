@@ -267,17 +267,21 @@ function LCapAddress getTopFat(CapFat cap, TempFields tf);
     // Build a mask on the high bits of a full length value to extract the high
     // bits of the address.
     Bit#(TSub#(SizeOf#(LCapAddress),MW)) mask = ~0 << cap.bounds.exp;
-    Bool baseBelow = (tf.addrHi && !tf.baseHi);
-    Bool upperBitsZero = (truncateLSB(cap.address) & mask)==0;
-    Bit#(2) topBitsOfAddress = (baseBelow && upperBitsZero) ? 1:0;
-    cap.address = {topBitsOfAddress,truncate(cap.address)};
     // Extract the high bits of the address (and append the implied zeros at the
     // bottom), and add with the previously prepared value.
     LCapAddress ret = {truncateLSB(cap.address)&mask,0} + addTop;
-    // Zero the top two bits of top is top and base are in the same region as the base
-    // can never have the top bit set. This solves the wrap-around at the bottom of
-    // the address space.
-    if ((tf.baseHi == tf.topHi) && (cap.bounds.exp < (resetExp - 1))) ret = ret & {2'b0,-1};
+    // If the bottom and top are more than an address space away from eachother, invert
+    // the 64th/32nd bit of Top.  This corrects for errors that happen when the representable
+    // space wraps the address space.
+    Integer msbp = valueOf(CapAddressW) - 1;
+    ret[msbp+2] = 0;
+    Bit#(2) topTip = ret[msbp+1:msbp];
+    // Calculate the msb of the base.
+    CapAddress adr = truncate(cap.address);
+    Bit#(TSub#(SizeOf#(CapAddress),MW)) bot = truncateLSB(adr) + (signExtend(pack(tf.baseCorrection)) << cap.bounds.exp);    Bit#(1) botTip = msb(bot);
+    if (cap.bounds.exp == (resetExp - 1)) botTip = cap.bounds.baseBits[valueOf(MW)-2];
+    else if (cap.bounds.exp == (resetExp - 2)) botTip = cap.bounds.baseBits[valueOf(MW)-1];
+    if (cap.bounds.exp!=resetExp && (topTip - zeroExtend(botTip)) > 1) ret[msbp+1] = ~ret[msbp+1];
     return ret;
 endfunction
 function LCapAddress getLengthFat(CapFat cap, TempFields tf);
@@ -447,7 +451,7 @@ function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
         // void the return capability
         
         
-        // We need to round up Exp if the length is within 2 of the maximum and if it will increase.
+        // We need to round up Exp if the length is within 1 of the maximum and if it will increase.
         // The lomask for checking for potential overflow should mask all but the bottom bit of the mantissa.
         lmaskLo = lmask>>fromInteger(shiftAmount+1);
         Bool lengthMax = (len&(~lmaskLo))==(lmask&(~lmaskLo));
@@ -506,7 +510,7 @@ function VnD#(CapFat) incOffset(CapFat cap, LCapAddress pointer, Bit#(64) offset
         Exp e = cap.bounds.exp;
         // Updating the address of a capability requires checking that the new address
         // is still within representable bounds. For capabilities with big representable
-        // regions (with exponents >= resetExp), there is no representability issue.
+        // regions (with exponents >= resetExp-2), there is no representability issue.
         // For the other capabilities, the check consists of two steps:
         // - A "inRange" test
         // - A "inLimits" test
@@ -586,7 +590,7 @@ function VnD#(CapFat) incOffset(CapFat cap, LCapAddress pointer, Bit#(64) offset
 
         // Complete representable bounds check
         // -----------------------------------
-        Bool inBounds = (inRange && inLimits) || (e >= resetExp);
+        Bool inBounds = (inRange && inLimits) || (e >= (resetExp - 2));
 
         // Updating the return capability
         // ------------------------------
