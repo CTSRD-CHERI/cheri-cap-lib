@@ -449,7 +449,7 @@ function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
         
         // We need to round up Exp if the length is within 2 of the maximum and if it will increase.
         // The lomask for checking for potential overflow should mask all but the bottom bit of the mantissa.
-        lmaskLo = lmask>>fromInteger(shiftAmount);
+        lmaskLo = lmask>>fromInteger(shiftAmount+1);
         Bool lengthMax = (len&(~lmaskLo))==(lmask&(~lmaskLo));
         if(lengthMax && intExp && (lostSignificantLen || lostSignificantBase)) begin
           e = e+1;
