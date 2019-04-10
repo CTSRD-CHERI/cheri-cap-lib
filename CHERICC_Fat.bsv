@@ -293,10 +293,11 @@ function LCapAddress getTopFat(CapFat cap, TempFields tf);
     Bit#(2) topTip = ret[msbp+1:msbp];
     // Calculate the msb of the base.
     CapAddress adr = truncate(cap.address);
-    Bit#(TSub#(SizeOf#(CapAddress),MW)) bot = truncateLSB(adr) + (signExtend(pack(tf.baseCorrection)) << cap.bounds.exp);    Bit#(1) botTip = msb(bot);
+    Bit#(TSub#(SizeOf#(CapAddress),MW)) bot = truncateLSB(adr) + (signExtend(pack(tf.baseCorrection)) << cap.bounds.exp);
+    Bit#(1) botTip = msb(bot);
     if (cap.bounds.exp == (resetExp - 1)) botTip = cap.bounds.baseBits[valueOf(MW)-2];
     else if (cap.bounds.exp == (resetExp - 2)) botTip = cap.bounds.baseBits[valueOf(MW)-1];
-    if (cap.bounds.exp!=resetExp && (topTip - zeroExtend(botTip)) > 1) ret[msbp+1] = ~ret[msbp+1];
+    if (cap.bounds.exp<(resetExp-1) && (topTip - zeroExtend(botTip)) > 1) ret[msbp+1] = ~ret[msbp+1];
     return ret;
 endfunction
 function LCapAddress getLengthFat(CapFat cap, TempFields tf);
