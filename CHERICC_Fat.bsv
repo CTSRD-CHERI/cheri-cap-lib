@@ -42,6 +42,7 @@ export CapPipe;
 export CapFat;
 export MW;
 export OTypeW;
+export FlagsW;
 export Perms;
 export ResW;
 export LCapAddress;
@@ -67,11 +68,18 @@ typedef struct {
 
 // ===============================================================================
 
+`ifdef RISCV
+`define FLAGSW 1
+`else // MIPS format with 0-width flags width XXX
+`define FLAGSW 0
+`endif
+
 `ifdef CAP64
     typedef 0  UPermW;
     typedef 8  MW;
     typedef 6  ExpW;
     typedef 5  OTypeW;
+    typedef `FLAGSW FlagsW;
     typedef 32 CapAddressW;
     typedef 64 CapW;
 `else // CAP128 is default
@@ -79,6 +87,7 @@ typedef struct {
     typedef 14  MW;
     typedef 6   ExpW;
     typedef 18  OTypeW;
+    typedef `FLAGSW FlagsW;
     typedef 64  CapAddressW;
     typedef 128 CapW;
 `endif
@@ -119,6 +128,7 @@ typedef TSub#(CapW,TAdd#(CapAddressW,TAdd#(OTypeW,TAdd#(CBoundsW,PermsW)))) ResW
 typedef struct {
   Bool          isCapability;
   Perms         perms;
+  Bit#(FlagsW)  flags;
   Bit#(ResW)    reserved;
   Bit#(OTypeW)  otype;
   CBounds       bounds;
@@ -154,6 +164,7 @@ typedef struct {
   LCapAddress   address;
   Bit#(MW)      addrBits;
   Perms         perms;
+  Bit#(FlagsW)  flags;
   Bit#(ResW)    reserved;
   Bit#(OTypeW)  otype;
   Format        format;
@@ -164,6 +175,7 @@ typedef struct {
 function Fmt showArchitectural(CapFat cap) =
     $format("valid:%b", cap.isCapability)
     + $format(" perms:0x%x", getPerms(cap))
+    //+ $format(" flags:0x%x", getFlags(cap))
     + $format(" sealed:%b", isSealed(cap))
     + $format(" type:0x%x",getType(cap))
     + $format(" offset:0x%x", getOffsetFat(cap, getTempFields(cap)))
@@ -175,6 +187,7 @@ instance FShow#(CapFat);
     function Fmt fshow(CapFat cap) =
         $format("valid:%b", cap.isCapability)
         + $format(" perms:0x%x", getPerms(cap))
+        //+ $format(" flags:0x%x", getFlags(cap))
         + $format(" reserved:0x%x", cap.reserved)
         + $format(" format:", fshow(cap.format))
         + $format(" bounds:", fshow(cap.bounds))
@@ -201,6 +214,7 @@ function CapFat unpackCap(Capability thin);
     CapFat fat = defaultValue;
     fat.isCapability = memCap.isCapability;
     fat.perms        = memCap.perms;
+    fat.flags        = memCap.flags;
     fat.reserved     = memCap.reserved;
     fat.otype        = memCap.otype;
     match {.f, .b}   = decBounds(memCap.bounds);
@@ -222,6 +236,7 @@ function Capability packCap(CapFat fat);
   CapabilityInMemory thin = CapabilityInMemory{
       isCapability: fat.isCapability,
       perms: fat.perms,
+      flags: fat.flags,
       reserved: fat.reserved,
       otype: fat.otype,
       bounds: encBounds(fat.format,fat.bounds),
@@ -673,6 +688,7 @@ instance DefaultValue #(CapFat);
     defaultValue = CapFat {
         isCapability: True,
         perms       : unpack(~0),
+        flags       : 0,
         reserved    : 0,
         otype       : otype_unsealed,
         format      : EmbeddedExp,
@@ -685,6 +701,7 @@ endinstance
 CapFat null_cap = CapFat {
     isCapability: False,
     perms       : unpack(0),
+    flags       : 0,
     reserved    : 0,
     otype       : otype_unsealed,
     format      : EmbeddedExp,
@@ -699,6 +716,10 @@ CapFat null_cap = CapFat {
 // In memory representation //
 ////////////////////////////////////////////////////////////////////////////////
 /*
+XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX
+XXX Note that the Flags field does not currently appear in the drawing below
+XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX
+
                     Embedded Exp
 127___124_123_112_111_109_108__91__90_89_________________________78_77__________________________64
 |        |       |       |       |   |                             |                             |
@@ -825,9 +846,11 @@ typedef struct {
   TempFields tempFields;
 } CapPipe deriving (Bits, FShow);
 
-instance CHERICap #(CapMem, 18, 64);
+instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW);
   function isValidCap = error("feature not implemented for this cap type");
   function setValidCap = error("feature not implemented for this cap type");
+  function getFlags = error("feature not implemented for this cap type");
+  function setFlags = error("feature not implemented for this cap type");
   function getHardPerms = error("feature not implemented for this cap type");
   function setHardPerms = error("feature not implemented for this cap type");
   function getSoftPerms = error("feature not implemented for this cap type");
@@ -850,9 +873,11 @@ instance CHERICap #(CapMem, 18, 64);
   function validAsType = error("feature not implemented for this cap type");
 endinstance
 
-instance CHERICap #(CapReg, 18, 64);
+instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW);
   function isValidCap = error("feature not implemented for this cap type");
   function setValidCap = error("feature not implemented for this cap type");
+  function getFlags = error("feature not implemented for this cap type");
+  function setFlags = error("feature not implemented for this cap type");
   function getHardPerms = error("feature not implemented for this cap type");
   function setHardPerms = error("feature not implemented for this cap type");
   function getSoftPerms = error("feature not implemented for this cap type");
@@ -875,12 +900,18 @@ instance CHERICap #(CapReg, 18, 64);
   function validAsType = error("feature not implemented for this cap type");
 endinstance
 
-instance CHERICap #(CapPipe, 18, 64);
+instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW);
 
   function isValidCap (x) = x.capFat.isCapability;
 
   function CapPipe setValidCap (CapPipe cap, Bool tag);
     cap.capFat.isCapability = tag;
+    return cap;
+  endfunction
+
+  function getFlags (cap) = cap.capFat.flags;
+  function setFlags (cap, flags);
+    cap.capFat.flags = flags;
     return cap;
   endfunction
 

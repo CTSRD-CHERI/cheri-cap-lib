@@ -78,13 +78,18 @@ typedef enum {
   SEALED_WITH_TYPE
 } Kind deriving (Eq, FShow);
 
-typeclass CHERICap#(type t, numeric type ot, numeric type n)
-  dependencies (t determines (ot, n));
+typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n)
+  dependencies (t determines (ot, flg, n));
 
   // Return whether the Capability is valid
   function Bool isValidCap (t cap);
   // Set the capability as valid. All fields left unchanged
   function t setValidCap (t cap, Bool valid);
+
+  // Get the flags field
+  function Bit#(flg) getFlags (t cap);
+  // Set the flags field
+  function t setFlags (t cap, Bit#(flg) flags);
 
   // Get the hardware permissions
   function HardPerms getHardPerms (t cap);
@@ -156,7 +161,7 @@ typeclass CHERICap#(type t, numeric type ot, numeric type n)
 
 endtypeclass
 
-function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, n));
+function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, flg, n));
   return $format( "Valid: 0x%0x", isValidCap(cap)) +
          $format(" Perms: 0x%0x", getPerms(cap)) +
          $format(" Kind: ", fshow(getKind(cap))) +
