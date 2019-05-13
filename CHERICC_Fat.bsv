@@ -848,8 +848,15 @@ typedef struct {
 } CapPipe deriving (Bits, FShow);
 
 instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW);
-  function isValidCap = error("feature not implemented for this cap type");
-  function setValidCap = error("feature not implemented for this cap type");
+  function isValidCap (x);
+    CapabilityInMemory capMem = unpack(x);
+    return capMem.isCapability;
+  endfunction
+  function setValidCap (x, v);
+    CapabilityInMemory capMem = unpack(x);
+    capMem.isCapability = v;
+    return pack(capMem);
+  endfunction
   function getFlags = error("feature not implemented for this cap type");
   function setFlags = error("feature not implemented for this cap type");
   function getHardPerms = error("feature not implemented for this cap type");
