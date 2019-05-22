@@ -123,7 +123,7 @@ typedef struct {
 } Perms deriving(Bits, Eq, FShow);
 typedef SizeOf#(Perms) PermsW;
 // The reserved bits
-typedef TSub#(CapW,TAdd#(CapAddressW,TAdd#(OTypeW,TAdd#(CBoundsW,PermsW)))) ResW;
+typedef TSub#(CapW,TAdd#(CapAddressW,TAdd#(OTypeW,TAdd#(CBoundsW,TAdd#(PermsW, FlagsW))))) ResW;
 // The full capability structure, including the "tag" bit.
 typedef struct {
   Bool          isCapability;
