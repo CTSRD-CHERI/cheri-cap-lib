@@ -838,7 +838,7 @@ endfunction
 // ===============================================================================
 // Typeclass instance for interface
 
-typedef Bit#(129) CapMem;
+typedef Bit#(TAdd#(1, CapW)) CapMem;
 
 typedef CapFat CapReg;
 
@@ -847,7 +847,7 @@ typedef struct {
   TempFields tempFields;
 } CapPipe deriving (Bits, FShow);
 
-instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW);
+instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW);
   function isValidCap (x);
     CapabilityInMemory capMem = unpack(x);
     return capMem.isCapability;
@@ -879,9 +879,11 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW);
   function almightyCap = error("feature not implemented for this cap type");
   function nullCap = error("feature not implemented for this cap type");
   function validAsType = error("feature not implemented for this cap type");
+  function fromMem = error("feature not implemented for this cap type");
+  function toMem = error("feature not implemented for this cap type");
 endinstance
 
-instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW);
+instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW);
   function isValidCap = error("feature not implemented for this cap type");
   function setValidCap = error("feature not implemented for this cap type");
   function getFlags = error("feature not implemented for this cap type");
@@ -906,9 +908,11 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW);
   function almightyCap = defaultCapFat;
   function nullCap = null_cap;
   function validAsType = error("feature not implemented for this cap type");
+  function fromMem = error("feature not implemented for this cap type");
+  function toMem = error("feature not implemented for this cap type");
 endinstance
 
-instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW);
+instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
 
   function isValidCap (x) = x.capFat.isCapability;
 
@@ -1041,6 +1045,11 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW);
       UInt#(64) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
       return checkTypeUnsigned <= otypeMaxUnsigned;
   endfunction
+
+  function fromMem (x) = cast(pack(x));
+
+  function toMem (x) = unpack(cast(x));
+
 endinstance
 
 instance Cast#(CapMem, CapReg);
