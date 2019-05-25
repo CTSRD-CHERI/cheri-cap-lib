@@ -1052,13 +1052,13 @@ endinstance
 
 instance Cast#(CapMem, CapReg);
   function CapReg cast (CapMem thin);
-    return unpackCap(thin);
+    return unpackCap(thin ^ packCap(null_cap));
   endfunction
 endinstance
 
 instance Cast#(CapReg, CapMem);
   function CapMem cast (CapReg fat);
-    return packCap(fat);
+    return packCap(fat) ^ packCap(null_cap);
   endfunction
 endinstance
 
