@@ -109,10 +109,9 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   // Get the kind of the capability, i.e. whether it is sealed, sentry, unsealed, ...
   function Kind getKind (t cap);
   // Helper methods for identifying specific kinds
-  function Bool isUnsealed (t cap) = getKind(cap) == UNSEALED;
   function Bool isSentry (t cap) = getKind(cap) == SENTRY;
   function Bool isSealedWithType (t cap) = getKind(cap) == SEALED_WITH_TYPE;
-  function Bool isSealed (t cap) = getKind(cap) == SEALED_WITH_TYPE || getKind(cap) == SENTRY;
+  function Bool isSealed (t cap) = getKind(cap) != UNSEALED;
 
   // Get the type field, including implicitly whether the cap is sealed/sentry
   function Bit#(ot) getType (t cap);
