@@ -127,8 +127,8 @@ typedef TSub#(CapW,TAdd#(CapAddressW,TAdd#(OTypeW,TAdd#(CBoundsW,TAdd#(PermsW, F
 typedef struct {
   Bool          isCapability;
   Perms         perms;
-  Bit#(FlagsW)  flags;
   Bit#(ResW)    reserved;
+  Bit#(FlagsW)  flags;
   Bit#(OTypeW)  otype;
   CBounds       bounds;
   CapAddress    address;
