@@ -627,7 +627,7 @@ function VnD#(CapFat) incOffset(CapFat cap, LCapAddress pointer, Bit#(64) offset
         // return updated / invalid capability
         return VnD {v: inBounds, d: ret};
 endfunction
-function CapFat setAddress(CapFat cap, LCapAddress address, TempFields tf);
+function VnD#(CapFat) setAddress(CapFat cap, LCapAddress address, TempFields tf);
         CapFat ret = cap;
         Exp e = cap.bounds.exp;
         ret.address = address;
@@ -658,8 +658,8 @@ function CapFat setAddress(CapFat cap, LCapAddress address, TempFields tf);
                               endcase;
         if (diff != expectedDiff) inRepBounds = False;
 
-        if (inRepBounds) ret.isCapability = False;
-        return ret;//ret:nullifyCap(ret);
+        if (!inRepBounds) ret.isCapability = False;
+        return VnD {v: inRepBounds, d: ret};//ret:nullifyCap(ret);
 endfunction
 
 ///////////////////////////////
@@ -995,8 +995,10 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
   function getAddr (x) = truncate(getAddress(x.capFat));
 
   function Exact#(CapPipe) setAddr (CapPipe cap, Bit#(64) address);
-    cap.capFat = setAddress(cap.capFat, zeroExtend(address), cap.tempFields);
-    return Exact {exact: cap.capFat.isCapability, value: cap};
+    let result = setAddress(cap.capFat, zeroExtend(address), cap.tempFields);
+    cap.capFat = result.d;
+    cap.tempFields = getTempFields(cap.capFat);
+    return Exact {exact: result.v, value: cap};
   endfunction
 
   function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
@@ -1030,7 +1032,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
   endfunction
 
   function CapPipe nullWithAddr (Bit#(64) addr);
-    let res = setAddress (nullCap, zeroExtend(addr), getTempFields(nullCap));
+    let res = setAddress(nullCap, zeroExtend(addr), getTempFields(nullCap)).d;
     return CapPipe {capFat: res, tempFields: getTempFields(res)};
   endfunction
 
