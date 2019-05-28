@@ -470,13 +470,16 @@ function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
         // The lomask for checking for potential overflow should mask all but the bottom bit of the mantissa.
         lmaskLo = lmask>>fromInteger(shiftAmount+1);
         Bool lengthMax = (len&(~lmaskLo))==(lmask&(~lmaskLo));
+        Bool resultExact = True;
         if(lengthMax && intExp && (lostSignificantLen || lostSignificantBase)) begin
           e = e+1;
           ret.bounds.topBits = (lostSignificantTopHigher) ? (newTopBitsHigher+'b1000):newTopBitsHigher;
           ret.bounds.baseBits = truncateLSB(newBaseBits);
+          if (lostSignificantBaseHigher || lostSignificantTopHigher) resultExact = False;
         end else begin
           ret.bounds.topBits = (lostSignificantTop) ? truncate(newTopBits+'b1000):truncate(newTopBits);
           ret.bounds.baseBits = truncate(newBaseBits);
+          if (lostSignificantBase || lostSignificantTop) resultExact = False;
         end
         
         
@@ -495,7 +498,7 @@ function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
         end
         
         // Return derived capability
-        return tuple2(ret, !(lostSignificantBaseHigher || lostSignificantTopHigher));
+        return tuple2(ret, resultExact);
 endfunction
 function CapFat seal(CapFat cap, TempFields tf, CType otype);
         CapFat ret = cap;
