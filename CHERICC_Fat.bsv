@@ -78,7 +78,7 @@ typedef struct {
     typedef 0  UPermW;
     typedef 8  MW;
     typedef 6  ExpW;
-    typedef 5  OTypeW;
+    typedef 4  OTypeW;
     typedef `FLAGSW FlagsW;
     typedef 32 CapAddressW;
     typedef 64 CapW;
@@ -91,7 +91,7 @@ typedef struct {
     typedef 64  CapAddressW;
     typedef 128 CapW;
 `endif
-typedef Bit#(64) Address;
+typedef Bit#(CapAddressW) Address;
 typedef TDiv#(ExpW,2)      HalfExpW;
 typedef TSub#(MW,HalfExpW) UpperMW;
 
@@ -336,9 +336,9 @@ function LCapAddress regToSignedLAddr(Address in);
 endfunction
 function Bool isSealed(CapFat cap) = (cap.otype != otype_unsealed);
 function CType getType(CapFat cap) = VnD{v: (cap.otype != otype_unsealed), d: cap.otype};
-function Bit#(64) getPerms(CapFat cap);
-    Bit#(15) hardPerms = zeroExtend(pack(cap.perms.hard));
-    Bit#(16) softPerms = zeroExtend(pack(cap.perms.soft));
+function Bit#(31) getPerms(CapFat cap);
+    Bit#(SizeOf#(HPerms)) hardPerms = zeroExtend(pack(cap.perms.hard));
+    Bit#(UPermW) softPerms = zeroExtend(pack(cap.perms.soft));
     return zeroExtend({softPerms,hardPerms});
 endfunction
 function TempFields getTempFields(CapFat cap) = getMetaInfo(cap);
@@ -379,8 +379,8 @@ function CapFat setCapPointer(CapFat cap, CapAddress pointer);
 endfunction
 // Only currently used for algorithm comparison.
 
-function Bool boundsCheck(CapFat cap, Bit#(64) off, TempFields tf);
-    Bit#(66) bo = zeroExtend(off);
+function Bool boundsCheck(CapFat cap, Bit#(CapAddressW) off, TempFields tf);
+    Bit#(TAdd#(CapAddressW,2)) bo = zeroExtend(off);
     cap = incOffset(cap, cap.address+truncate(bo), off, tf, False).d;
     return cap.isCapability && capInBounds(cap, tf, False);
 endfunction
@@ -511,7 +511,7 @@ function CapFat unseal(CapFat cap, x _);
         ret.otype = otype_unsealed;
         return ret;
 endfunction
-function VnD#(CapFat) incOffset(CapFat cap, LCapAddress pointer, Bit#(64) offset/*this is the increment in inc offset, and the offset in set offset*/, TempFields tf, Bool setOffset);
+function VnD#(CapFat) incOffset(CapFat cap, LCapAddress pointer, Bit#(CapAddressW) offset/*this is the increment in inc offset, and the offset in set offset*/, TempFields tf, Bool setOffset);
 // NOTE:
 // The 'offset' argument is the "increment" value when setOffset is false,
 // and the actual "offset" value when setOffset is true.
@@ -542,7 +542,7 @@ function VnD#(CapFat) incOffset(CapFat cap, LCapAddress pointer, Bit#(64) offset
         // significant bits in the high bits of 'offset', that is they are all ones or all
         // zeros.
         CapAddress offsetAddr = truncate(offset);
-        Bit#(TSub#(CapAddressW,MW)) signBits       = signExtend(offset[63]);
+        Bit#(TSub#(CapAddressW,MW)) signBits       = signExtend(offset[valueOf(TSub#(CapAddressW,1))]);
         Bit#(TSub#(CapAddressW,MW)) highOffsetBits = unpack(truncateLSB(offsetAddr));
         Bit#(TSub#(CapAddressW,MW)) highBitsfilter = -1 << e;
         highOffsetBits = (highOffsetBits ^ signBits) & highBitsfilter;
@@ -983,7 +983,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
 
   function getType (x) = getType(x.capFat).d;
 
-  function Exact#(CapPipe) setType (CapPipe cap, Bit #(18) otype);
+  function Exact#(CapPipe) setType (CapPipe cap, Bit #(OTypeW) otype);
     if (otype == -1) begin
       cap.capFat = unseal(cap.capFat, ?);
     end else begin
@@ -997,7 +997,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
 
   function getAddr (x) = truncate(getAddress(x.capFat));
 
-  function Exact#(CapPipe) setAddr (CapPipe cap, Bit#(64) address);
+  function Exact#(CapPipe) setAddr (CapPipe cap, Bit#(CapAddressW) address);
     let result = setAddress(cap.capFat, zeroExtend(address), cap.tempFields);
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
@@ -1006,22 +1006,22 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
 
   function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
 
-  function Exact#(CapPipe) setOffset (CapPipe cap, Bit#(64) offset);
+  function Exact#(CapPipe) setOffset (CapPipe cap, Bit#(CapAddressW) offset);
     let result = incOffset(cap.capFat, ?, zeroExtend(offset), cap.tempFields, True); //TODO split into separate incOffset and setOffset functions?
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
   endfunction
 
-  function Bit#(64) getBase (CapPipe cap);
+  function Bit#(CapAddressW) getBase (CapPipe cap);
     return truncate(getBotFat(cap.capFat, cap.tempFields));
   endfunction
 
-  function Bit#(65) getTop (CapPipe cap);
+  function Bit#(TAdd#(CapAddressW,1)) getTop (CapPipe cap);
     return truncate(getTopFat(cap.capFat, cap.tempFields));
   endfunction
 
-  function Bit#(65) getLength (CapPipe cap);
+  function Bit#(TAdd#(CapAddressW,1)) getLength (CapPipe cap);
     return truncate(getLengthFat(cap.capFat, cap.tempFields));
   endfunction
 
@@ -1029,12 +1029,12 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
     return capInBounds(cap.capFat, cap.tempFields, inclusive);
   endfunction
 
-  function Exact#(CapPipe) setBounds (CapPipe cap, Bit#(64) length);
+  function Exact#(CapPipe) setBounds (CapPipe cap, Bit#(CapAddressW) length);
     match {.result, .exact} = setBoundsFat(cap.capFat, length);
     return Exact {exact: exact, value: CapPipe {capFat: result, tempFields: getTempFields(result)}};
   endfunction
 
-  function CapPipe nullWithAddr (Bit#(64) addr);
+  function CapPipe nullWithAddr (Bit#(CapAddressW) addr);
     let res = setAddress(nullCap, zeroExtend(addr), getTempFields(nullCap)).d;
     return CapPipe {capFat: res, tempFields: getTempFields(res)};
   endfunction
@@ -1043,9 +1043,9 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
 
   function nullCap = CapPipe { capFat: nullCap, tempFields: getTempFields(nullCap) };
 
-  function Bool validAsType (CapPipe dummy, Bit#(64) checkType);
-      UInt#(64) checkTypeUnsigned = unpack(checkType);
-      UInt#(64) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
+  function Bool validAsType (CapPipe dummy, Bit#(CapAddressW) checkType);
+      UInt#(CapAddressW) checkTypeUnsigned = unpack(checkType);
+      UInt#(CapAddressW) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
       return checkTypeUnsigned <= otypeMaxUnsigned;
   endfunction
 
