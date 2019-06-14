@@ -68,7 +68,7 @@ endinstance
 typedef struct {
   Bool exact;
   t    value;
-} Exact #(type t);
+} Exact #(type t) deriving (Bits);
 
 typedef enum {
   UNSEALED,
@@ -76,7 +76,7 @@ typedef enum {
   RES0,
   RES1,
   SEALED_WITH_TYPE
-} Kind deriving (Eq, FShow);
+} Kind deriving (Bits, Eq, FShow);
 
 typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, numeric type mem_sz)
   dependencies (t determines (ot, flg, n, mem_sz));
