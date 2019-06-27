@@ -660,9 +660,9 @@ function VnD#(CapFat) setAddress(CapFat cap, LCapAddress address, TempFields tf)
                                   t2(False, False): return  0;
                               endcase;
         if (diff != expectedDiff) inRepBounds = False;
-
+        if (e >= resetExp - 3) inRepBounds = True;
         if (!inRepBounds) ret.isCapability = False;
-        return VnD {v: inRepBounds, d: ret};//ret:nullifyCap(ret);
+        return VnD {v: inRepBounds, d: ret};
 endfunction
 
 ///////////////////////////////
