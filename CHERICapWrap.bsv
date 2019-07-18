@@ -30,158 +30,75 @@ package CHERICapWrap;
 import CHERICap :: *;
 import CHERICC_Fat :: *;
 
-///////////////////
-// Helper Macros //
-////////////////////////////////////////////////////////////////////////////////
+`define CAPTYPE CapPipe
+`define W(name)\
+`ifndef CAP64\
+wrap128_``name\
+`else\
+wrap64_``name\
+`endif
 
-`define newCapPipe (x)\
-CapPipe newCap = cast(x);
-
-`define retExactCap (x)\
-return Exact {\
-  exact: tmp.exact,\
-  value: cast(tmp.value)\
-};
-
-// defWrap...<N>_<M> :
-// N number of type parameters
-// M number of arguments
-
-`define defWrapIfc_1_1 (name, param_t, ret_t, arg_t)\
-interface Wrap_``name#(type param_t);\
-  (* always_ready *) method ret_t name (arg_t arg1);\
-endinterface
-`define defWrapIfc_1_2 (name, param_t, ret_t, arg1_t, arg2_t)\
-interface Wrap_``name#(type param_t);\
-  (* always_ready *) method ret_t name (arg1_t arg1, arg2_t arg2);\
-endinterface
-`define defWrapIfc_2_1 (name, param1_t, param2_t, ret_t, arg_t)\
-interface Wrap_``name#(type param1_t, type param2_t);\
-  (* always_ready *) method ret_t name (arg_t arg);\
-endinterface
-`define defWrapIfc_2_2 (name, param1_t, param2_t, ret_t, arg1_t, arg2_t)\
-interface Wrap_``name#(type param1_t, type param2_t);\
-  (* always_ready *) method ret_t name (arg1_t arg1, arg2_t arg2);\
-endinterface
-`define defPipeWrap_1_1 (name, param_t)\
-(* synthesize *)\
-module wrap_``name (Wrap_``name#(param_t));\
-  method name(cap);\
-    `newCapPipe(cap)\
-    return name(newCap);\
-  endmethod\
-endmodule
-`define defPipeWrap_1_2 (name, param_t)\
-(* synthesize *)\
-module wrap_``name (Wrap_``name#(param_t));\
-  method name(cap, val);\
-    `newCapPipe(cap)\
-    return cast(name(newCap, val));\
-  endmethod\
-endmodule
-`define defPipeWrap_2_1 (name, param1_t, param2_t)\
-(* synthesize *)\
-module wrap_``name (Wrap_``name#(param1_t, param2_t));\
-  method name(cap);\
-    `newCapPipe(cap)\
-    return cast(name(newCap));\
-  endmethod\
-endmodule
-`define defPipeWrap_2_2 (name, param1_t, param2_t)\
-(* synthesize *)\
-module wrap_``name (Wrap_``name#(param1_t, param2_t));\
-  method name(cap, val);\
-    `newCapPipe(cap)\
-    return cast(name(newCap, val));\
-  endmethod\
-endmodule
-`define defExactPipeWrap_2_2 (name, param1_t, param2_t)\
-(* synthesize *)\
-module wrap_``name (Wrap_``name#(param1_t, param2_t));\
-  method name(cap, val);\
-    `newCapPipe(cap)\
-    let tmp = name(newCap, val);\
-    `retExactCap(tmp)\
-  endmethod\
-endmodule
-
-//////////////////////////////////////////
-// definitions for individual functions //
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_2(setBounds, cap_t, n, Exact#(cap_t), cap_t, Bit#(n))
-`defExactPipeWrap_2_2(setBounds, CapMem, CapAddressW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_1(isValidCap, cap_t, Bool, cap_t)
-`defPipeWrap_1_1(isValidCap, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_2(setValidCap, cap_t, cap_t, cap_t, Bool)
-`defPipeWrap_1_2(setValidCap, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_1(getFlags, cap_t, flg, Bit#(flg), cap_t)
-`defPipeWrap_2_1(getFlags, CapMem, FlagsW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_2(setFlags, cap_t, flg, cap_t, cap_t, Bit#(flg))
-`defPipeWrap_2_2(setFlags, CapMem, FlagsW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_1(getHardPerms, cap_t, HardPerms, cap_t)
-`defPipeWrap_1_1(getHardPerms, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_2(setHardPerms, cap_t, cap_t, cap_t, HardPerms)
-`defPipeWrap_1_2(setHardPerms, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_1(getSoftPerms, cap_t, SoftPerms, cap_t)
-`defPipeWrap_1_1(getSoftPerms, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_2(setSoftPerms, cap_t, cap_t, cap_t, SoftPerms)
-`defPipeWrap_1_2(setSoftPerms, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_1(getPerms, cap_t, Bit#(31), cap_t)
-`defPipeWrap_1_1(getPerms, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_2(setPerms, cap_t, cap_t, cap_t, Bit#(31))
-`defPipeWrap_1_2(setPerms, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_1(getKind, cap_t, Kind, cap_t)
-`defPipeWrap_1_1(getKind, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_1(getType, cap_t, ot, Bit#(ot), cap_t)
-`defPipeWrap_2_1(getType, CapMem, OTypeW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_2(setType, cap_t, ot, Exact#(cap_t), cap_t, Bit#(ot))
-`defExactPipeWrap_2_2(setType, CapMem, OTypeW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_1(getAddr, cap_t, n, Bit#(n), cap_t)
-`defPipeWrap_2_1(getAddr, CapMem, CapAddressW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_2(setAddr, cap_t, n, Exact#(cap_t), cap_t, Bit#(n))
-`defExactPipeWrap_2_2(setAddr, CapMem, CapAddressW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_1(getOffset, cap_t, n, Bit#(n), cap_t)
-`defPipeWrap_2_1(getOffset, CapMem, CapAddressW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_2(setOffset, cap_t, n, Exact#(cap_t), cap_t, Bit#(n))
-`defExactPipeWrap_2_2(setOffset, CapMem, CapAddressW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_1(getBase, cap_t, n, Bit#(n), cap_t)
-`defPipeWrap_2_1(getBase, CapMem, CapAddressW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_1(getTop, cap_t, n, Bit#(TAdd#(n, 1)), cap_t)
-`defPipeWrap_2_1(getTop, CapMem, CapAddressW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_2_1(getLength, cap_t, n, Bit#(TAdd#(n, 1)), cap_t)
-`defPipeWrap_2_1(getLength, CapMem, CapAddressW)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_2(isInBounds, cap_t, Bool, cap_t, Bool)
-`defPipeWrap_1_2(isInBounds, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_1(isSentry, cap_t, Bool, cap_t)
-`defPipeWrap_1_1(isSentry, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_1(isSealedWithType, cap_t, Bool, cap_t)
-`defPipeWrap_1_1(isSealedWithType, CapMem)
-////////////////////////////////////////////////////////////////////////////////
-`defWrapIfc_1_1(isSealed, cap_t, Bool, cap_t)
-`defPipeWrap_1_1(isSealed, CapMem)
-////////////////////////////////////////////////////////////////////////////////
+(* noinline *)
+function Bool `W(isValidCap) (`CAPTYPE cap) = isValidCap(cap);
+(* noinline *)
+function `CAPTYPE `W(setValidCap) (`CAPTYPE cap, Bool valid) = setValidCap(cap, valid);
+(* noinline *)
+function Bit#(FlagsW) `W(getFlags) (`CAPTYPE cap) = getFlags(cap);
+(* noinline *)
+function `CAPTYPE `W(setFlags) (`CAPTYPE cap, Bit#(FlagsW) flags) = setFlags(cap,flags);
+(* noinline *)
+function HardPerms `W(getHardPerms) (`CAPTYPE cap) = getHardPerms(cap);
+(* noinline *)
+function `CAPTYPE `W(setHardPerms) (`CAPTYPE cap, HardPerms hardperms) = setHardPerms(cap, hardperms);
+(* noinline *)
+function SoftPerms `W(getSoftPerms) (`CAPTYPE cap) = getSoftPerms(cap);
+(* noinline *)
+function `CAPTYPE `W(setSoftPerms) (`CAPTYPE cap, SoftPerms softperms) = setSoftPerms(cap, softperms);
+(* noinline *)
+function Bit#(31) `W(getPerms) (`CAPTYPE cap) = getPerms(cap);
+(* noinline *)
+function `CAPTYPE `W(setPerms) (`CAPTYPE cap, Bit#(31) perms) = setPerms(cap, perms);
+(* noinline *)
+function Kind `W(getKind) (`CAPTYPE cap) = getKind(cap);
+(* noinline *)
+function Bool `W(isSentry) (`CAPTYPE cap) = isSentry(cap);
+(* noinline *)
+function Bool `W(isSealedWithType) (`CAPTYPE cap) = isSealedWithType(cap);
+(* noinline *)
+function Bool `W(isSealed) (`CAPTYPE cap) = isSealed(cap);
+(* noinline *)
+function Bit#(OTypeW) `W(getType) (`CAPTYPE cap) = getType(cap);
+(* noinline *)
+function Exact#(`CAPTYPE) `W(setType) (`CAPTYPE cap, Bit#(OTypeW) otype) = setType(cap, otype);
+(* noinline *)
+function Bit#(CapAddressW) `W(getAddr) (`CAPTYPE cap) = getAddr(cap);
+(* noinline *)
+function Exact#(`CAPTYPE) `W(setAddr) (`CAPTYPE cap, Bit#(CapAddressW) addr) = setAddr(cap, addr);
+(* noinline *)
+function Bit#(CapAddressW) `W(getOffset) (`CAPTYPE cap) = getOffset(cap);
+(* noinline *)
+function Exact#(`CAPTYPE) `W(setOffset) (`CAPTYPE cap, Bit#(CapAddressW) offset) = setOffset (cap, offset);
+(* noinline *)
+function Bit#(CapAddressW) `W(getBase) (`CAPTYPE cap) = getBase(cap);
+(* noinline *)
+function Bit#(TAdd#(CapAddressW, 1)) `W(getTop) (`CAPTYPE cap) = getTop(cap);
+(* noinline *)
+function Bit#(TAdd#(CapAddressW, 1)) `W(getLength) (`CAPTYPE cap) = getLength(cap);
+(* noinline *)
+function Bool `W(isInBounds) (`CAPTYPE cap, Bool isTopIncluded) = isInBounds(cap, isTopIncluded);
+(* noinline *)
+function Exact#(`CAPTYPE) `W(setBounds) (`CAPTYPE cap, Bit#(CapAddressW) length) = setBounds(cap, length);
+(* noinline *)
+function `CAPTYPE `W(nullWithAddr) (Bit#(CapAddressW) addr) = nullWithAddr(addr);
+(* noinline *)
+function `CAPTYPE `W(almightyCap) = almightyCap;
+(* noinline *)
+function `CAPTYPE `W(nullCap) = nullCap;
+(* noinline *)
+function Bool `W(validAsType) (`CAPTYPE dummy, Bit#(CapAddressW) checkType) = validAsType(dummy, checkType);
+(* noinline *)
+function `CAPTYPE `W(fromMem) (Tuple2#(Bool, Bit#(CapW)) mem_cap) = fromMem(mem_cap);
+(* noinline *)
+function Tuple2#(Bool, Bit#(CapW)) `W(toMem) (`CAPTYPE cap) = toMem(cap);
 
 endpackage
