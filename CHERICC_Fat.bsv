@@ -103,7 +103,7 @@ typedef Bit#(CapAddressW) CapAddress;
 // The Hardware permissions type
 typedef struct {
     Bool permit_set_CID;
-    Bool acces_sys_regs;
+    Bool access_sys_regs;
     Bool permit_unseal;
     Bool permit_ccall;
     Bool permit_seal;
@@ -342,7 +342,7 @@ function Bit#(31) getPerms(CapFat cap);
     return zeroExtend({softPerms,hardPerms});
 endfunction
 function TempFields getTempFields(CapFat cap) = getMetaInfo(cap);
-function Bool privileged(CapFat cap) = cap.perms.hard.acces_sys_regs;
+function Bool privileged(CapFat cap) = cap.perms.hard.access_sys_regs;
 function Bool capInBounds(CapFat cap, TempFields tf, Bool inclusive);
     // Check that the pointer of a capability is currently within the bounds
     // of the capability
@@ -932,7 +932,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
   function HardPerms getHardPerms (CapPipe cap);
     return HardPerms {
       permitSetCID: cap.capFat.perms.hard.permit_set_CID,
-      accessSysRegs: cap.capFat.perms.hard.acces_sys_regs,
+      accessSysRegs: cap.capFat.perms.hard.access_sys_regs,
       permitUnseal: cap.capFat.perms.hard.permit_unseal,
       permitCCall: cap.capFat.perms.hard.permit_ccall,
       permitSeal: cap.capFat.perms.hard.permit_seal,
@@ -949,7 +949,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
   function CapPipe setHardPerms (CapPipe cap, HardPerms perms);
     cap.capFat.perms.hard = HPerms {
       permit_set_CID: perms.permitSetCID,
-      acces_sys_regs: perms.accessSysRegs,
+      access_sys_regs: perms.accessSysRegs,
       permit_unseal: perms.permitUnseal,
       permit_ccall: perms.permitCCall,
       permit_seal: perms.permitSeal,
