@@ -78,8 +78,8 @@ typedef enum {
   SEALED_WITH_TYPE
 } Kind deriving (Bits, Eq, FShow);
 
-typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, numeric type mem_sz)
-  dependencies (t determines (ot, flg, n, mem_sz));
+typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, numeric type mem_sz, numeric type maskable_bits)
+  dependencies (t determines (ot, flg, n, mem_sz, maskable_bits));
 
   // Return whether the Capability is valid
   function Bool isValidCap (t cap);
@@ -123,6 +123,10 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   function Bit#(n) getAddr (t cap);
   // Set the address of the capability. Result invalid if not exact
   function Exact#(t) setAddr (t cap, Bit#(n) addr);
+  // Mask the least significant bits of capability address with a mask
+  // maskable_width should be small enough to make this
+  // safe with respect to representability
+  function t maskAddr (t cap, Bit#(maskable_bits) mask);
 
   // Get the offset of the capability
   function Bit#(n) getOffset (t cap) = getAddr(cap) - getBase(cap);
@@ -164,7 +168,7 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
 
 endtypeclass
 
-function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, flg, n, mem_sz));
+function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, flg, n, mem_sz, maskable_bits));
   return $format( "Valid: 0x%0x", isValidCap(cap)) +
          $format(" Perms: 0x%0x", getPerms(cap)) +
          $format(" Kind: ", fshow(getKind(cap))) +

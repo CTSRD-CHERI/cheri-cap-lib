@@ -849,7 +849,7 @@ typedef struct {
   TempFields tempFields;
 } CapPipe deriving (Bits, FShow);
 
-instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW);
+instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function isValidCap (x);
     CapabilityInMemory capMem = unpack(x);
     return capMem.isCapability;
@@ -870,6 +870,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW);
   function setType = error("feature not implemented for this cap type");
   function getAddr = error("feature not implemented for this cap type");
   function setAddr = error("feature not implemented for this cap type");
+  function maskAddr = error("feature not implemented for this cap type");
   function getOffset = error("feature not implemented for this cap type");
   function setOffset = error("feature not implemented for this cap type");
   function getBase = error("feature not implemented for this cap type");
@@ -885,7 +886,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW);
   function toMem = error("feature not implemented for this cap type");
 endinstance
 
-instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW);
+instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function isValidCap = error("feature not implemented for this cap type");
   function setValidCap = error("feature not implemented for this cap type");
   function getFlags = error("feature not implemented for this cap type");
@@ -899,6 +900,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW);
   function setType = error("feature not implemented for this cap type");
   function getAddr = error("feature not implemented for this cap type");
   function setAddr = error("feature not implemented for this cap type");
+  function maskAddr = error("feature not implemented for this cap type");
   function getOffset = error("feature not implemented for this cap type");
   function setOffset = error("feature not implemented for this cap type");
   function getBase = error("feature not implemented for this cap type");
@@ -914,7 +916,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW);
   function toMem = error("feature not implemented for this cap type");
 endinstance
 
-instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
+instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   function isValidCap (x) = x.capFat.isCapability;
 
@@ -1002,6 +1004,11 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW);
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
+  endfunction
+
+  function CapPipe maskAddr (CapPipe cap, Bit#(TSub#(MW, 3)) mask);
+    cap.capFat.addrBits[valueOf(TSub#(MW, 4)):0] = cap.capFat.addrBits[valueOf(TSub#(MW, 4)):0] & mask;
+    return cap;
   endfunction
 
   function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
