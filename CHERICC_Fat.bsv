@@ -1007,7 +1007,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   endfunction
 
   function CapPipe maskAddr (CapPipe cap, Bit#(TSub#(MW, 3)) mask);
-    cap.capFat.addrBits[valueOf(TSub#(MW, 4)):0] = cap.capFat.addrBits[valueOf(TSub#(MW, 4)):0] & mask;
+    cap.capFat.address[valueOf(TSub#(MW, 4)):0] = cap.capFat.address[valueOf(TSub#(MW, 4)):0] & mask;
     return cap;
   endfunction
 
