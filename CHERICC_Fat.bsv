@@ -1014,7 +1014,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
 
   function Exact#(CapPipe) setOffset (CapPipe cap, Bit#(CapAddressW) offset, Bool increment);
-    let result = incOffset(cap.capFat, ?, zeroExtend(offset), cap.tempFields, !increment);
+    let result = incOffset(cap.capFat, pack(cap.capFat.address) + zeroExtend(offset), zeroExtend(offset), cap.tempFields, !increment);
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
