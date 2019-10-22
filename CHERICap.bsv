@@ -130,8 +130,14 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
 
   // Get the offset of the capability
   function Bit#(n) getOffset (t cap) = getAddr(cap) - getBase(cap);
+  // Modify the offset of the capability. Result invalid if not exact
+  function Exact#(t) modifyOffset (t cap, Bit#(n) offset, Bool doInc);
   // Set the offset of the capability. Result invalid if not exact
-  function Exact#(t) setOffset (t cap, Bit#(n) offset, Bool increment);
+  function Exact#(t) setOffset (t cap, Bit#(n) offset) =
+    modifyOffset(cap, offset, False);
+  // Set the offset of the capability. Result invalid if not exact
+  function Exact#(t) incOffset (t cap, Bit#(n) inc) =
+    modifyOffset(cap, inc, True);
 
   // Get the base
   function Bit#(n) getBase (t cap);

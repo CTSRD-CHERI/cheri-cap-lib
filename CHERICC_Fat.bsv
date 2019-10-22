@@ -872,7 +872,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function setAddr = error("feature not implemented for this cap type");
   function maskAddr = error("feature not implemented for this cap type");
   function getOffset = error("feature not implemented for this cap type");
-  function setOffset = error("feature not implemented for this cap type");
+  function modifyOffset = error("feature not implemented for this cap type");
   function getBase = error("feature not implemented for this cap type");
   function getTop = error("feature not implemented for this cap type");
   function getLength = error("feature not implemented for this cap type");
@@ -902,7 +902,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function setAddr = error("feature not implemented for this cap type");
   function maskAddr = error("feature not implemented for this cap type");
   function getOffset = error("feature not implemented for this cap type");
-  function setOffset = error("feature not implemented for this cap type");
+  function modifyOffset = error("feature not implemented for this cap type");
   function getBase = error("feature not implemented for this cap type");
   function getTop = error("feature not implemented for this cap type");
   function getLength = error("feature not implemented for this cap type");
@@ -1013,8 +1013,8 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
 
-  function Exact#(CapPipe) setOffset (CapPipe cap, Bit#(CapAddressW) offset, Bool increment);
-    let result = incOffset(cap.capFat, pack(cap.capFat.address) + zeroExtend(offset), zeroExtend(offset), cap.tempFields, !increment);
+  function Exact#(CapPipe) modifyOffset (CapPipe cap, Bit#(CapAddressW) offset, Bool doInc);
+    let result = incOffset(cap.capFat, pack(cap.capFat.address) + zeroExtend(offset), zeroExtend(offset), cap.tempFields, !doInc);
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
