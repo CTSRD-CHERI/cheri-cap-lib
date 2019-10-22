@@ -10,13 +10,21 @@ ifeq ($(ARCH), RISCV)
 BSCFLAGS += -D RISCV
 endif
 
+all: verilog-wrappers blarney-wrappers
+
 verilog-wrappers: CHERICapWrap.bsv CHERICap.bsv CHERICC_Fat.bsv
 	bsc $(BSCFLAGS) -verilog -u $<
+
+blarney-wrappers: CHERICapWrapBlarney.py verilog-wrappers
+	./CHERICapWrapBlarney.py -o CHERIBlarneyWrappers *.v
 
 .PHONY: clean clean-verilog-wrappers
 
 clean-verilog-wrappers: clean
 	rm -f *.v
+
+clean-blarney-wrappers: clean
+	rm -f *.hs
 
 clean:
 	rm -f *.bo
