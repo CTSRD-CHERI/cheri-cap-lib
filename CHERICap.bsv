@@ -116,17 +116,12 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   // Get the type field, including implicitly whether the cap is sealed/sentry
   function Bit#(ot) getType (t cap);
   // Set the type field, including implicitly sealing/unsealing the capability
-  // In the event the new type makes the cap unrepresentable
-  function Exact#(t) setType (t cap, Bit#(ot) otype);
-  // Get the address pointed to by the capability
+  function t setType (t cap, Bit#(ot) otype);
 
+  // Get the address pointed to by the capability
   function Bit#(n) getAddr (t cap);
   // Set the address of the capability. Result invalid if not exact
   function Exact#(t) setAddr (t cap, Bit#(n) addr);
-  // Mask the least significant bits of capability address with a mask
-  // maskable_width should be small enough to make this
-  // safe with respect to representability
-  function t maskAddr (t cap, Bit#(maskable_bits) mask);
 
   // Get the offset of the capability
   function Bit#(n) getOffset (t cap) = getAddr(cap) - getBase(cap);
@@ -171,6 +166,18 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   // convert from and to bit memory representation
   function t fromMem (Tuple2#(Bool, Bit#(mem_sz)) mem_cap);
   function Tuple2#(Bool, Bit#(mem_sz)) toMem (t cap);
+
+  // Functions that can be cheap by relying on current capability representation
+
+  // Mask the least significant bits of capability address with a mask
+  // maskable_width should be small enough to make this
+  // safe with respect to representability
+  function t maskAddr (t cap, Bit#(maskable_bits) mask);
+
+  // Check the alignment of the base, giving least significant 2 bits.
+  // This relies on the fact that internal exponents take up 2 bits of the
+  // base.
+  function Bit#(2) getBaseAlignment (t cap);
 
 endtypeclass
 

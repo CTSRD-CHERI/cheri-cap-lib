@@ -335,7 +335,7 @@ function LCapAddress regToSignedLAddr(Address in);
     return signExtend(retVal);
 endfunction
 function Bool isSealed(CapFat cap) = (cap.otype != otype_unsealed);
-function CType getType(CapFat cap) = VnD{v: (cap.otype != otype_unsealed), d: cap.otype};
+function CType getTypeFat(CapFat cap) = VnD{v: (cap.otype != otype_unsealed), d: cap.otype};
 function Bit#(31) getPerms(CapFat cap);
     Bit#(SizeOf#(HPerms)) hardPerms = zeroExtend(pack(cap.perms.hard));
     Bit#(UPermW) softPerms = zeroExtend(pack(cap.perms.soft));
@@ -381,7 +381,7 @@ endfunction
 
 function Bool boundsCheck(CapFat cap, Bit#(CapAddressW) off, TempFields tf);
     Bit#(TAdd#(CapAddressW,2)) bo = zeroExtend(off);
-    cap = incOffset(cap, cap.address+truncate(bo), off, tf, False).d;
+    cap = incOffsetFat(cap, cap.address+truncate(bo), off, tf, False).d;
     return cap.isCapability && capInBounds(cap, tf, False);
 endfunction
 
@@ -416,13 +416,13 @@ function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
         CapAddress tmpAddr = truncate(cap.address);
         LCapAddress base = zeroExtend(tmpAddr);
         Bit#(TAdd#(MW,1)) newBaseBits = truncate(base>>e);
-        
+
         // Derive new top bits by extracting MW bits from the capability
         // address + requested length, starting at the new exponent's position,
         // and rounding up if significant bits are lost in the process.
         LCapAddress len = zeroExtend(length);
         LCapAddress top = base + len;
-        
+
         // Create a mask with all bits set below the MSB of length and then masking all bits
         // below the mantissa bits.
         LCapAddress lmask = smearMSBRight(len);
@@ -430,7 +430,7 @@ function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
         // The shift amount required to put the most significant set bit of the
         // len just above the bottom HalfExpW bits that are taken by the exp.
         Integer shiftAmount = valueOf(TSub#(TSub#(MW,2),HalfExpW));
-        
+
         // Calculate all values associated with E=e (e not rounding up)
         // Round up considering the stolen HalfExpW exponent bits if required
         Bit#(TAdd#(MW,1)) newTopBits = truncate(top>>e);
@@ -449,7 +449,7 @@ function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
         Bool lostSignificantBase = (base&lmaskLo)!=0 && intExp;
         // If either base or top lost significant bits and we wanted an exact setBounds,
         // void the return capability
-        
+
         // Calculate all values associated with E=e+1 (e rounding up due to msb of L increasing by 1)
         // This value is just to avoid adding later.
         Bit#(MW) newTopBitsHigher = truncateLSB(newTopBits);
@@ -464,8 +464,8 @@ function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
         Bool lostSignificantBaseHigher = (base&lmaskLo)!=0 && intExp;
         // If either base or top lost significant bits and we wanted an exact setBounds,
         // void the return capability
-        
-        
+
+
         // We need to round up Exp if the length is within 1 of the maximum and if it will increase.
         // The lomask for checking for potential overflow should mask all but the bottom bit of the mantissa.
         lmaskLo = lmask>>fromInteger(shiftAmount);
@@ -481,8 +481,8 @@ function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
           ret.bounds.baseBits = truncate(newBaseBits);
           if (lostSignificantBase || lostSignificantTop) resultExact = False;
         end
-        
-        
+
+
         ret.bounds.exp = e;
         // Update the addrBits fields
         ret.addrBits = ret.bounds.baseBits;
@@ -496,7 +496,7 @@ function Tuple2#(CapFat, Bool) setBoundsFat(CapFat cap, Address lengthFull);
             ret.bounds.baseBits = {truncateLSB(ret.bounds.baseBits), botZeroes};
             ret.bounds.topBits  = {truncateLSB(ret.bounds.topBits), botZeroes};
         end
-        
+
         // Return derived capability
         return tuple2(ret, resultExact);
 endfunction
@@ -511,7 +511,7 @@ function CapFat unseal(CapFat cap, x _);
         ret.otype = otype_unsealed;
         return ret;
 endfunction
-function VnD#(CapFat) incOffset(CapFat cap, LCapAddress pointer, Bit#(CapAddressW) offset/*this is the increment in inc offset, and the offset in set offset*/, TempFields tf, Bool setOffset);
+function VnD#(CapFat) incOffsetFat(CapFat cap, LCapAddress pointer, Bit#(CapAddressW) offset/*this is the increment in inc offset, and the offset in set offset*/, TempFields tf, Bool setOffset);
 // NOTE:
 // The 'offset' argument is the "increment" value when setOffset is false,
 // and the actual "offset" value when setOffset is true.
@@ -766,7 +766,7 @@ function Tuple2#(Format, Bounds) decBounds (CBounds raw);
     //bounds.topBits  = 0;
     //bounds.baseBits = 0;
     Bit#(HalfExpW) halfExp0 = 0;
-    
+
     case (format)
         EmbeddedExp: begin
             BoundsEmbeddedExp b = unpack(raw);
@@ -870,7 +870,6 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function setType = error("feature not implemented for this cap type");
   function getAddr = error("feature not implemented for this cap type");
   function setAddr = error("feature not implemented for this cap type");
-  function maskAddr = error("feature not implemented for this cap type");
   function getOffset = error("feature not implemented for this cap type");
   function modifyOffset = error("feature not implemented for this cap type");
   function getBase = error("feature not implemented for this cap type");
@@ -884,72 +883,44 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function validAsType = error("feature not implemented for this cap type");
   function fromMem = error("feature not implemented for this cap type");
   function toMem = error("feature not implemented for this cap type");
+  function maskAddr = error("feature not implemented for this cap type");
+  function getBaseAlignment = error("feature not implemented for this cap type");
 endinstance
 
 instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
-  function isValidCap = error("feature not implemented for this cap type");
-  function setValidCap = error("feature not implemented for this cap type");
-  function getFlags = error("feature not implemented for this cap type");
-  function setFlags = error("feature not implemented for this cap type");
-  function getHardPerms = error("feature not implemented for this cap type");
-  function setHardPerms = error("feature not implemented for this cap type");
-  function getSoftPerms = error("feature not implemented for this cap type");
-  function setSoftPerms = error("feature not implemented for this cap type");
-  function getKind = error("feature not implemented for this cap type");
-  function getType = error("feature not implemented for this cap type");
-  function setType = error("feature not implemented for this cap type");
-  function getAddr = error("feature not implemented for this cap type");
-  function setAddr = error("feature not implemented for this cap type");
-  function maskAddr = error("feature not implemented for this cap type");
-  function getOffset = error("feature not implemented for this cap type");
-  function modifyOffset = error("feature not implemented for this cap type");
-  function getBase = error("feature not implemented for this cap type");
-  function getTop = error("feature not implemented for this cap type");
-  function getLength = error("feature not implemented for this cap type");
-  function isInBounds = error("feature not implemented for this cap type");
-  function setBounds = error("feature not implemented for this cap type");
-  function nullWithAddr = error("feature not implemented for this cap type");
-  function almightyCap = defaultCapFat;
-  function nullCap = null_cap;
-  function validAsType = error("feature not implemented for this cap type");
-  function fromMem = error("feature not implemented for this cap type");
-  function toMem = error("feature not implemented for this cap type");
-endinstance
 
-instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
+  function isValidCap (x) = x.isCapability;
 
-  function isValidCap (x) = x.capFat.isCapability;
-
-  function CapPipe setValidCap (CapPipe cap, Bool tag);
-    cap.capFat.isCapability = tag;
+  function CapReg setValidCap (CapReg cap, Bool tag);
+    cap.isCapability = tag;
     return cap;
   endfunction
 
-  function getFlags (cap) = cap.capFat.flags;
+  function getFlags (cap) = cap.flags;
   function setFlags (cap, flags);
-    cap.capFat.flags = flags;
+    cap.flags = flags;
     return cap;
   endfunction
 
-  function HardPerms getHardPerms (CapPipe cap);
+  function HardPerms getHardPerms (CapReg cap);
     return HardPerms {
-      permitSetCID: cap.capFat.perms.hard.permit_set_CID,
-      accessSysRegs: cap.capFat.perms.hard.access_sys_regs,
-      permitUnseal: cap.capFat.perms.hard.permit_unseal,
-      permitCCall: cap.capFat.perms.hard.permit_ccall,
-      permitSeal: cap.capFat.perms.hard.permit_seal,
-      permitStoreLocalCap: cap.capFat.perms.hard.permit_store_ephemeral_cap,
-      permitStoreCap: cap.capFat.perms.hard.permit_store_cap,
-      permitLoadCap: cap.capFat.perms.hard.permit_load_cap,
-      permitStore: cap.capFat.perms.hard.permit_store,
-      permitLoad: cap.capFat.perms.hard.permit_load,
-      permitExecute: cap.capFat.perms.hard.permit_execute,
-      global: cap.capFat.perms.hard.non_ephemeral
+      permitSetCID: cap.perms.hard.permit_set_CID,
+      accessSysRegs: cap.perms.hard.access_sys_regs,
+      permitUnseal: cap.perms.hard.permit_unseal,
+      permitCCall: cap.perms.hard.permit_ccall,
+      permitSeal: cap.perms.hard.permit_seal,
+      permitStoreLocalCap: cap.perms.hard.permit_store_ephemeral_cap,
+      permitStoreCap: cap.perms.hard.permit_store_cap,
+      permitLoadCap: cap.perms.hard.permit_load_cap,
+      permitStore: cap.perms.hard.permit_store,
+      permitLoad: cap.perms.hard.permit_load,
+      permitExecute: cap.perms.hard.permit_execute,
+      global: cap.perms.hard.non_ephemeral
     };
   endfunction
 
-  function CapPipe setHardPerms (CapPipe cap, HardPerms perms);
-    cap.capFat.perms.hard = HPerms {
+  function CapReg setHardPerms (CapReg cap, HardPerms perms);
+    cap.perms.hard = HPerms {
       permit_set_CID: perms.permitSetCID,
       access_sys_regs: perms.accessSysRegs,
       permit_unseal: perms.permitUnseal,
@@ -966,38 +937,148 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     return cap;
   endfunction
 
-  function SoftPerms getSoftPerms (CapPipe cap);
-    return zeroExtend(cap.capFat.perms.soft);
+  function SoftPerms getSoftPerms (CapReg cap);
+    return zeroExtend(cap.perms.soft);
   endfunction
 
-  function CapPipe setSoftPerms (CapPipe cap, SoftPerms perms);
-    cap.capFat.perms.soft = truncate(perms);
+  function CapReg setSoftPerms (CapReg cap, SoftPerms perms);
+    cap.perms.soft = truncate(perms);
     return cap;
   endfunction
 
-  function Kind getKind (CapPipe cap);
-    case (cap.capFat.otype)
+  function Kind getKind (CapReg cap);
+    case (cap.otype)
       otype_unsealed: return UNSEALED;
       otype_sentry: return SENTRY;
-      default: return (cap.capFat.otype <= otype_max) ? SEALED_WITH_TYPE : RES0;
+      default: return (cap.otype <= otype_max) ? SEALED_WITH_TYPE : RES0;
     endcase
   endfunction
 
-  function getType (x) = getType(x.capFat).d;
+  function getType (cap) = getTypeFat(cap).d;
 
-  function Exact#(CapPipe) setType (CapPipe cap, Bit #(OTypeW) otype);
+  function CapReg setType (CapReg cap, Bit #(OTypeW) otype);
     if (otype == -1) begin
-      cap.capFat = unseal(cap.capFat, ?);
+      cap = unseal(cap, ?);
     end else begin
-      cap.capFat = seal(cap.capFat, ?, VnD {v: True, d:otype});
+      cap = seal(cap, ?, VnD {v: True, d:otype});
     end
-    return Exact {
-      exact: True,
-      value: cap
-    };
+    return cap;
   endfunction
 
-  function getAddr (x) = truncate(getAddress(x.capFat));
+  function getAddr (cap) = truncate(getAddress(cap));
+
+  function setAddr = error("feature not implemented for this cap type");
+
+  function getOffset = error("feature not implemented for this cap type");
+  function modifyOffset = error("feature not implemented for this cap type");
+  function getBase = error("feature not implemented for this cap type");
+  function getTop = error("feature not implemented for this cap type");
+  function getLength = error("feature not implemented for this cap type");
+  function isInBounds = error("feature not implemented for this cap type");
+
+  function Exact#(CapReg) setBounds (CapReg cap, Bit#(CapAddressW) length);
+    match {.result, .exact} = setBoundsFat(cap, length);
+    return Exact {exact: exact, value: result};
+  endfunction
+
+  function CapReg nullWithAddr (Bit#(CapAddressW) addr);
+    CapReg res = nullCap;
+    res.address = zeroExtend(addr);
+    return res;
+  endfunction
+
+  function almightyCap = defaultCapFat;
+
+  function nullCap = null_cap;
+
+  function Bool validAsType (CapReg dummy, Bit#(CapAddressW) checkType);
+    UInt#(CapAddressW) checkTypeUnsigned = unpack(checkType);
+    UInt#(CapAddressW) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
+    return checkTypeUnsigned <= otypeMaxUnsigned;
+  endfunction
+
+  function fromMem (x) = cast(pack(x));
+
+  function toMem (x) = unpack(cast(x));
+
+  function CapReg maskAddr (CapReg cap, Bit#(TSub#(MW, 3)) mask);
+    cap.address[valueOf(TSub#(MW, 4)):0] = cap.address[valueOf(TSub#(MW, 4)):0] & mask;
+    return cap;
+  endfunction
+
+  function Bit#(2) getBaseAlignment (CapReg cap);
+    // If cap exp is non-zero, we have internal exponent, so the least significant
+    // two bits of the base are implicitly zero.
+    // Otherwise, we have a zero exponent, so the least significant two bits
+    // of the base are the least significant bits of the encoded base
+    if (cap.bounds.exp == 0) return cap.bounds.baseBits[1:0];
+    else                     return 2'b0;
+  endfunction
+
+endinstance
+
+instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
+
+  //Functions supported by CapReg are just passed through
+  function isValidCap (x) = isValidCap(x.capFat);
+  function setValidCap (cap, tag);
+    return CapPipe {capFat: setValidCap(cap.capFat, tag), tempFields: cap.tempFields};
+  endfunction
+  function getFlags (cap) = getFlags(cap.capFat);
+  function setFlags (cap, flags);
+    return CapPipe {capFat: setFlags(cap.capFat, flags), tempFields: cap.tempFields};
+  endfunction
+  function getHardPerms (cap) = getHardPerms(cap.capFat);
+  function CapPipe setHardPerms (CapPipe cap, HardPerms perms);
+    return CapPipe {capFat: setHardPerms(cap.capFat, perms), tempFields: cap.tempFields};
+  endfunction
+  function getSoftPerms (cap) = getSoftPerms(cap.capFat);
+  function CapPipe setSoftPerms (CapPipe cap, SoftPerms perms);
+    return CapPipe {capFat: setSoftPerms(cap.capFat, perms), tempFields: cap.tempFields};
+  endfunction
+  function getKind (cap) = getKind(cap.capFat);
+  function getType (cap) = getType(cap.capFat);
+  function setType (cap, otype);
+    return CapPipe{capFat: setType(cap.capFat, otype), tempFields: cap.tempFields};
+  endfunction
+  function getAddr (cap) = getAddr(cap.capFat);
+  function CapPipe maskAddr (CapPipe cap, Bit#(TSub#(MW, 3)) mask);
+    return CapPipe {capFat: maskAddr(cap.capFat, mask), tempFields: cap.tempFields};
+  endfunction
+  function Bool validAsType (CapPipe dummy, Bit#(CapAddressW) checkType);
+    return validAsType(dummy.capFat, checkType);
+  endfunction
+  function toMem (cap) = toMem(cap.capFat);
+  function getBaseAlignment (cap) = getBaseAlignment(cap.capFat);
+
+  //Functions supported by CapReg but which require TempFields to be changed
+
+  function Exact#(CapPipe) setBounds (CapPipe cap, Bit#(CapAddressW) length);
+    let result = setBounds(cap.capFat, length);
+    return Exact {exact: result.exact, value: CapPipe {capFat: result.value, tempFields: getTempFields(result.value)}};
+  endfunction
+
+  function CapPipe nullWithAddr (Bit#(CapAddressW) addr);
+    CapReg res = nullWithAddr(addr);
+    return CapPipe {capFat: res, tempFields: getTempFields(res)};
+  endfunction
+
+  function fromMem (capBits);
+    CapReg res = fromMem(capBits);
+    return CapPipe {capFat: res, tempFields: getTempFields(res)};
+  endfunction
+
+  function almightyCap;
+    CapReg res = almightyCap;
+    return CapPipe {capFat: res, tempFields: getTempFields(res)};
+  endfunction
+
+  function nullCap;
+    CapReg res = nullCap;
+    return CapPipe {capFat: res, tempFields: getTempFields(res)};
+  endfunction
+
+  //Functions that require TempFields
 
   function Exact#(CapPipe) setAddr (CapPipe cap, Bit#(CapAddressW) address);
     let result = setAddress(cap.capFat, zeroExtend(address), cap.tempFields);
@@ -1006,15 +1087,10 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     return Exact {exact: result.v, value: cap};
   endfunction
 
-  function CapPipe maskAddr (CapPipe cap, Bit#(TSub#(MW, 3)) mask);
-    cap.capFat.address[valueOf(TSub#(MW, 4)):0] = cap.capFat.address[valueOf(TSub#(MW, 4)):0] & mask;
-    return cap;
-  endfunction
-
   function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
 
   function Exact#(CapPipe) modifyOffset (CapPipe cap, Bit#(CapAddressW) offset, Bool doInc);
-    let result = incOffset(cap.capFat, pack(cap.capFat.address) + zeroExtend(offset), zeroExtend(offset), cap.tempFields, !doInc);
+    let result = incOffsetFat(cap.capFat, pack(cap.capFat.address) + zeroExtend(offset), zeroExtend(offset), cap.tempFields, !doInc);
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
@@ -1035,30 +1111,6 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function Bool isInBounds (CapPipe cap, Bool inclusive);
     return capInBounds(cap.capFat, cap.tempFields, inclusive);
   endfunction
-
-  function Exact#(CapPipe) setBounds (CapPipe cap, Bit#(CapAddressW) length);
-    match {.result, .exact} = setBoundsFat(cap.capFat, length);
-    return Exact {exact: exact, value: CapPipe {capFat: result, tempFields: getTempFields(result)}};
-  endfunction
-
-  function CapPipe nullWithAddr (Bit#(CapAddressW) addr);
-    let res = setAddress(nullCap, zeroExtend(addr), getTempFields(nullCap)).d;
-    return CapPipe {capFat: res, tempFields: getTempFields(res)};
-  endfunction
-
-  function almightyCap = CapPipe { capFat: defaultCapFat, tempFields: getTempFields(defaultCapFat) };
-
-  function nullCap = CapPipe { capFat: nullCap, tempFields: getTempFields(nullCap) };
-
-  function Bool validAsType (CapPipe dummy, Bit#(CapAddressW) checkType);
-      UInt#(CapAddressW) checkTypeUnsigned = unpack(checkType);
-      UInt#(CapAddressW) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
-      return checkTypeUnsigned <= otypeMaxUnsigned;
-  endfunction
-
-  function fromMem (x) = cast(pack(x));
-
-  function toMem (x) = unpack(cast(x));
 
 endinstance
 
@@ -1083,20 +1135,6 @@ endinstance
 instance Cast#(CapPipe, CapReg);
   function CapReg cast (CapPipe fat);
     return fat.capFat;
-  endfunction
-endinstance
-
-instance Cast#(CapMem, CapPipe);
-  function cast(x);
-    CapReg fat = cast(x);
-    return cast(fat);
-  endfunction
-endinstance
-
-instance Cast#(CapPipe, CapMem);
-  function cast(x);
-    CapReg fat = cast(x);
-    return cast(fat);
   endfunction
 endinstance
 
