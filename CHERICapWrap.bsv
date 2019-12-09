@@ -69,7 +69,7 @@ function Bool `W(isSealed) (`CAPTYPE cap) = isSealed(cap);
 (* noinline *)
 function Bit#(OTypeW) `W(getType) (`CAPTYPE cap) = getType(cap);
 (* noinline *)
-function Exact#(`CAPTYPE) `W(setType) (`CAPTYPE cap, Bit#(OTypeW) otype) = setType(cap, otype);
+function `CAPTYPE `W(setType) (`CAPTYPE cap, Bit#(OTypeW) otype) = setType(cap, otype);
 (* noinline *)
 function Bit#(CapAddressW) `W(getAddr) (`CAPTYPE cap) = getAddr(cap);
 (* noinline *)
