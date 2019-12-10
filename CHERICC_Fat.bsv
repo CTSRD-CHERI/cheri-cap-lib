@@ -847,7 +847,7 @@ typedef CapFat CapReg;
 typedef struct {
   CapFat capFat;
   TempFields tempFields;
-} CapPipe deriving (Bits, FShow);
+} CapPipe deriving (Bits);
 
 instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function isValidCap (x);
@@ -885,6 +885,19 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function toMem = error("feature not implemented for this cap type");
   function maskAddr = error("feature not implemented for this cap type");
   function getBaseAlignment = error("feature not implemented for this cap type");
+endinstance
+
+instance FShow #(CapPipe);
+  function fshow(cap) = $format(
+                        "v: ", fshow(isValidCap(cap)),
+                        " a: ", fshow(getAddr(cap)),
+                        " o: ", fshow(getOffset(cap)),
+                        " b: ", fshow(getBase(cap)),
+                        " t: ", fshow(getTop(cap)),
+                        " sp: ", fshow(pack(getSoftPerms(cap))),
+                        " hp: ", fshow(pack(getHardPerms(cap))),
+                        " ot: ", fshow(getType(cap)),
+                        " f: ", fshow(getFlags(cap)));
 endinstance
 
 instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
