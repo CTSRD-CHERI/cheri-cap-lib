@@ -153,7 +153,7 @@ typedef enum {Exp0, EmbeddedExp} Format deriving (Bits, Eq, FShow);
 typedef UInt#(ExpW) Exp;
 // Type for capability otype field
 typedef VnD#(Bit#(OTypeW)) CType;
-Bit#(OTypeW) otype_max = -4;
+Bit#(OTypeW) otype_max = -5;
 Bit#(OTypeW) otype_unsealed = -1;
 Bit#(OTypeW) otype_sentry   = -2;
 
