@@ -997,6 +997,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function CapReg nullWithAddr (Bit#(CapAddressW) addr);
     CapReg res = nullCap;
     res.address = zeroExtend(addr);
+    res.addrBits = {2'b0, truncateLSB(addr)};
     return res;
   endfunction
 
@@ -1016,6 +1017,8 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   function CapReg maskAddr (CapReg cap, Bit#(TSub#(MW, 3)) mask);
     cap.address[valueOf(TSub#(MW, 4)):0] = cap.address[valueOf(TSub#(MW, 4)):0] & mask;
+    //Update addrBits. Since exp can be up to 64, extend to 64 + 8 bits so bit-select is always in range
+    cap.addrBits = (({40'b0,cap.address})[cap.bounds.exp+7:cap.bounds.exp]); //TODO avoid shift?
     return cap;
   endfunction
 
