@@ -1,5 +1,6 @@
 /*-
- * Copyright (c) 2018-2019 Alexandre Joannou
+ * Copyright (c) 2015-2019 Jonathan Woodruff
+ * Copyright (c) 2017-2019 Alexandre Joannou
  * All rights reserved.
  *
  * This software was developed by SRI International and the University of
