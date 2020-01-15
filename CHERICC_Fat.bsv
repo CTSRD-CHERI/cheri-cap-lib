@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Jonathan Woodruff
+ * Copyright (c) 2015-2019 Jonathan Woodruff
  * Copyright (c) 2017-2019 Alexandre Joannou
  * Copyright (c) 2019 Peter Rugg
  * All rights reserved.
