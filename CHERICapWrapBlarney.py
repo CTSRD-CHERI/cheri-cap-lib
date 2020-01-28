@@ -45,30 +45,37 @@ class BlarneyWrapper:
     return "{:s}\n{:s}".format(str_type, str_decl)
 
 def main():
-  # define regexps
+  # define module regexp
   modDecl = re.compile("^module\s+module_wrap(\d+)_(\w+)\(")
-  inDecl  = re.compile("^\s*input(\s+\[(\d+)\s+:\s+0\])?\s+wrap(\d+)_(\w+)_(\w+);")
-  outDecl = re.compile("^\s*output(\s+\[(\d+)\s+:\s+0\])?\s+wrap(\d+)_(\w+);")
   # TODO handle size 1
   #
   wrappers = []
   for fname in args.verilog_files:
     size = 0
-    name = ""
+    name = None
     ins = []
     out = ("",0)
     with open(fname, "r") as f:
       for ln in f:
         modM = modDecl.match(ln)
-        inM  = inDecl.match(ln)
-        outM = outDecl.match(ln)
         if modM:
           size = int(modM.group(1))
           name = modM.group(2)
-        elif inM:
-          ins.append((inM.group(5), (int(inM.group(2)) + 1) if inM.group(1) else 1))
+          break
+      if not name:
+        print("Couldn't find a valid Verilog module definition")
+        exit(-1)
+      # define input/output regexp
+      inDecl  = re.compile("^\s*input(\s+\[(\d+)\s+:\s+0\])?\s+wrap(\d+)_"+name+"_(\w+);")
+      outDecl = re.compile("^\s*output(\s+\[(\d+)\s+:\s+0\])?\s+wrap(\d+)_"+name+";")
+
+      for ln in f:
+        inM  = inDecl.match(ln)
+        outM = outDecl.match(ln)
+        if inM:
+          ins.append((inM.group(4), (int(inM.group(2)) + 1) if inM.group(1) else 1))
         elif outM:
-          out = (outM.group(4), (int(outM.group(2)) + 1) if outM.group(1) else 1)
+          out = (name, (int(outM.group(2)) + 1) if outM.group(1) else 1)
         #else:
         #  print("===>> no match for line: {:s}".format(ln))
     wrappers.append(BlarneyWrapper(size, name, ins, out))
