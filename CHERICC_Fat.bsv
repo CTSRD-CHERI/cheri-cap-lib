@@ -885,6 +885,8 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function toMem = error("feature not implemented for this cap type");
   function maskAddr = error("feature not implemented for this cap type");
   function getBaseAlignment = error("feature not implemented for this cap type");
+  function getRepresentableAlignmentMask = error("feature not implemented for this cap type");
+  function getRepresentableLength = error("feature not implemented for this cap type");
 endinstance
 
 instance FShow #(CapPipe);
@@ -1031,6 +1033,12 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     else                     return 2'b0;
   endfunction
 
+  function Bit#(CapAddressW) getRepresentableAlignmentMask (CapReg dummy, Bit#(CapAddressW) length_request);
+    let setBoundsCap = nullWithAddr((~0) - length_request);
+    Exact#(CapFat) result = setBounds(setBoundsCap, length_request);
+    return (~0) << (result.value.bounds.exp == 0 ? 0 : result.value.bounds.exp + fromInteger(valueOf(HalfExpW)));
+  endfunction
+
 endinstance
 
 instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
@@ -1127,6 +1135,10 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function Bool isInBounds (CapPipe cap, Bool inclusive);
     return capInBounds(cap.capFat, cap.tempFields, inclusive);
   endfunction
+
+  function getRepresentableAlignmentMask (dummy) = getRepresentableAlignmentMask(null_cap);
+
+  function getRepresentableLength (dummy) = getRepresentableLength(null_cap);
 
 endinstance
 

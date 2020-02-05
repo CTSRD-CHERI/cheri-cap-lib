@@ -179,6 +179,15 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   // base.
   function Bit#(2) getBaseAlignment (t cap);
 
+  // Get representable alignment mask
+  function Bit#(n) getRepresentableAlignmentMask (t dummy, Bit#(n) length_request);
+
+  // Get representable length
+  function Bit#(n) getRepresentableLength (t dummy, Bit#(n) length_request);
+    let mask = getRepresentableAlignmentMask(dummy, length_request);
+    return (length_request + ~mask) & mask;
+  endfunction
+
 endtypeclass
 
 function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, flg, n, mem_sz, maskable_bits));
