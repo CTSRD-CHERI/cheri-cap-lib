@@ -870,6 +870,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function setType = error("feature not implemented for this cap type");
   function getAddr = error("feature not implemented for this cap type");
   function setAddr = error("feature not implemented for this cap type");
+  function setAddrUnsafe = error("feature not implemented for this cap type");
   function getOffset = error("feature not implemented for this cap type");
   function modifyOffset = error("feature not implemented for this cap type");
   function getBase = error("feature not implemented for this cap type");
@@ -983,6 +984,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getAddr (cap) = truncate(getAddress(cap));
 
   function setAddr = error("feature not implemented for this cap type");
+  function setAddrUnsafe = error("feature not implemented for this cap type");
 
   function getOffset = error("feature not implemented for this cap type");
   function modifyOffset = error("feature not implemented for this cap type");
@@ -1109,6 +1111,13 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
+  endfunction
+  
+  function CapPipe setAddrUnsafe (CapPipe cap, Bit#(CapAddressW) address);
+    let result = setCapPointer(cap.capFat, zeroExtend(address));
+    cap.capFat = result;
+    cap.tempFields = getTempFields(cap.capFat);
+    return cap;
   endfunction
 
   function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
