@@ -369,11 +369,11 @@ function CapFat pccJumpUpdate(CapFat pcc, LCapAddress fullBot);
     pcc.addrBits = pcc.bounds.baseBits;
     return pcc;
 endfunction
-function CapFat setCapPointer(CapFat cap, CapAddress pointer);
+function CapFat setCapPointer(CapFat cap, LCapAddress pointer);
     // Function to "cheat" and just set the pointer when we know that
     // it will be in representable bounds by some other means.
     CapFat ret   = cap;
-    ret.address  = zeroExtend(pointer);
+    ret.address  = pointer;
     ret.addrBits = truncate(ret.address >> ret.bounds.exp);
     return ret;
 endfunction
@@ -1020,11 +1020,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function toMem (x) = unpack(cast(x));
 
   function CapReg maskAddr (CapReg cap, Bit#(TSub#(MW, 3)) mask);
-    cap.address[valueOf(TSub#(MW, 4)):0] = cap.address[valueOf(TSub#(MW, 4)):0] & mask;
-    UInt#(TAdd#(ExpW,1)) expExt = zeroExtend(cap.bounds.exp);
-    //Update addrBits. Since exp can be up to 64, extend to 64 + 8 bits so bit-select is always in range
-    cap.addrBits = (({40'b0,cap.address})[expExt+fromInteger(valueOf(TSub#(MW,1))):expExt]); //TODO avoid shift?
-    return cap;
+    return setCapPointer(cap, cap.address & {~0,mask});
   endfunction
 
   function Bit#(2) getBaseAlignment (CapReg cap);
@@ -1113,7 +1109,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
   endfunction
-  
+
   function CapPipe setAddrUnsafe (CapPipe cap, Bit#(CapAddressW) address);
     let result = setCapPointer(cap.capFat, zeroExtend(address));
     cap.capFat = result;
