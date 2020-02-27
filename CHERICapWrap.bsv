@@ -81,7 +81,7 @@ function Exact#(`CAPTYPE) `W(modifyOffset) (`CAPTYPE cap, Bit#(CapAddressW) offs
 (* noinline *)
 function Exact#(`CAPTYPE) `W(setOffset) (`CAPTYPE cap, Bit#(CapAddressW) offset) = setOffset (cap, offset);
 (* noinline *)
-function Exact#(`CAPTYPE) `W(inOffset) (`CAPTYPE cap, Bit#(CapAddressW) inc) = incOffset (cap, inc);
+function Exact#(`CAPTYPE) `W(incOffset) (`CAPTYPE cap, Bit#(CapAddressW) inc) = incOffset (cap, inc);
 (* noinline *)
 function Bit#(CapAddressW) `W(getBase) (`CAPTYPE cap) = getBase(cap);
 (* noinline *)
