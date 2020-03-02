@@ -478,8 +478,10 @@ function SetBoundsReturn setBoundsFat(CapFat cap, Address lengthFull);
         // Finally check how close the requested length is to overflow, and test in relation to how much the
         // length will increase.
         LCapAddress topLo = (lmaskLor & len) + (lmaskLor & base);
-        Bool lengthCarryIn = (~lmaskLor & topLo) != 0;
-        Bool lengthRoundUp =  (lmaskLor & topLo) != 0;
+        LCapAddress mwLsbMask = lmaskLor ^ lmaskLo;
+        // If the first bit of the mantissa of the top is not the sum of the corrosponding bits of base and length, there was a carry in.
+        Bool lengthCarryIn = (mwLsbMask & top) != ((mwLsbMask & base)^(mwLsbMask & len));
+        Bool lengthRoundUp = lostSignificantTop;
         Bool lengthIsMax        = (len & (~lmaskLor)) == (lmask ^ lmaskLor);
         Bool lengthIsMaxLessOne = (len & (~lmaskLor)) == (lmask ^ lmaskLo);
 
@@ -488,13 +490,11 @@ function SetBoundsReturn setBoundsFat(CapFat cap, Address lengthFull);
         if (lengthIsMaxLessOne && lengthCarryIn && lengthRoundUp) lengthOverflow = True;
 
         Bool exact = True;
-        LCapAddress baseMask = ~lmaskLor;
         if(lengthOverflow && intExp) begin
             e = e+1;
             ret.bounds.topBits = (lostSignificantTopHigher) ? (newTopBitsHigher+'b1000):newTopBitsHigher;
             ret.bounds.baseBits = truncateLSB(newBaseBits);
             exact = !(lostSignificantBaseHigher || lostSignificantTopHigher);
-            baseMask = ~lmaskLo;
         end else begin
             ret.bounds.topBits = (lostSignificantTop) ? truncate(newTopBits+'b1000):truncate(newTopBits);
             ret.bounds.baseBits = truncate(newBaseBits);
@@ -524,6 +524,7 @@ function SetBoundsReturn setBoundsFat(CapFat cap, Address lengthFull);
             newLengthRounded = (newLengthRounded & (~lmaskLor));
             if (lostSignificantLen) newLength = newLengthRounded;
         end
+        LCapAddress baseMask = ~lmaskLor;
 
         // Return derived capability
         return SetBoundsReturn{cap: ret, exact: exact, length: truncate(newLength), mask: truncate(baseMask)};
