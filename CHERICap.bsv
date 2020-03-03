@@ -186,9 +186,6 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
 
   // Get representable length
   function Bit#(n) getRepresentableLength (t dummy, Bit#(n) length_request);
-    let mask = getRepresentableAlignmentMask(dummy, length_request);
-    return (length_request + ~mask) & mask;
-  endfunction
 
 endtypeclass
 
