@@ -292,10 +292,16 @@ function LCapAddress getTopFat(CapFat cap, TempFields tf);
     Bit#(2) topTip = ret[msbp+1:msbp];
     // Calculate the msb of the base.
     CapAddress adr = truncate(cap.address);
+    // First assume that only the address and correction are involved...
     Bit#(TSub#(SizeOf#(CapAddress),MW)) bot = truncateLSB(adr) + (signExtend(pack(tf.baseCorrection)) << cap.bounds.exp);
     Bit#(1) botTip = msb(bot);
-    if (cap.bounds.exp == (resetExp - 1)) botTip = cap.bounds.baseBits[valueOf(MW)-2];
-    else if (cap.bounds.exp == (resetExp - 2)) botTip = cap.bounds.baseBits[valueOf(MW)-1];
+    // If the bit we're interested in are actually coming from baseBits, select the correct one from there.
+    //             exp == (resetExp - 1) doesn't matter since we will not flip unless exp < resetExp-1.
+    if (cap.bounds.exp == (resetExp - 2)) botTip = cap.bounds.baseBits[valueOf(MW)-1];
+    // Do the final check.
+    // If exp >= resetExp - 1, the bits we're looking at are coming directly from topBits and baseBits, are not being inferred,
+    // and therefore do not need correction. If we are below this range, check that the difference between the resulting top and
+    // bottom is less than one address space.  If not, flip the msb of the top.
     if (cap.bounds.exp<(resetExp-1) && (topTip - zeroExtend(botTip)) > 1) ret[msbp+1] = ~ret[msbp+1];
     return ret;
 endfunction
