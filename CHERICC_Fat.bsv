@@ -524,7 +524,7 @@ function SetBoundsReturn setBoundsFat(CapFat cap, Address lengthFull);
             newLengthRounded = (newLengthRounded & (~lmaskLor));
             if (lostSignificantLen) newLength = newLengthRounded;
         end
-        LCapAddress baseMask = ~lmaskLor;
+        LCapAddress baseMask = (lengthIsMax && lostSignificantTop) ? ~lmaskLo:~lmaskLor;
 
         // Return derived capability
         return SetBoundsReturn{cap: ret, exact: exact, length: truncate(newLength), mask: truncate(baseMask)};
@@ -660,18 +660,15 @@ function VnD#(CapFat) incOffsetFat(CapFat cap, LCapAddress pointer, Bit#(CapAddr
         return VnD {v: inBounds, d: ret};
 endfunction
 function VnD#(CapFat) setAddress(CapFat cap, LCapAddress address, TempFields tf);
-        CapFat ret = cap;
+        CapFat ret = setCapPointer(cap, address);
         Exp e = cap.bounds.exp;
-        ret.address = address;
-        ret.addrBits = truncate(address >> e);
         // Calculate what the upper bits of the new address must be if it is to be in representable bounds.
         Bool newAddrHi  = truncateLSB(ret.addrBits) < tf.repBoundTopBits;
         // Shift amount needed to look at only the bits above the mantissa.
         Exp toUpperBits = e + fromInteger(valueOf(MW));
-        Bit#(TAdd#(CapAddressW,4)) mask = -1 << toUpperBits;
-        Bit#(TAdd#(CapAddressW,4)) newAddrDiff = (zeroExtend(cap.address)&mask) - (zeroExtend(address)&mask);
+        CapAddress mask = -1 << toUpperBits;
+        CapAddress newAddrDiff = (truncate(cap.address)&mask) - (truncate(address)&mask);
         // Assert that the bits above the mantissa are all equal.
-        Bit#(1) msb = truncateLSB(newAddrDiff);
         Bool inRepBounds = True;
         // If the difference between the upper bits of the new address and the current
         // address does not match the expected difference, call it outside of representable bounds.
@@ -689,7 +686,7 @@ function VnD#(CapFat) setAddress(CapFat cap, LCapAddress address, TempFields tf)
                                   t2(False, False): return  0;
                               endcase;
         if (diff != expectedDiff) inRepBounds = False;
-        if (e >= resetExp - 3) inRepBounds = True;
+        if (e >= resetExp - 2) inRepBounds = True;
         if (!inRepBounds) ret.isCapability = False;
         return VnD {v: inRepBounds, d: ret};
 endfunction
