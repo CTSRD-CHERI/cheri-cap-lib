@@ -495,17 +495,15 @@ function SetBoundsReturn setBoundsFat(CapFat cap, Address lengthFull);
         if (lengthIsMax && (lengthCarryIn || lengthRoundUp)) lengthOverflow = True;
         if (lengthIsMaxLessOne && lengthCarryIn && lengthRoundUp) lengthOverflow = True;
 
-        Bool exact = True;
         if(lengthOverflow && intExp) begin
             e = e+1;
             ret.bounds.topBits = (lostSignificantTopHigher) ? (newTopBitsHigher+'b1000):newTopBitsHigher;
             ret.bounds.baseBits = truncateLSB(newBaseBits);
-            exact = !(lostSignificantBaseHigher || lostSignificantTopHigher);
         end else begin
             ret.bounds.topBits = (lostSignificantTop) ? truncate(newTopBits+'b1000):truncate(newTopBits);
             ret.bounds.baseBits = truncate(newBaseBits);
-            exact = !(lostSignificantBase || lostSignificantTop);
         end
+        Bool exact = !(lostSignificantBase || lostSignificantTop);
 
         ret.bounds.exp = e;
         // Update the addrBits fields
