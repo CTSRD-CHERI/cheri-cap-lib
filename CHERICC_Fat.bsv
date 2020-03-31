@@ -1208,4 +1208,18 @@ instance Cast#(CapPipe, CapReg);
   endfunction
 endinstance
 
+instance Cast#(function CapReg f0(t x), function CapPipe f1(t y));
+  function cast(f0);
+      function CapPipe f1(t arg) = cast(f0(arg));
+      return f1;
+  endfunction
+endinstance
+
+instance Cast#(function CapPipe f0(t y), function Bit#(64) f1(t x));
+  function cast(f0);
+      function Bit#(64) f1(t arg) = getAddr(f0(arg));
+      return f1;
+  endfunction
+endinstance
+
 endpackage
