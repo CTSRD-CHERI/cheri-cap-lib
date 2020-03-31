@@ -187,6 +187,9 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   // Get representable length
   function Bit#(n) getRepresentableLength (t dummy, Bit#(n) length_request);
 
+  // Assert that the encoding is valid
+  function Bool isDerivable (t cap);
+
 endtypeclass
 
 function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, flg, n, mem_sz, maskable_bits));

@@ -918,6 +918,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getBaseAlignment = error("feature not implemented for this cap type");
   function getRepresentableAlignmentMask = error("feature not implemented for this cap type");
   function getRepresentableLength = error("feature not implemented for this cap type");
+  function isDerivable = error("feature not implemented for this cap type");
 endinstance
 
 instance FShow #(CapPipe);
@@ -1075,6 +1076,13 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     return sr.length;
   endfunction
 
+  function Bool isDerivable (CapReg cap);
+    return cap.bounds.exp <= resetExp
+        && !(cap.bounds.exp == resetExp && ((truncateLSB(cap.bounds.topBits) != 1'b0) || (cap.bounds.baseBits[valueOf(TSub#(MW,1))] != 1'b0)))
+        && !(cap.bounds.exp == resetExp-1 && (cap.bounds.baseBits[valueOf(TSub#(MW,1)):valueOf(TSub#(MW,2))] != 2'b0))
+        && (cap.reserved == 0);
+  endfunction
+
 endinstance
 
 instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
@@ -1182,6 +1190,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   function getRepresentableLength (dummy) = getRepresentableLength(null_cap);
 
+  function isDerivable (cap) = isDerivable(cap.capFat);
 endinstance
 
 instance Cast#(CapMem, CapReg);
