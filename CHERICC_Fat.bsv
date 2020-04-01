@@ -1079,7 +1079,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function Bool isDerivable (CapReg cap);
     return cap.bounds.exp <= resetExp
         && !(cap.bounds.exp == resetExp && ((truncateLSB(cap.bounds.topBits) != 1'b0) || (truncateLSB(cap.bounds.baseBits) != 2'b0)))
-        && !(cap.bounds.exp == resetExp-1 && (truncateLSB(cap.bounds.baseBits) != 2'b0))
+        && !(cap.bounds.exp == resetExp-1 && (truncateLSB(cap.bounds.baseBits) != 1'b0))
         && (cap.reserved == 0);
   endfunction
 
