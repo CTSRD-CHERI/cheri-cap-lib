@@ -58,7 +58,6 @@ export HPerms;
 export PermsW;
 export Exp;
 export MetaInfo;
-export SetBoundsReturn;
 
 // ===============================================================================
 
@@ -399,8 +398,15 @@ function Bit#(n) smearMSBRight(Bit#(n) x);
     return res;
 endfunction
 
+typedef struct
+{
+  CapFat cap;
+  Bool exact;
+  CapAddress length;
+  CapAddress mask;
+} SetBoundsReturn deriving (Bits, Eq, FShow);
 
-function SetBoundsReturn#(CapFat, CapAddressW) setBoundsFat(CapFat cap, Address lengthFull);
+function SetBoundsReturn setBoundsFat(CapFat cap, Address lengthFull);
         CapFat ret = cap;
         // Find new exponent by finding the index of the most significant bit of the
         // length, or counting leading zeros in the high bits of the length, and
@@ -901,7 +907,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getTop = error("feature not implemented for this cap type");
   function getLength = error("feature not implemented for this cap type");
   function isInBounds = error("feature not implemented for this cap type");
-  function setBoundsCombined = error("feature not implemented for this cap type");
+  function setBounds = error("feature not implemented for this cap type");
   function nullWithAddr = error("feature not implemented for this cap type");
   function almightyCap = error("feature not implemented for this cap type");
   function nullCap = error("feature not implemented for this cap type");
@@ -910,6 +916,8 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function toMem = error("feature not implemented for this cap type");
   function maskAddr = error("feature not implemented for this cap type");
   function getBaseAlignment = error("feature not implemented for this cap type");
+  function getRepresentableAlignmentMask = error("feature not implemented for this cap type");
+  function getRepresentableLength = error("feature not implemented for this cap type");
   function isDerivable = error("feature not implemented for this cap type");
 endinstance
 
@@ -1019,7 +1027,10 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getLength = error("feature not implemented for this cap type");
   function isInBounds = error("feature not implemented for this cap type");
 
-  function SetBoundsReturn#(CapReg, CapAddressW) setBoundsCombined(CapReg cap, Bit#(CapAddressW) length) = setBoundsFat(cap, length);
+  function Exact#(CapReg) setBounds (CapReg cap, Bit#(CapAddressW) length);
+    SetBoundsReturn sr = setBoundsFat(cap, length);
+    return Exact {exact: sr.exact, value: sr.cap};
+  endfunction
 
   function CapReg nullWithAddr (Bit#(CapAddressW) addr);
     CapReg res = nullCap;
@@ -1053,6 +1064,16 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     // of the base are the least significant bits of the encoded base
     if (cap.bounds.exp == 0) return cap.bounds.baseBits[1:0];
     else                     return 2'b0;
+  endfunction
+
+  function Bit#(CapAddressW) getRepresentableAlignmentMask (CapReg dummy, Bit#(CapAddressW) length_request);
+    SetBoundsReturn sr = setBoundsFat(nullCap, length_request);
+    return sr.mask;
+  endfunction
+
+  function Bit#(CapAddressW) getRepresentableLength (CapReg dummy, Bit#(CapAddressW) length_request);
+    SetBoundsReturn sr = setBoundsFat(nullCap, length_request);
+    return sr.length;
   endfunction
 
   function Bool isDerivable (CapReg cap);
@@ -1100,9 +1121,9 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   //Functions supported by CapReg but which require TempFields to be changed
 
-  function SetBoundsReturn#(CapPipe, CapAddressW) setBoundsCombined(CapPipe cap, Bit#(CapAddressW) length);
-    let result = setBoundsCombined(cap.capFat, length);
-    return SetBoundsReturn {cap: CapPipe{capFat: result.cap, tempFields: getTempFields(result.cap)}, exact: result.exact, length: result.length, mask: result.mask};
+  function Exact#(CapPipe) setBounds (CapPipe cap, Bit#(CapAddressW) length);
+    let result = setBounds(cap.capFat, length);
+    return Exact {exact: result.exact, value: CapPipe {capFat: result.value, tempFields: getTempFields(result.value)}};
   endfunction
 
   function CapPipe nullWithAddr (Bit#(CapAddressW) addr);
@@ -1164,6 +1185,10 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function Bool isInBounds (CapPipe cap, Bool inclusive);
     return capInBounds(cap.capFat, cap.tempFields, inclusive);
   endfunction
+
+  function getRepresentableAlignmentMask (dummy) = getRepresentableAlignmentMask(null_cap);
+
+  function getRepresentableLength (dummy) = getRepresentableLength(null_cap);
 
   function isDerivable (cap) = isDerivable(cap.capFat);
 endinstance
