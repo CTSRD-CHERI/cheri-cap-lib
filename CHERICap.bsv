@@ -170,10 +170,13 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   // Returns a null cap with an address set to the argument
   function t nullWithAddr (Bit#(n) addr);
 
+  // Workaround to allow null cap to be derived in default implementations
+  function t nullCapFromDummy(t dummy);
+
   // Return the maximally permissive capability (initial register state)
   function t almightyCap;
   // Return the null capability
-  function t nullCap;
+  function t nullCap = nullCapFromDummy(?);
 
   // Check if a type is valid
   function Bool validAsType (t dummy, Bit#(n) checkType);
@@ -196,12 +199,12 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
 
   // TODO the following do not compile due to "not enough explicit type information"
   // Get representable alignment mask
-  // function Bit#(n) getRepresentableAlignmentMask (t dummy, Bit#(n) length_request) =
-  //   setBoundsCombined(nullCap, length_request).mask;
+  function Bit#(n) getRepresentableAlignmentMask (t dummy, Bit#(n) length_request) =
+    setBoundsCombined(nullCapFromDummy(dummy), length_request).mask;
 
   // Get representable length
-  // function Bit#(n) getRepresentableLength (t dummy, Bit#(n) length_request) =
-  //   setBoundsCombined(nullCap, length_request).length;
+  function Bit#(n) getRepresentableLength (t dummy, Bit#(n) length_request) =
+    setBoundsCombined(nullCapFromDummy(dummy), length_request).length;
 
   // Assert that the encoding is valid
   function Bool isDerivable (t cap);

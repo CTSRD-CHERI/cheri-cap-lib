@@ -904,7 +904,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function setBoundsCombined = error("feature not implemented for this cap type");
   function nullWithAddr = error("feature not implemented for this cap type");
   function almightyCap = error("feature not implemented for this cap type");
-  function nullCap = error("feature not implemented for this cap type");
+  function nullCapFromDummy = error("feature not implemented for this cap type");
   function validAsType = error("feature not implemented for this cap type");
   function fromMem = error("feature not implemented for this cap type");
   function toMem = error("feature not implemented for this cap type");
@@ -1030,7 +1030,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   function almightyCap = defaultCapFat;
 
-  function nullCap = null_cap;
+  function nullCapFromDummy (x) = null_cap;
 
   function Bool validAsType (CapReg dummy, Bit#(CapAddressW) checkType);
     UInt#(CapAddressW) checkTypeUnsigned = unpack(checkType);
@@ -1120,7 +1120,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     return CapPipe {capFat: res, tempFields: getTempFields(res)};
   endfunction
 
-  function nullCap;
+  function nullCapFromDummy (x);
     CapReg res = nullCap;
     return CapPipe {capFat: res, tempFields: getTempFields(res)};
   endfunction
