@@ -169,7 +169,7 @@ typedef struct {
   Bit#(OTypeW)  otype;
   Format        format;
   Bounds        bounds;
-} CapFat deriving(Bits, Eq);
+} CapFat deriving(Bits);
 
 // "Architectural FShow"
 function Fmt showArchitectural(CapFat cap) =
@@ -839,7 +839,7 @@ typedef struct {
   Bool      addrHi;
   Int#(2)   topCorrection;
   Int#(2)   baseCorrection;
-} MetaInfo deriving(Bits, FShow);
+} MetaInfo deriving(Bits, Eq, FShow);
 
 function MetaInfo getMetaInfo (CapFat cap);
     Bit#(3) tb = truncateLSB(cap.bounds.topBits);
@@ -892,9 +892,16 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getKind = error("feature not implemented for this cap type");
   function getType = error("feature not implemented for this cap type");
   function setType = error("feature not implemented for this cap type");
-  function getAddr = error("feature not implemented for this cap type");
+  function getAddr(CapMem cap);
+      CapabilityInMemory capMem = unpack(cap);
+      return capMem.address;
+  endfunction
   function setAddr = error("feature not implemented for this cap type");
-  function setAddrUnsafe = error("feature not implemented for this cap type");
+  function CapMem setAddrUnsafe (CapMem cap, Bit#(CapAddressW) address);
+    CapabilityInMemory capMem = unpack(cap);
+    capMem.address = address;
+    return pack(capMem);
+  endfunction
   function getOffset = error("feature not implemented for this cap type");
   function modifyOffset = error("feature not implemented for this cap type");
   function getBase = error("feature not implemented for this cap type");
@@ -903,8 +910,11 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function isInBounds = error("feature not implemented for this cap type");
   function setBoundsCombined = error("feature not implemented for this cap type");
   function nullWithAddr = error("feature not implemented for this cap type");
-  function almightyCap = error("feature not implemented for this cap type");
-  function nullCapFromDummy = error("feature not implemented for this cap type");
+  function almightyCap;
+    CapReg res = almightyCap;
+    return cast(res);
+  endfunction
+  function nullCapFromDummy (x) = packCap(null_cap);
   function validAsType = error("feature not implemented for this cap type");
   function fromMem = error("feature not implemented for this cap type");
   function toMem = error("feature not implemented for this cap type");
@@ -924,6 +934,15 @@ instance FShow #(CapPipe);
                         " hp: ", fshow(pack(getHardPerms(cap))),
                         " ot: ", fshow(getType(cap)),
                         " f: ", fshow(getFlags(cap)));
+endinstance
+
+instance Eq #(CapPipe);
+  function Bool \== (CapPipe x, CapPipe y) = toMem(x) == toMem(y);
+//  function Bool \/= (CapPipe x, CapPipe y);
+endinstance
+instance Eq #(CapReg);
+  function Bool \== (CapReg x, CapReg y) = toMem(x) == toMem(y);
+//  function Bool \/= (CapPipe x, CapPipe y);
 endinstance
 
 instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
@@ -1189,6 +1208,20 @@ endinstance
 instance Cast#(CapPipe, CapReg);
   function CapReg cast (CapPipe fat);
     return fat.capFat;
+  endfunction
+endinstance
+
+instance Cast#(CapMem, CapPipe);
+  function CapPipe cast (CapMem thin);
+    CapReg cr = cast(thin);
+    return cast(cr);
+  endfunction
+endinstance
+
+instance Cast#(CapPipe, CapMem);
+  function CapMem cast (CapPipe fat);
+    CapReg cr = cast(fat);
+    return cast(cr);
   endfunction
 endinstance
 
