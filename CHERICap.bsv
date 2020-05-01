@@ -70,13 +70,13 @@ typedef struct {
   t    value;
 } Exact #(type t) deriving (Bits);
 
-typedef enum {
-  UNSEALED,
-  SENTRY,
-  RES0,
-  RES1,
-  SEALED_WITH_TYPE
-} Kind deriving (Bits, Eq, FShow);
+typedef union tagged {
+  void UNSEALED;
+  void SENTRY;
+  void RES0;
+  void RES1;
+  Bit#(ot) SEALED_WITH_TYPE;
+} Kind#(numeric type ot) deriving (Bits, Eq, FShow);
 
 typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, numeric type mem_sz, numeric type maskable_bits)
   dependencies (t determines (ot, flg, n, mem_sz, maskable_bits));
@@ -106,17 +106,9 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   function t setPerms (t cap, Bit#(31) perms) =
     setSoftPerms(setHardPerms(cap, unpack(perms[11:0])), unpack(truncate(perms[30:15])));
 
-  // Get the kind of the capability, i.e. whether it is sealed, sentry, unsealed, ...
-  function Kind getKind (t cap);
-  // Helper methods for identifying specific kinds
-  function Bool isSentry (t cap) = getKind(cap) == SENTRY;
-  function Bool isSealedWithType (t cap) = getKind(cap) == SEALED_WITH_TYPE;
-  function Bool isSealed (t cap) = getKind(cap) != UNSEALED;
-
-  // Get the type field, including implicitly whether the cap is sealed/sentry
-  function Bit#(ot) getType (t cap);
-  // Set the type field, including implicitly sealing/unsealing the capability
-  function t setType (t cap, Bit#(ot) otype);
+  // Manipulate the kind of the capability, i.e. whether it is sealed, sentry, unsealed, ...
+  function Kind#(ot) getKind (t cap);
+  function t setKind (t cap, Kind#(ot) kind);
 
   // Get the address pointed to by the capability
   function Bit#(n) getAddr (t cap);
@@ -196,7 +188,6 @@ function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, flg, n, mem_sz, mask
   return $format( "Valid: 0x%0x", isValidCap(cap)) +
          $format(" Perms: 0x%0x", getPerms(cap)) +
          $format(" Kind: ", fshow(getKind(cap))) +
-         (isSealedWithType(cap) ? $format(" Type: %0d", getType(cap)) : $format("")) +
          $format(" Addr: 0x%0x", getAddr(cap)) +
          $format(" Base: 0x%0x", getBase(cap)) +
          $format(" Length: 0x%0x", getLength(cap));

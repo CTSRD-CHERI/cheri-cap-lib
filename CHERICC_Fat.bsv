@@ -156,6 +156,8 @@ typedef VnD#(Bit#(OTypeW)) CType;
 Bit#(OTypeW) otype_max = -5;
 Bit#(OTypeW) otype_unsealed = -1;
 Bit#(OTypeW) otype_sentry   = -2;
+Bit#(OTypeW) otype_res0     = -3;
+Bit#(OTypeW) otype_res1     = -4;
 
 // unpacked capability format
 typedef struct {
@@ -175,8 +177,7 @@ function Fmt showArchitectural(CapFat cap) =
     $format("valid:%b", cap.isCapability)
     + $format(" perms:0x%x", getPerms(cap))
     //+ $format(" flags:0x%x", getFlags(cap))
-    + $format(" sealed:%b", isSealed(cap))
-    + $format(" type:0x%x",getType(cap))
+    + $format(" kind:", fshow(getKind(cap)))
     + $format(" offset:0x%x", getOffsetFat(cap, getTempFields(cap)))
     + $format(" base:0x%x", getBotFat(cap, getTempFields(cap)))
     + $format(" length:0x%x", getLengthFat(cap, getTempFields(cap)));
@@ -896,8 +897,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getSoftPerms = error("feature not implemented for this cap type");
   function setSoftPerms = error("feature not implemented for this cap type");
   function getKind = error("feature not implemented for this cap type");
-  function getType = error("feature not implemented for this cap type");
-  function setType = error("feature not implemented for this cap type");
+  function setKind = error("feature not implemented for this cap type");
   function getAddr = error("feature not implemented for this cap type");
   function setAddr = error("feature not implemented for this cap type");
   function setAddrUnsafe = error("feature not implemented for this cap type");
@@ -930,7 +930,7 @@ instance FShow #(CapPipe);
                         " t: ", fshow(getTop(cap)),
                         " sp: ", fshow(pack(getSoftPerms(cap))),
                         " hp: ", fshow(pack(getHardPerms(cap))),
-                        " ot: ", fshow(getType(cap)),
+                        " ot: ", fshow(cap.capFat.otype),
                         " f: ", fshow(getFlags(cap)));
 endinstance
 
@@ -993,23 +993,24 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     return cap;
   endfunction
 
-  function Kind getKind (CapReg cap);
-    case (cap.otype)
-      otype_unsealed: return UNSEALED;
-      otype_sentry: return SENTRY;
-      default: return (cap.otype <= otype_max) ? SEALED_WITH_TYPE : RES0;
-    endcase
+  function Kind#(OTypeW) getKind (CapReg cap);
+    return (case (cap.otype)
+      otype_unsealed: UNSEALED;
+      otype_sentry: SENTRY;
+      otype_res0: RES0;
+      otype_res1: RES1;
+      default: (SEALED_WITH_TYPE (cap.otype));
+    endcase);
   endfunction
 
-  function getType (cap) = getTypeFat(cap).d;
-
-  function CapReg setType (CapReg cap, Bit #(OTypeW) otype);
-    if (otype == -1) begin
-      cap = unseal(cap, ?);
-    end else begin
-      cap = seal(cap, ?, VnD {v: True, d:otype});
-    end
-    return cap;
+  function CapReg setKind (CapReg cap, Kind #(OTypeW) kind);
+    return (case (kind) matches
+      tagged UNSEALED: unseal(cap, ?);
+      tagged SENTRY: seal(cap, ?, VnD {v: True, d:otype_sentry});
+      tagged RES0: seal(cap, ?, VnD {v: True, d:otype_res0});
+      tagged RES1: seal(cap, ?, VnD {v: True, d:otype_res1});
+      tagged SEALED_WITH_TYPE .ot: seal(cap, ?, VnD {v: True, d:ot});
+    endcase);
   endfunction
 
   function getAddr (cap) = truncate(getAddress(cap));
@@ -1105,10 +1106,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     return CapPipe {capFat: setSoftPerms(cap.capFat, perms), tempFields: cap.tempFields};
   endfunction
   function getKind (cap) = getKind(cap.capFat);
-  function getType (cap) = getType(cap.capFat);
-  function setType (cap, otype);
-    return CapPipe{capFat: setType(cap.capFat, otype), tempFields: cap.tempFields};
-  endfunction
+  function setKind (cap,kind) = CapPipe {capFat:setKind(cap.capFat,kind), tempFields: cap.tempFields};
   function getAddr (cap) = getAddr(cap.capFat);
   function CapPipe maskAddr (CapPipe cap, Bit#(TSub#(MW, 3)) mask);
     return CapPipe {capFat: maskAddr(cap.capFat, mask), tempFields: cap.tempFields};
