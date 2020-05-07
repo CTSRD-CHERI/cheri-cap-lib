@@ -883,44 +883,48 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     capMem.isCapability = v;
     return pack(capMem);
   endfunction
-  function getFlags = error("feature not implemented for this cap type");
-  function setFlags = error("feature not implemented for this cap type");
-  function getHardPerms = error("feature not implemented for this cap type");
-  function setHardPerms = error("feature not implemented for this cap type");
-  function getSoftPerms = error("feature not implemented for this cap type");
-  function setSoftPerms = error("feature not implemented for this cap type");
-  function getKind = error("feature not implemented for this cap type");
-  function getType = error("feature not implemented for this cap type");
-  function setType = error("feature not implemented for this cap type");
-  function getAddr(CapMem cap);
+  function getFlags = error("getFlags not implemented for CapMem");
+  function setFlags = error("setFlags not implemented for CapMem");
+  function getHardPerms = error("getHardPerms not implemented for CapMem");
+  function setHardPerms = error("setHardPerms not implemented for CapMem");
+  function getSoftPerms = error("getSoftPerms not implemented for CapMem");
+  function setSoftPerms = error("setSoftPerms not implemented for CapMem");
+  function getKind = error("getKind not implemented for CapMem");
+  function getType = error("getType not implemented for CapMem");
+  function setType = error("setType not implemented for CapMem");
+  function Bit#(CapAddressW) getAddr(CapMem cap);
       CapabilityInMemory capMem = unpack(cap);
       return capMem.address;
   endfunction
-  function setAddr = error("feature not implemented for this cap type");
+  function setAddr = error("setAddr not implemented for CapMem");
   function CapMem setAddrUnsafe (CapMem cap, Bit#(CapAddressW) address);
     CapabilityInMemory capMem = unpack(cap);
     capMem.address = address;
     return pack(capMem);
   endfunction
-  function getOffset = error("feature not implemented for this cap type");
-  function modifyOffset = error("feature not implemented for this cap type");
-  function getBase = error("feature not implemented for this cap type");
-  function getTop = error("feature not implemented for this cap type");
-  function getLength = error("feature not implemented for this cap type");
-  function isInBounds = error("feature not implemented for this cap type");
-  function setBoundsCombined = error("feature not implemented for this cap type");
-  function nullWithAddr = error("feature not implemented for this cap type");
+  function getOffset = error("getOffset not implemented for CapMem");
+  function modifyOffset = error("modifyOffset not implemented for CapMem");
+  function getBase = error("getBase not implemented for CapMem");
+  function getTop = error("getTop not implemented for CapMem");
+  function getLength = error("getLength not implemented for CapMem");
+  function isInBounds = error("isInBounds not implemented for CapMem");
+  function setBoundsCombined = error("setBoundsCombined not implemented for CapMem");
+  function nullWithAddr = error("nullWithAddr not implemented for CapMem");
   function almightyCap;
     CapReg res = almightyCap;
     return cast(res);
   endfunction
   function nullCapFromDummy (x) = packCap(null_cap);
-  function validAsType = error("feature not implemented for this cap type");
-  function fromMem = error("feature not implemented for this cap type");
-  function toMem = error("feature not implemented for this cap type");
-  function maskAddr = error("feature not implemented for this cap type");
-  function getBaseAlignment = error("feature not implemented for this cap type");
-  function isDerivable = error("feature not implemented for this cap type");
+  function Bool validAsType (CapMem dummy, Bit#(CapAddressW) checkType);
+    UInt#(CapAddressW) checkTypeUnsigned = unpack(checkType);
+    UInt#(CapAddressW) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
+    return checkTypeUnsigned <= otypeMaxUnsigned;
+  endfunction
+  function fromMem = error("fromMem not implemented for CapMem");
+  function toMem = error("toMem not implemented for CapMem");
+  function maskAddr = error("maskAddr not implemented for CapMem");
+  function getBaseAlignment = error("getBaseAlignment not implemented for CapMem");
+  function isDerivable = error("isDerivable not implemented for CapMem");
 endinstance
 
 instance FShow #(CapPipe);
@@ -1025,18 +1029,18 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   function getAddr (cap) = truncate(getAddress(cap));
 
-  function setAddr = error("feature not implemented for this cap type");
+  function setAddr = error("setAddr not implemented for CapReg");
 
   function CapReg setAddrUnsafe (CapReg cap, Bit#(CapAddressW) address);
     return setCapPointer(cap, zeroExtend(address));
   endfunction
 
-  function getOffset = error("feature not implemented for this cap type");
-  function modifyOffset = error("feature not implemented for this cap type");
-  function getBase = error("feature not implemented for this cap type");
-  function getTop = error("feature not implemented for this cap type");
-  function getLength = error("feature not implemented for this cap type");
-  function isInBounds = error("feature not implemented for this cap type");
+  function getOffset = error("getOffset not implemented for CapReg");
+  function modifyOffset = error("modifyOffset not implemented for CapReg");
+  function getBase = error("getBase not implemented for CapReg");
+  function getTop = error("getTop not implemented for CapReg");
+  function getLength = error("getLength not implemented for CapReg");
+  function isInBounds = error("isInBounds not implemented for CapReg");
 
   function SetBoundsReturn#(CapReg, CapAddressW) setBoundsCombined(CapReg cap, Bit#(CapAddressW) length) = setBoundsFat(cap, length);
 
@@ -1051,18 +1055,17 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   function nullCapFromDummy (x) = null_cap;
 
-  function Bool validAsType (CapReg dummy, Bit#(CapAddressW) checkType);
-    UInt#(CapAddressW) checkTypeUnsigned = unpack(checkType);
-    UInt#(CapAddressW) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
-    return checkTypeUnsigned <= otypeMaxUnsigned;
-  endfunction
-
   function fromMem (x) = cast(pack(x));
 
   function toMem (x) = unpack(cast(x));
 
   function CapReg maskAddr (CapReg cap, Bit#(TSub#(MW, 3)) mask);
     return setCapPointer(cap, cap.address & {~0,mask});
+  endfunction
+
+  function Bool validAsType (CapReg dummy, Bit#(CapAddressW) checkType);
+    CapMem nullC = nullCap;
+    return validAsType(nullC, checkType);
   endfunction
 
   function Bit#(2) getBaseAlignment (CapReg cap);
