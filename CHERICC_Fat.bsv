@@ -883,8 +883,15 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     capMem.isCapability = v;
     return pack(capMem);
   endfunction
-  function getFlags = error("getFlags not implemented for CapMem");
-  function setFlags = error("setFlags not implemented for CapMem");
+  function getFlags (x);
+    CapabilityInMemory capMem = unpack(x);
+    return capMem.flags;
+  endfunction
+  function setFlags (x, f);
+    CapabilityInMemory capMem = unpack(x);
+    capMem.flags = f;
+    return pack(capMem);
+  endfunction
   function getHardPerms = error("getHardPerms not implemented for CapMem");
   function setHardPerms = error("setHardPerms not implemented for CapMem");
   function getSoftPerms = error("getSoftPerms not implemented for CapMem");
