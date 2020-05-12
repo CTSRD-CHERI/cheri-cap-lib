@@ -58,7 +58,6 @@ export HPerms;
 export PermsW;
 export Exp;
 export MetaInfo;
-export SetBoundsReturn;
 
 // ===============================================================================
 
@@ -157,6 +156,8 @@ typedef VnD#(Bit#(OTypeW)) CType;
 Bit#(OTypeW) otype_max = -5;
 Bit#(OTypeW) otype_unsealed = -1;
 Bit#(OTypeW) otype_sentry   = -2;
+Bit#(OTypeW) otype_res0     = -3;
+Bit#(OTypeW) otype_res1     = -4;
 
 // unpacked capability format
 typedef struct {
@@ -176,8 +177,7 @@ function Fmt showArchitectural(CapFat cap) =
     $format("valid:%b", cap.isCapability)
     + $format(" perms:0x%x", getPerms(cap))
     //+ $format(" flags:0x%x", getFlags(cap))
-    + $format(" sealed:%b", isSealed(cap))
-    + $format(" type:0x%x",getType(cap))
+    + $format(" kind:", fshow(getKind(cap)))
     + $format(" offset:0x%x", getOffsetFat(cap, getTempFields(cap)))
     + $format(" base:0x%x", getBotFat(cap, getTempFields(cap)))
     + $format(" length:0x%x", getLengthFat(cap, getTempFields(cap)));
@@ -399,8 +399,15 @@ function Bit#(n) smearMSBRight(Bit#(n) x);
     return res;
 endfunction
 
+typedef struct
+{
+  CapFat cap;
+  Bool exact;
+  CapAddress length;
+  CapAddress mask;
+} SetBoundsReturn deriving (Bits, Eq, FShow);
 
-function SetBoundsReturn#(CapFat, CapAddressW) setBoundsFat(CapFat cap, Address lengthFull);
+function SetBoundsReturn setBoundsFat(CapFat cap, Address lengthFull);
         CapFat ret = cap;
         // Find new exponent by finding the index of the most significant bit of the
         // length, or counting leading zeros in the high bits of the length, and
@@ -897,8 +904,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getSoftPerms = error("getSoftPerms not implemented for CapMem");
   function setSoftPerms = error("setSoftPerms not implemented for CapMem");
   function getKind = error("getKind not implemented for CapMem");
-  function getType = error("getType not implemented for CapMem");
-  function setType = error("setType not implemented for CapMem");
+  function setKind = error("setKind not implemented for CapMem");
   function Bit#(CapAddressW) getAddr(CapMem cap);
       CapabilityInMemory capMem = unpack(cap);
       return capMem.address;
@@ -915,7 +921,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getTop = error("getTop not implemented for CapMem");
   function getLength = error("getLength not implemented for CapMem");
   function isInBounds = error("isInBounds not implemented for CapMem");
-  function setBoundsCombined = error("setBoundsCombined not implemented for CapMem");
+  function setBounds = error("setBounds not implemented for CapMem");
   function nullWithAddr = error("nullWithAddr not implemented for CapMem");
   function almightyCap;
     CapReg res = almightyCap;
@@ -931,6 +937,8 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function toMem = error("toMem not implemented for CapMem");
   function maskAddr = error("maskAddr not implemented for CapMem");
   function getBaseAlignment = error("getBaseAlignment not implemented for CapMem");
+  function getRepresentableAlignmentMask = error("feature not implemented for this cap type");
+  function getRepresentableLength = error("feature not implemented for this cap type");
   function isDerivable = error("isDerivable not implemented for CapMem");
 endinstance
 
@@ -943,7 +951,7 @@ instance FShow #(CapPipe);
                         " t: ", fshow(getTop(cap)),
                         " sp: ", fshow(pack(getSoftPerms(cap))),
                         " hp: ", fshow(pack(getHardPerms(cap))),
-                        " ot: ", fshow(getType(cap)),
+                        " ot: ", fshow(cap.capFat.otype),
                         " f: ", fshow(getFlags(cap)));
 endinstance
 
@@ -1015,23 +1023,24 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     return cap;
   endfunction
 
-  function Kind getKind (CapReg cap);
-    case (cap.otype)
-      otype_unsealed: return UNSEALED;
-      otype_sentry: return SENTRY;
-      default: return (cap.otype <= otype_max) ? SEALED_WITH_TYPE : RES0;
-    endcase
+  function Kind#(OTypeW) getKind (CapReg cap);
+    return (case (cap.otype)
+      otype_unsealed: UNSEALED;
+      otype_sentry: SENTRY;
+      otype_res0: RES0;
+      otype_res1: RES1;
+      default: (SEALED_WITH_TYPE (cap.otype));
+    endcase);
   endfunction
 
-  function getType (cap) = getTypeFat(cap).d;
-
-  function CapReg setType (CapReg cap, Bit #(OTypeW) otype);
-    if (otype == -1) begin
-      cap = unseal(cap, ?);
-    end else begin
-      cap = seal(cap, ?, VnD {v: True, d:otype});
-    end
-    return cap;
+  function CapReg setKind (CapReg cap, Kind #(OTypeW) kind);
+    return (case (kind) matches
+      tagged UNSEALED: unseal(cap, ?);
+      tagged SENTRY: seal(cap, ?, VnD {v: True, d:otype_sentry});
+      tagged RES0: seal(cap, ?, VnD {v: True, d:otype_res0});
+      tagged RES1: seal(cap, ?, VnD {v: True, d:otype_res1});
+      tagged SEALED_WITH_TYPE .ot: seal(cap, ?, VnD {v: True, d:ot});
+    endcase);
   endfunction
 
   function getAddr (cap) = truncate(getAddress(cap));
@@ -1049,7 +1058,10 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getLength = error("getLength not implemented for CapReg");
   function isInBounds = error("isInBounds not implemented for CapReg");
 
-  function SetBoundsReturn#(CapReg, CapAddressW) setBoundsCombined(CapReg cap, Bit#(CapAddressW) length) = setBoundsFat(cap, length);
+  function Exact#(CapReg) setBounds (CapReg cap, Bit#(CapAddressW) length);
+    SetBoundsReturn sr = setBoundsFat(cap, length);
+    return Exact {exact: sr.exact, value: sr.cap};
+  endfunction
 
   function CapReg nullWithAddr (Bit#(CapAddressW) addr);
     CapReg res = nullCap;
@@ -1084,6 +1096,16 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     else                     return 2'b0;
   endfunction
 
+  function Bit#(CapAddressW) getRepresentableAlignmentMask (CapReg dummy, Bit#(CapAddressW) length_request);
+    SetBoundsReturn sr = setBoundsFat(nullCap, length_request);
+    return sr.mask;
+  endfunction
+
+  function Bit#(CapAddressW) getRepresentableLength (CapReg dummy, Bit#(CapAddressW) length_request);
+    SetBoundsReturn sr = setBoundsFat(nullCap, length_request);
+    return sr.length;
+  endfunction
+
   function Bool isDerivable (CapReg cap);
     return cap.bounds.exp <= resetExp
         && !(cap.bounds.exp == resetExp && ((truncateLSB(cap.bounds.topBits) != 1'b0) || (truncateLSB(cap.bounds.baseBits) != 2'b0)))
@@ -1113,10 +1135,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     return CapPipe {capFat: setSoftPerms(cap.capFat, perms), tempFields: cap.tempFields};
   endfunction
   function getKind (cap) = getKind(cap.capFat);
-  function getType (cap) = getType(cap.capFat);
-  function setType (cap, otype);
-    return CapPipe{capFat: setType(cap.capFat, otype), tempFields: cap.tempFields};
-  endfunction
+  function setKind (cap,kind) = CapPipe {capFat:setKind(cap.capFat,kind), tempFields: cap.tempFields};
   function getAddr (cap) = getAddr(cap.capFat);
   function CapPipe maskAddr (CapPipe cap, Bit#(TSub#(MW, 3)) mask);
     return CapPipe {capFat: maskAddr(cap.capFat, mask), tempFields: cap.tempFields};
@@ -1129,9 +1148,9 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   //Functions supported by CapReg but which require TempFields to be changed
 
-  function SetBoundsReturn#(CapPipe, CapAddressW) setBoundsCombined(CapPipe cap, Bit#(CapAddressW) length);
-    let result = setBoundsCombined(cap.capFat, length);
-    return SetBoundsReturn {cap: CapPipe{capFat: result.cap, tempFields: getTempFields(result.cap)}, exact: result.exact, length: result.length, mask: result.mask};
+  function Exact#(CapPipe) setBounds (CapPipe cap, Bit#(CapAddressW) length);
+    let result = setBounds(cap.capFat, length);
+    return Exact {exact: result.exact, value: CapPipe {capFat: result.value, tempFields: getTempFields(result.value)}};
   endfunction
 
   function CapPipe nullWithAddr (Bit#(CapAddressW) addr);
@@ -1193,6 +1212,10 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function Bool isInBounds (CapPipe cap, Bool inclusive);
     return capInBounds(cap.capFat, cap.tempFields, inclusive);
   endfunction
+
+  function getRepresentableAlignmentMask (dummy) = getRepresentableAlignmentMask(null_cap);
+
+  function getRepresentableLength (dummy) = getRepresentableLength(null_cap);
 
   function isDerivable (cap) = isDerivable(cap.capFat);
 endinstance

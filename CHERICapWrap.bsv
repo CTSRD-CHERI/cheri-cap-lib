@@ -31,11 +31,10 @@ import CHERICap :: *;
 import CHERICC_Fat :: *;
 
 `define CAPTYPE CapPipe
-`define W(name)\
-`ifndef CAP64\
-wrap128_``name\
-`else\
-wrap64_``name\
+`ifndef CAP64
+`define W(name) wrap128_``name
+`else
+`define W(name) wrap64_``name
 `endif
 
 (* noinline *)
