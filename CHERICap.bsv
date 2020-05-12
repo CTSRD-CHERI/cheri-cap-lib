@@ -78,6 +78,14 @@ typedef union tagged {
   Bit#(ot) SEALED_WITH_TYPE;
 } Kind#(numeric type ot) deriving (Bits, Eq, FShow);
 
+typedef struct
+{
+  t cap;
+  Bool exact;
+  Bit#(n) length;
+  Bit#(n) mask;
+} SetBoundsReturn#(type t, numeric type n) deriving (Bits, Eq, FShow);
+
 typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, numeric type mem_sz, numeric type maskable_bits)
   dependencies (t determines (ot, flg, n, mem_sz, maskable_bits));
 
@@ -145,6 +153,11 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
 
   // Set the length of the capability. Inexact: result length may be different to requested
   function Exact#(t) setBounds (t cap, Bit#(n) length);
+    let combinedResult = setBoundsCombined(cap, length);
+    return Exact {exact: combinedResult.exact, value: combinedResult.cap};
+  endfunction
+
+  function SetBoundsReturn#(t, n) setBoundsCombined (t cap, Bit#(n) length);
 
   // Returns a null cap with an address set to the argument
   function t nullWithAddr (Bit#(n) addr);
@@ -176,11 +189,14 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   // base.
   function Bit#(2) getBaseAlignment (t cap);
 
+  // TODO the following do not compile due to "not enough explicit type information"
   // Get representable alignment mask
-  function Bit#(n) getRepresentableAlignmentMask (t dummy, Bit#(n) length_request);
+  // function Bit#(n) getRepresentableAlignmentMask (t dummy, Bit#(n) length_request) =
+  //   setBoundsCombined(nullCap, length_request).mask;
 
   // Get representable length
-  function Bit#(n) getRepresentableLength (t dummy, Bit#(n) length_request);
+  // function Bit#(n) getRepresentableLength (t dummy, Bit#(n) length_request) =
+  //   setBoundsCombined(nullCap, length_request).length;
 
   // Assert that the encoding is valid
   function Bool isDerivable (t cap);
