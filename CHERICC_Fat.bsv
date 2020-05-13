@@ -931,8 +931,6 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function toMem = error("toMem not implemented for CapMem");
   function maskAddr = error("maskAddr not implemented for CapMem");
   function getBaseAlignment = error("getBaseAlignment not implemented for CapMem");
-  function getRepresentableAlignmentMask = error("feature not implemented for this cap type");
-  function getRepresentableLength = error("feature not implemented for this cap type");
   function isDerivable = error("isDerivable not implemented for CapMem");
 endinstance
 
