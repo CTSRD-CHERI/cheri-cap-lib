@@ -893,7 +893,23 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     capMem.flags = f;
     return pack(capMem);
   endfunction
-  function getHardPerms = error("getHardPerms not implemented for CapMem");
+  function getHardPerms (x);
+    CapabilityInMemory cap = unpack(x);
+    return HardPerms {
+      permitSetCID: cap.perms.hard.permit_set_CID,
+      accessSysRegs: cap.perms.hard.access_sys_regs,
+      permitUnseal: cap.perms.hard.permit_unseal,
+      permitCCall: cap.perms.hard.permit_ccall,
+      permitSeal: cap.perms.hard.permit_seal,
+      permitStoreLocalCap: cap.perms.hard.permit_store_ephemeral_cap,
+      permitStoreCap: cap.perms.hard.permit_store_cap,
+      permitLoadCap: cap.perms.hard.permit_load_cap,
+      permitStore: cap.perms.hard.permit_store,
+      permitLoad: cap.perms.hard.permit_load,
+      permitExecute: cap.perms.hard.permit_execute,
+      global: cap.perms.hard.non_ephemeral
+    };
+  endfunction
   function setHardPerms = error("setHardPerms not implemented for CapMem");
   function getSoftPerms = error("getSoftPerms not implemented for CapMem");
   function setSoftPerms = error("setSoftPerms not implemented for CapMem");
