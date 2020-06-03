@@ -623,15 +623,17 @@ function VnD#(CapFat) incOffsetFat(CapFat cap, LCapAddress pointer, Bit#(CapAddr
         // Select the appropriate toBounds value
         Bit#(MW) toBounds   = (setOffset) ? toBounds_A   : toBounds_B;
         Bit#(MW) toBoundsM1 = (setOffset) ? toBoundsM1_A : toBoundsM1_B;
+        Bool addrAtRepBound = !setOffset && (repBoundBits == cap.addrBits);
 
         // Implement the inLimit test
         Bool inLimits = False;
         if (posInc) begin
             // For a positive or null increment
-            inLimits = offsetBits < toBoundsM1;
+            // SetOffset is offsetting against base, which has 0 in the lower bits, so we don't need to be conservative.
+            inLimits = (setOffset) ? offsetBits <= toBoundsM1 : offsetBits < toBoundsM1;
         end else begin
             // For a negative increment
-            inLimits = (offsetBits >= toBounds) && (repBoundBits != cap.addrBits);
+            inLimits = (offsetBits >= toBounds) && !addrAtRepBound;
         end
 
         // Complete representable bounds check
