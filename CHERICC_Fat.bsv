@@ -516,14 +516,15 @@ function SetBoundsReturn#(CapFat, CapAddressW) setBoundsFat(CapFat cap, Address 
 
         // Begin calculate newLength in case this is a request just for a representable length:
         LCapAddress newLength = zeroExtend(length);
+        LCapAddress baseMask = -1; // Override the result from the previous line if we represent everything.
         if (intExp) begin
             LCapAddress oneInLsb = (lmask ^ (lmask>>1)) >> shiftAmount;
             LCapAddress newLengthRounded = newLength + oneInLsb;
             newLength        = (newLength        & (~lmaskLor));
             newLengthRounded = (newLengthRounded & (~lmaskLor));
             if (lostSignificantLen) newLength = newLengthRounded;
+            baseMask = (lengthIsMax && lostSignificantTop) ? ~lmaskLo:~lmaskLor;
         end
-        LCapAddress baseMask = (lengthIsMax && lostSignificantTop) ? ~lmaskLo:~lmaskLor;
 
         // Return derived capability
         return SetBoundsReturn{cap: ret, exact: exact, length: truncate(newLength), mask: truncate(baseMask)};
