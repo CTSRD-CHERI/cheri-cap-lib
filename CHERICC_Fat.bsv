@@ -935,7 +935,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getLength = error("getLength not implemented for CapMem");
   function isInBounds = error("isInBounds not implemented for CapMem");
   function setBoundsCombined = error("setBoundsCombined not implemented for CapMem");
-  function nullWithAddr(Bit#(CapAddressW) addr) = setAddrUnsafe(packCap(null_cap), addr);
+  function nullWithAddr(addr) = setAddrUnsafe(packCap(null_cap), addr);
   function almightyCap;
     CapReg res = almightyCap;
     return cast(res);
