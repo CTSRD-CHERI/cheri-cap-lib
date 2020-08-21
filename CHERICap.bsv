@@ -125,7 +125,7 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   // Set the address of the capability. Result assumed to be representable
   function t setAddrUnsafe (t cap, Bit#(n) addr);
   // Add to the address of the capability. Result assumed to be representable
-  function t addAddrUnsafe (t cap, Bit#(8) inc);
+  function t addAddrUnsafe (t cap, Bit#(maskable_bits) inc);
 
   // Get the offset of the capability
   function Bit#(n) getOffset (t cap) = getAddr(cap) - getBase(cap);
