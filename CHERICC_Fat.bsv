@@ -928,6 +928,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     capMem.address = address;
     return pack(capMem);
   endfunction
+  function addAddrUnsafe (cap, inc) = setAddrUnsafe(cap, getAddr(cap) + signExtend(inc));
   function getOffset = error("getOffset not implemented for CapMem");
   function modifyOffset = error("modifyOffset not implemented for CapMem");
   function getBase = error("getBase not implemented for CapMem");
@@ -935,7 +936,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getLength = error("getLength not implemented for CapMem");
   function isInBounds = error("isInBounds not implemented for CapMem");
   function setBoundsCombined = error("setBoundsCombined not implemented for CapMem");
-  function nullWithAddr(addr) = setAddrUnsafe(packCap(null_cap), addr);
+  function nullWithAddr(Bit#(CapAddressW) addr) = setAddrUnsafe(packCap(null_cap), addr);
   function almightyCap;
     CapReg res = almightyCap;
     return cast(res);
@@ -1062,6 +1063,8 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     return setCapPointer(cap, zeroExtend(address));
   endfunction
 
+  function addAddrUnsafe (cap, inc) = setAddrUnsafe(cap, getAddr(cap) + signExtend(inc));
+
   function getOffset = error("getOffset not implemented for CapReg");
   function modifyOffset = error("modifyOffset not implemented for CapReg");
   function getBase = error("getBase not implemented for CapReg");
@@ -1180,6 +1183,8 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     cap.tempFields = getTempFields(cap.capFat);
     return cap;
   endfunction
+
+  function addAddrUnsafe (cap, inc) = setAddrUnsafe(cap, getAddr(cap) + signExtend(inc));
 
   function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
 
