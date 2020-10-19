@@ -141,7 +141,7 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   // Get the top
   function Bit#(TAdd#(n, 1)) getTop (t cap);
   // Get the length
-  function Bit#(TAdd#(n, 1)) getLength (t cap);
+  function Bit#(TAdd#(n, 2)) getLength (t cap);
 
   // Assertion that address is between base and top
   function Bool isInBounds (t cap, Bool isTopIncluded);
