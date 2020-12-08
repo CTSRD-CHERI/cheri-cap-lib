@@ -58,17 +58,9 @@ function Bit#(31) `W(getPerms) (`CAPTYPE cap) = getPerms(cap);
 (* noinline *)
 function `CAPTYPE `W(setPerms) (`CAPTYPE cap, Bit#(31) perms) = setPerms(cap, perms);
 (* noinline *)
-function Kind `W(getKind) (`CAPTYPE cap) = getKind(cap);
+function Kind#(OTypeW) `W(getKind) (`CAPTYPE cap) = getKind(cap);
 (* noinline *)
-function Bool `W(isSentry) (`CAPTYPE cap) = isSentry(cap);
-(* noinline *)
-function Bool `W(isSealedWithType) (`CAPTYPE cap) = isSealedWithType(cap);
-(* noinline *)
-function Bool `W(isSealed) (`CAPTYPE cap) = isSealed(cap);
-(* noinline *)
-function Bit#(OTypeW) `W(getType) (`CAPTYPE cap) = getType(cap);
-(* noinline *)
-function `CAPTYPE `W(setType) (`CAPTYPE cap, Bit#(OTypeW) otype) = setType(cap, otype);
+function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind#(OTypeW) kind) = setKind(cap, kind);
 (* noinline *)
 function Bit#(CapAddressW) `W(getAddr) (`CAPTYPE cap) = getAddr(cap);
 (* noinline *)
