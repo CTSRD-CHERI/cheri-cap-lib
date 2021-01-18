@@ -653,7 +653,7 @@ function VnD#(CapFat) incOffsetFat(CapFat cap, LCapAddress pointer, Bit#(CapAddr
             // In the incOffset case, the 'pointer' argument already contains the new address
             CapAddress tmpAddr = truncate(pointer);
             ret.address  = zeroExtend(tmpAddr);
-            ret.addrBits = truncate(pointer >> e);
+            ret.addrBits = truncate(tmpAddr >> e);
         end
         // Nullify the capability if the representable bounds check has failed
         if (!inBounds) ret.isCapability = False;//nullifyCap(ret);
