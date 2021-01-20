@@ -1081,42 +1081,42 @@ endinstance
 instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
 
   //Functions supported by CapReg are just passed through
+
   function isValidCap (x) = isValidCap(x.capFat);
-  function setValidCap (cap, tag);
-    return CapPipe {capFat: setValidCap(cap.capFat, tag), tempFields: cap.tempFields};
-  endfunction
+  function setValidCap (cap, tag) =
+    CapPipe {capFat: setValidCap(cap.capFat, tag), tempFields: cap.tempFields};
   function getFlags (cap) = getFlags(cap.capFat);
-  function setFlags (cap, flags);
-    return CapPipe {capFat: setFlags(cap.capFat, flags), tempFields: cap.tempFields};
-  endfunction
+  function setFlags (cap, flags) =
+    CapPipe {capFat: setFlags(cap.capFat, flags), tempFields: cap.tempFields};
   function getHardPerms (cap) = getHardPerms(cap.capFat);
-  function CapPipe setHardPerms (CapPipe cap, HardPerms perms);
-    return CapPipe {capFat: setHardPerms(cap.capFat, perms), tempFields: cap.tempFields};
-  endfunction
+  function setHardPerms (cap, perms) =
+    CapPipe {capFat: setHardPerms(cap.capFat, perms), tempFields: cap.tempFields};
   function getSoftPerms (cap) = getSoftPerms(cap.capFat);
-  function CapPipe setSoftPerms (CapPipe cap, SoftPerms perms);
-    return CapPipe {capFat: setSoftPerms(cap.capFat, perms), tempFields: cap.tempFields};
-  endfunction
+  function setSoftPerms (cap, perms) =
+    CapPipe {capFat: setSoftPerms(cap.capFat, perms), tempFields: cap.tempFields};
   function getKind (cap) = getKind(cap.capFat);
-  function setKind (cap,kind) = CapPipe {capFat:setKind(cap.capFat,kind), tempFields: cap.tempFields};
+  function setKind (cap, kind) =
+    CapPipe {capFat:setKind(cap.capFat,kind), tempFields: cap.tempFields};
   function getAddr (cap) = getAddr(cap.capFat);
-  function CapPipe maskAddr (CapPipe cap, Bit#(TSub#(MW, 3)) mask);
-    return CapPipe {capFat: maskAddr(cap.capFat, mask), tempFields: cap.tempFields};
-  endfunction
-  function Bool validAsType (CapPipe dummy, Bit#(CapAddrW) checkType);
-    return validAsType(dummy.capFat, checkType);
-  endfunction
+  function maskAddr (cap, mask) =
+    CapPipe {capFat: maskAddr(cap.capFat, mask), tempFields: cap.tempFields};
+  function validAsType (dummy, checkType) =
+    validAsType(dummy.capFat, checkType);
   function toMem (cap) = toMem(cap.capFat);
   function getBaseAlignment (cap) = getBaseAlignment(cap.capFat);
 
   //Functions supported by CapReg but which require TempFields to be changed
 
-  function SetBoundsReturn#(CapPipe, CapAddrW) setBoundsCombined(CapPipe cap, Bit#(CapAddrW) length);
+  function setBoundsCombined (cap, length);
     let result = setBoundsCombined(cap.capFat, length);
-    return SetBoundsReturn {cap: CapPipe{capFat: result.cap, tempFields: getTempFields(result.cap)}, exact: result.exact, length: result.length, mask: result.mask};
+    return SetBoundsReturn { cap: CapPipe{ capFat: result.cap
+                                         , tempFields: getTempFields(result.cap)}
+                           , exact: result.exact
+                           , length: result.length
+                           , mask: result.mask };
   endfunction
 
-  function CapPipe nullWithAddr (Bit#(CapAddrW) addr);
+  function nullWithAddr (addr);
     CapReg res = nullWithAddr(addr);
     return CapPipe {capFat: res, tempFields: getTempFields(res)};
   endfunction
@@ -1138,45 +1138,46 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
 
   //Functions that require TempFields
 
-  function Exact#(CapPipe) setAddr (CapPipe cap, Bit#(CapAddrW) address);
+  function setAddr (cap, address);
     let result = setAddress(cap.capFat, address, cap.tempFields);
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
   endfunction
 
-  function CapPipe setAddrUnsafe (CapPipe cap, Bit#(CapAddrW) address);
+  function setAddrUnsafe (cap, address);
     cap.capFat = setAddrUnsafe(cap.capFat, address);
     cap.tempFields = getTempFields(cap.capFat);
     return cap;
   endfunction
 
-  function addAddrUnsafe (cap, inc) = setAddrUnsafe(cap, getAddr(cap) + signExtend(inc));
+  function addAddrUnsafe (cap, inc) =
+    setAddrUnsafe(cap, getAddr(cap) + signExtend(inc));
 
   function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
 
-  function Exact#(CapPipe) modifyOffset (CapPipe cap, Bit#(CapAddrW) offset, Bool doInc);
-    let result = incOffsetFat(cap.capFat, cap.capFat.address + offset, zeroExtend(offset), cap.tempFields, !doInc);
+  function modifyOffset (cap, offset, doInc);
+    let result = incOffsetFat( cap.capFat
+                             , cap.capFat.address + offset
+                             , zeroExtend(offset)
+                             , cap.tempFields
+                             , !doInc);
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
   endfunction
 
-  function Bit#(CapAddrW) getBase (CapPipe cap);
-    return getBotFat(cap.capFat, cap.tempFields);
-  endfunction
+  function getBase (cap) = getBotFat(cap.capFat, cap.tempFields);
 
-  function Bit#(TAdd#(CapAddrW,1)) getTop (CapPipe cap) =
-    getTopFat(cap.capFat, cap.tempFields);
+  function getTop (cap) = getTopFat(cap.capFat, cap.tempFields);
 
-  function Bit#(TAdd#(CapAddrW,1)) getLength (CapPipe cap) =
-    getLengthFat(cap.capFat, cap.tempFields);
+  function getLength (cap) = getLengthFat(cap.capFat, cap.tempFields);
 
-  function Bool isInBounds (CapPipe cap, Bool inclusive);
-    return capInBounds(cap.capFat, cap.tempFields, inclusive);
-  endfunction
+  function isInBounds (cap, inclusive) =
+    capInBounds(cap.capFat, cap.tempFields, inclusive);
 
   function isDerivable (cap) = isDerivable(cap.capFat);
+
 endinstance
 
 instance Cast#(CapMem, CapReg);
