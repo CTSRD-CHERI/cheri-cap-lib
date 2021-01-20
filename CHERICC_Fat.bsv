@@ -949,89 +949,80 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
 
   function isValidCap (x) = x.isCapability;
 
-  function CapReg setValidCap (CapReg cap, Bool tag);
+  function setValidCap (cap, tag);
     cap.isCapability = tag;
     return cap;
   endfunction
 
   function getFlags (cap) = cap.flags;
+
   function setFlags (cap, flags);
     cap.flags = flags;
     return cap;
   endfunction
 
-  function HardPerms getHardPerms (CapReg cap);
-    return HardPerms {
-      permitSetCID: cap.perms.hard.permit_set_CID,
-      accessSysRegs: cap.perms.hard.access_sys_regs,
-      permitUnseal: cap.perms.hard.permit_unseal,
-      permitCCall: cap.perms.hard.permit_ccall,
-      permitSeal: cap.perms.hard.permit_seal,
-      permitStoreLocalCap: cap.perms.hard.permit_store_ephemeral_cap,
-      permitStoreCap: cap.perms.hard.permit_store_cap,
-      permitLoadCap: cap.perms.hard.permit_load_cap,
-      permitStore: cap.perms.hard.permit_store,
-      permitLoad: cap.perms.hard.permit_load,
-      permitExecute: cap.perms.hard.permit_execute,
-      global: cap.perms.hard.non_ephemeral
-    };
-  endfunction
+  function getHardPerms (cap) = HardPerms {
+      permitSetCID:        cap.perms.hard.permit_set_CID
+    , accessSysRegs:       cap.perms.hard.access_sys_regs
+    , permitUnseal:        cap.perms.hard.permit_unseal
+    , permitCCall:         cap.perms.hard.permit_ccall
+    , permitSeal:          cap.perms.hard.permit_seal
+    , permitStoreLocalCap: cap.perms.hard.permit_store_ephemeral_cap
+    , permitStoreCap:      cap.perms.hard.permit_store_cap
+    , permitLoadCap:       cap.perms.hard.permit_load_cap
+    , permitStore:         cap.perms.hard.permit_store
+    , permitLoad:          cap.perms.hard.permit_load
+    , permitExecute:       cap.perms.hard.permit_execute
+    , global:              cap.perms.hard.non_ephemeral };
 
-  function CapReg setHardPerms (CapReg cap, HardPerms perms);
+  function setHardPerms (cap, perms);
     cap.perms.hard = HPerms {
-      permit_set_CID: perms.permitSetCID,
-      access_sys_regs: perms.accessSysRegs,
-      permit_unseal: perms.permitUnseal,
-      permit_ccall: perms.permitCCall,
-      permit_seal: perms.permitSeal,
-      permit_store_ephemeral_cap: perms.permitStoreLocalCap,
-      permit_store_cap: perms.permitStoreCap,
-      permit_load_cap: perms.permitLoadCap,
-      permit_store: perms.permitStore,
-      permit_load: perms.permitLoad,
-      permit_execute: perms.permitExecute,
-      non_ephemeral: perms.global
-    };
+      permit_set_CID:             perms.permitSetCID
+    , access_sys_regs:            perms.accessSysRegs
+    , permit_unseal:              perms.permitUnseal
+    , permit_ccall:               perms.permitCCall
+    , permit_seal:                perms.permitSeal
+    , permit_store_ephemeral_cap: perms.permitStoreLocalCap
+    , permit_store_cap:           perms.permitStoreCap
+    , permit_load_cap:            perms.permitLoadCap
+    , permit_store:               perms.permitStore
+    , permit_load:                perms.permitLoad
+    , permit_execute:             perms.permitExecute
+    , non_ephemeral:              perms.global };
     return cap;
   endfunction
 
-  function SoftPerms getSoftPerms (CapReg cap);
-    return zeroExtend(cap.perms.soft);
-  endfunction
+  function getSoftPerms (cap) = zeroExtend(cap.perms.soft);
 
-  function CapReg setSoftPerms (CapReg cap, SoftPerms perms);
+  function setSoftPerms (cap, perms);
     cap.perms.soft = truncate(perms);
     return cap;
   endfunction
 
-  function Kind#(OTypeW) getKind (CapReg cap);
-    return (case (cap.otype)
-      otype_unsealed: UNSEALED;
-      otype_sentry: SENTRY;
-      otype_res0: RES0;
-      otype_res1: RES1;
-      default: (SEALED_WITH_TYPE (cap.otype));
-    endcase);
-  endfunction
+  function getKind (cap) = case (cap.otype)
+    otype_unsealed: UNSEALED;
+    otype_sentry: SENTRY;
+    otype_res0: RES0;
+    otype_res1: RES1;
+    default: SEALED_WITH_TYPE (cap.otype);
+  endcase;
 
-  function CapReg setKind (CapReg cap, Kind #(OTypeW) kind);
-    return (case (kind) matches
-      tagged UNSEALED: unseal(cap, ?);
-      tagged SENTRY: seal(cap, ?, VnD {v: True, d:otype_sentry});
-      tagged RES0: seal(cap, ?, VnD {v: True, d:otype_res0});
-      tagged RES1: seal(cap, ?, VnD {v: True, d:otype_res1});
-      tagged SEALED_WITH_TYPE .ot: seal(cap, ?, VnD {v: True, d:ot});
-    endcase);
-  endfunction
+  function setKind (cap, kind) = case (kind) matches
+    tagged UNSEALED: unseal(cap, ?);
+    tagged SENTRY: seal(cap, ?, VnD {v: True, d:otype_sentry});
+    tagged RES0: seal(cap, ?, VnD {v: True, d:otype_res0});
+    tagged RES1: seal(cap, ?, VnD {v: True, d:otype_res1});
+    tagged SEALED_WITH_TYPE .ot: seal(cap, ?, VnD {v: True, d:ot});
+  endcase;
 
   function getAddr (cap) = cap.address;
 
   function setAddr = error("setAddr not implemented for CapReg");
 
-  function CapReg setAddrUnsafe (CapReg cap, Bit#(CapAddrW) address) =
-    setCapPointer(cap, address);
+  function setAddrUnsafe (cap, address) = setCapPointer(cap, address);
 
-  function addAddrUnsafe (cap, inc) = setAddrUnsafe(cap, getAddr(cap) + signExtend(inc));
+  function addAddrUnsafe (cap, inc) =
+    setAddrUnsafe(cap, getAddr(cap) + signExtend(inc));
 
   function getOffset = error("getOffset not implemented for CapReg");
   function modifyOffset = error("modifyOffset not implemented for CapReg");
@@ -1040,9 +1031,9 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
   function getLength = error("getLength not implemented for CapReg");
   function isInBounds = error("isInBounds not implemented for CapReg");
 
-  function SetBoundsReturn#(CapReg, CapAddrW) setBoundsCombined(CapReg cap, Bit#(CapAddrW) length) = setBoundsFat(cap, length);
+  function setBoundsCombined(cap, length) = setBoundsFat(cap, length);
 
-  function CapReg nullWithAddr (Bit#(CapAddrW) addr) = setAddrUnsafe(null_cap, addr);
+  function nullWithAddr (addr) = setAddrUnsafe(null_cap, addr);
 
   function almightyCap = defaultCapFat;
 
@@ -1052,29 +1043,26 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
 
   function toMem (x) = unpack(cast(x));
 
-  function CapReg maskAddr (CapReg cap, Bit#(TSub#(MW, 3)) mask) =
-    setCapPointer(cap, cap.address & {~0,mask});
+  function maskAddr (cap, mask) = setCapPointer(cap, cap.address & {~0,mask});
 
-  function Bool validAsType (CapReg dummy, Bit#(CapAddrW) checkType);
+  function validAsType (dummy, checkType);
     CapMem nullC = nullCap;
     return validAsType(nullC, checkType);
   endfunction
 
-  function Bit#(2) getBaseAlignment (CapReg cap);
+  function getBaseAlignment (cap) =
     // If cap exp is non-zero, we have internal exponent, so the least significant
     // two bits of the base are implicitly zero.
     // Otherwise, we have a zero exponent, so the least significant two bits
     // of the base are the least significant bits of the encoded base
-    if (cap.bounds.exp == 0) return cap.bounds.baseBits[1:0];
-    else                     return 2'b0;
-  endfunction
+    (cap.bounds.exp == 0) ? cap.bounds.baseBits[1:0] : 2'b0;
 
-  function Bool isDerivable (CapReg cap);
-    return cap.bounds.exp <= resetExp
-        && !(cap.bounds.exp == resetExp && ((truncateLSB(cap.bounds.topBits) != 1'b0) || (truncateLSB(cap.bounds.baseBits) != 2'b0)))
-        && !(cap.bounds.exp == resetExp-1 && (truncateLSB(cap.bounds.baseBits) != 1'b0))
-        && (cap.reserved == 0);
-  endfunction
+  function isDerivable (cap) =
+    cap.bounds.exp <= resetExp &&
+    !(cap.bounds.exp == resetExp && ((truncateLSB(cap.bounds.topBits) != 1'b0) ||
+                                     (truncateLSB(cap.bounds.baseBits) != 2'b0))) &&
+    !(cap.bounds.exp == resetExp-1 && (truncateLSB(cap.bounds.baseBits) != 1'b0)) &&
+    (cap.reserved == 0);
 
 endinstance
 
