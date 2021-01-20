@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2019 Jonathan Woodruff
- * Copyright (c) 2017-2019 Alexandre Joannou
+ * Copyright (c) 2017-2021 Alexandre Joannou
  * Copyright (c) 2019 Peter Rugg
  * All rights reserved.
  *
@@ -51,7 +51,7 @@ export Bounds;
 export UPermW;
 export CapW;
 export ExpW;
-export CapAddressW;
+export CapAddrW;
 export CBoundsW;
 export HPerms;
 export PermsW;
@@ -80,7 +80,7 @@ typedef struct {
     typedef 6  ExpW;
     typedef 4  OTypeW;
     typedef `FLAGSW FlagsW;
-    typedef 32 CapAddressW;
+    typedef 32 CapAddrW;
     typedef 64 CapW;
 `else // CAP128 is default
     typedef 4   UPermW;
@@ -88,16 +88,16 @@ typedef struct {
     typedef 6   ExpW;
     typedef 18  OTypeW;
     typedef `FLAGSW FlagsW;
-    typedef 64  CapAddressW;
+    typedef 64  CapAddrW;
     typedef 128 CapW;
 `endif
 // The Address type is used to represent the full sized address returned to the
-// consuming pipeline. In cases where fewer than CapAddressW bits are stored to
+// consuming pipeline. In cases where fewer than CapAddrW bits are stored to
 // represent a memory address (and remaining bits are usable for storing extra
 // metadata), returning a value of type Address is currently expected to sign
 // extend the address.
-// SizeOf#(Address) should be greater or equal to CapAddressW
-typedef CapAddressW AddressW;
+// SizeOf#(Address) should be greater or equal to CapAddrW
+typedef CapAddrW AddressW;
 typedef Bit#(AddressW)     Address;
 typedef TDiv#(ExpW,2)      HalfExpW;
 typedef TSub#(MW,HalfExpW) UpperMW;
@@ -105,8 +105,10 @@ typedef TSub#(MW,HalfExpW) UpperMW;
 // The compressed bounds field type
 typedef TSub#(TMul#(MW,2),1) CBoundsW;
 typedef Bit#(CBoundsW) CBounds;
-// The pointer CapAddress type
-typedef Bit#(CapAddressW) CapAddress;
+// The CapAddr types
+typedef Bit#(CapAddrW)          CapAddr;
+typedef Bit#(TAdd#(CapAddrW,1)) CapAddrPlus1;
+typedef Bit#(TAdd#(CapAddrW,2)) CapAddrPlus2;
 // The Hardware permissions type
 typedef struct {
     Bool permit_set_CID;
@@ -129,16 +131,16 @@ typedef struct {
 } Perms deriving(Bits, Eq, FShow);
 typedef SizeOf#(Perms) PermsW;
 // The reserved bits
-typedef TSub#(CapW,TAdd#(CapAddressW,TAdd#(OTypeW,TAdd#(CBoundsW,TAdd#(PermsW, FlagsW))))) ResW;
+typedef TSub#(CapW,TAdd#(CapAddrW,TAdd#(OTypeW,TAdd#(CBoundsW,TAdd#(PermsW, FlagsW))))) ResW;
 // The full capability structure, including the "tag" bit.
 typedef struct {
-  Bool          isCapability;
-  Perms         perms;
-  Bit#(ResW)    reserved;
-  Bit#(FlagsW)  flags;
-  Bit#(OTypeW)  otype;
-  CBounds       bounds;
-  CapAddress    address;
+  Bool         isCapability;
+  Perms        perms;
+  Bit#(ResW)   reserved;
+  Bit#(FlagsW) flags;
+  Bit#(OTypeW) otype;
+  CBounds      bounds;
+  CapAddr      address;
 } CapabilityInMemory deriving(Bits, Eq, FShow); // CapW + 1 (tag bit)
 // The full capability structure as Bits, including the "tag" bit.
 typedef Bit#(TAdd#(CapW,1)) Capability;
@@ -151,8 +153,6 @@ staticAssert(valueOf(SizeOf#(CapabilityInMemory))==valueOf(SizeOf#(Capability)),
 */
 // Bit type of the debug capability
 typedef Bit#(CapW) DebugCap;
-// large capability address type (with extra bits at the top)
-typedef Bit#(TAdd#(CapAddressW,2)) LCapAddress;
 // Format of the cheri concentrate capability
 typedef enum {Exp0, EmbeddedExp} Format deriving (Bits, Eq, FShow);
 // Exponent type
@@ -167,15 +167,15 @@ Bit#(OTypeW) otype_res1     = -4;
 
 // unpacked capability format
 typedef struct {
-  Bool              isCapability;
-  Bit#(CapAddressW) address;
-  Bit#(MW)          addrBits;
-  Perms             perms;
-  Bit#(FlagsW)      flags;
-  Bit#(ResW)        reserved;
-  Bit#(OTypeW)      otype;
-  Format            format;
-  Bounds            bounds;
+  Bool           isCapability;
+  Bit#(CapAddrW) address;
+  Bit#(MW)       addrBits;
+  Perms          perms;
+  Bit#(FlagsW)   flags;
+  Bit#(ResW)     reserved;
+  Bit#(OTypeW)   otype;
+  Format         format;
+  Bounds         bounds;
 } CapFat deriving(Bits);
 
 // "Architectural FShow"
@@ -259,37 +259,35 @@ Bool imprecise = True;
 
 // Interface functions
 //------------------------------------------------------------------------------
-function LCapAddress getBotFat(CapFat cap, TempFields tf);
+function CapAddr getBotFat(CapFat cap, TempFields tf);
     // First, construct a full length value with the base bits and the
     // correction bits above, and shift that value to the appropriate spot.
-    CapAddress addBase = signExtend({pack(tf.baseCorrection), cap.bounds.baseBits}) << cap.bounds.exp;
+    CapAddr addBase = signExtend({pack(tf.baseCorrection), cap.bounds.baseBits}) << cap.bounds.exp;
     // Build a mask on the high bits of a full length value to extract the high
     // bits of the address.
-    Bit#(TSub#(CapAddressW,MW)) mask = ~0 << cap.bounds.exp;
+    Bit#(TSub#(CapAddrW,MW)) mask = ~0 << cap.bounds.exp;
     // Extract the high bits of the address (and append the implied zeros at the
     // bottom), and add with the previously prepared value.
-    CapAddress bot = {truncateLSB(cap.address)&mask,0} + addBase;
-    return zeroExtend(bot);
+    return {truncateLSB(cap.address)&mask,0} + addBase;
 endfunction
-function LCapAddress getTopFat(CapFat cap, TempFields tf);
+function CapAddrPlus1 getTopFat(CapFat cap, TempFields tf);
     // First, construct a full length value with the top bits and the
     // correction bits above, and shift that value to the appropriate spot.
-    LCapAddress addTop = signExtend({pack(tf.topCorrection), cap.bounds.topBits}) << cap.bounds.exp;
+    CapAddrPlus1 addTop = signExtend({pack(tf.topCorrection), cap.bounds.topBits}) << cap.bounds.exp;
     // Build a mask on the high bits of a full length value to extract the high
     // bits of the address.
-    Bit#(TSub#(SizeOf#(LCapAddress),MW)) mask = ~0 << cap.bounds.exp;
+    Bit#(TSub#(TAdd#(CapAddrW,1),MW)) mask = ~0 << cap.bounds.exp;
     // Extract the high bits of the address (and append the implied zeros at the
     // bottom), and add with the previously prepared value.
-    LCapAddress ret = {2'b0, truncateLSB(cap.address)&mask,0} + addTop;
+    CapAddrPlus1 ret = {truncateLSB({1'b0,cap.address})&mask,0} + addTop;
     // If the bottom and top are more than an address space away from eachother, invert
     // the 64th/32nd bit of Top.  This corrects for errors that happen when the representable
     // space wraps the address space.
-    Integer msbp = valueOf(CapAddressW) - 1;
-    ret[msbp+2] = 0;
+    Integer msbp = valueOf(CapAddrW) - 1;
     Bit#(2) topTip = ret[msbp+1:msbp];
     // Calculate the msb of the base.
     // First assume that only the address and correction are involved...
-    Bit#(TSub#(CapAddressW,MW)) bot = truncateLSB(cap.address) + (signExtend(pack(tf.baseCorrection)) << cap.bounds.exp);
+    Bit#(TSub#(CapAddrW,MW)) bot = truncateLSB(cap.address) + (signExtend(pack(tf.baseCorrection)) << cap.bounds.exp);
     Bit#(1) botTip = msb(bot);
     // If the bit we're interested in are actually coming from baseBits, select the correct one from there.
     //             exp == (resetExp - 1) doesn't matter since we will not flip unless exp < resetExp-1.
@@ -301,14 +299,14 @@ function LCapAddress getTopFat(CapFat cap, TempFields tf);
     if (cap.bounds.exp<(resetExp-1) && (topTip - zeroExtend(botTip)) > 1) ret[msbp+1] = ~ret[msbp+1];
     return ret;
 endfunction
-function LCapAddress getLengthFat(CapFat cap, TempFields tf);
+function CapAddrPlus1 getLengthFat(CapFat cap, TempFields tf);
     // Get the top and base bits with the 2 correction bits prepended
     Bit#(TAdd#(MW,2)) top  = {pack(tf.topCorrection),cap.bounds.topBits};
     Bit#(TAdd#(MW,2)) base = {pack(tf.baseCorrection),cap.bounds.baseBits};
     // Get the length by substracting base from top and shifting appropriately
-    LCapAddress length = zeroExtend(top - base) << cap.bounds.exp;
+    CapAddrPlus1 length = zeroExtend(top - base) << cap.bounds.exp;
     // Return a saturated length in case of big exponent
-    return (cap.bounds.exp >= resetExp) ? ~0 : length;
+    return (cap.bounds.exp >= resetExp) ? ~0 : truncate(length);
 endfunction
 function Address getOffsetFat(CapFat cap, TempFields tf);
     // Get the exponent
@@ -322,14 +320,6 @@ function Address getOffsetFat(CapFat cap, TempFields tf);
     // Return the computed offset bits (sign extended) shifted appropriatly,
     // with the low address bits appended
     return (signExtend(offset) << e) | addrLSB;
-endfunction
-function LCapAddress regToLAddr(Address in);
-    CapAddress retVal = truncate(in);
-    return zeroExtend(retVal);
-endfunction
-function LCapAddress regToSignedLAddr(Address in);
-    CapAddress retVal = truncate(in);
-    return signExtend(retVal);
 endfunction
 function Bool isSealed(CapFat cap) = (cap.otype != otype_unsealed);
 function CType getTypeFat(CapFat cap) = VnD{v: (cap.otype != otype_unsealed), d: cap.otype};
@@ -359,11 +349,11 @@ function CapFat nullifyCap(CapFat cap);
     //ret.isCapability = False;
     return ret;
 endfunction
-function CapFat setCapPointer(CapFat cap, LCapAddress pointer);
+function CapFat setCapPointer(CapFat cap, CapAddr pointer);
     // Function to "cheat" and just set the pointer when we know that
     // it will be in representable bounds by some other means.
     CapFat ret   = cap;
-    ret.address  = truncate(pointer);
+    ret.address  = pointer;
     ret.addrBits = truncate(ret.address >> ret.bounds.exp);
     return ret;
 endfunction
@@ -376,15 +366,15 @@ function Bit#(n) smearMSBRight(Bit#(n) x);
     return res;
 endfunction
 
-function SetBoundsReturn#(CapFat, CapAddressW) setBoundsFat(CapFat cap, Address lengthFull);
+function SetBoundsReturn#(CapFat, CapAddrW) setBoundsFat(CapFat cap, Address lengthFull);
         CapFat ret = cap;
         // Find new exponent by finding the index of the most significant bit of the
         // length, or counting leading zeros in the high bits of the length, and
-        // substracting them to the CapAddress width (taking away the bottom MW-1 bits:
+        // substracting them to the CapAddr width (taking away the bottom MW-1 bits:
         // trim (MW-1) bits from the bottom of length since any length with a significance
         // that small will yield an exponent of zero).
-        CapAddress length = truncate(lengthFull);
-        Bit#(TSub#(CapAddressW,TSub#(MW,1))) lengthMSBs = truncateLSB(length);
+        CapAddr length = truncate(lengthFull);
+        Bit#(TSub#(CapAddrW,TSub#(MW,1))) lengthMSBs = truncateLSB(length);
         Exp zeros = zeroExtend(countZerosMSB(lengthMSBs));
         // Adjust resetExp by one since it's scale reaches 1-bit greater than a 64-bit length
         // can express.
@@ -397,18 +387,18 @@ function SetBoundsReturn#(CapFat, CapAddressW) setBoundsFat(CapFat cap, Address 
         ret.otype = otype_unsealed;
         // Derive new base bits by extracting MW bits from the capability
         // address starting at the new exponent's position.
-        LCapAddress base = zeroExtend(cap.address);
+        CapAddrPlus2 base = zeroExtend(cap.address);
         Bit#(TAdd#(MW,1)) newBaseBits = truncate(base>>e);
 
         // Derive new top bits by extracting MW bits from the capability
         // address + requested length, starting at the new exponent's position,
         // and rounding up if significant bits are lost in the process.
-        LCapAddress len = zeroExtend(length);
-        LCapAddress top = base + len;
+        CapAddrPlus2 len = zeroExtend(length);
+        CapAddrPlus2 top = base + len;
 
         // Create a mask with all bits set below the MSB of length and then masking all bits
         // below the mantissa bits.
-        LCapAddress lmask = smearMSBRight(len);
+        CapAddrPlus2 lmask = smearMSBRight(len);
         // The shift amount required to put the most significant set bit of the
         // len just above the bottom HalfExpW bits that are taken by the exp.
         Integer shiftAmount = valueOf(TSub#(TSub#(MW,2),HalfExpW));
@@ -420,8 +410,8 @@ function SetBoundsReturn#(CapFat, CapAddressW) setBoundsFat(CapFat cap, Address 
         // shifted out bits or in the HalfExpW bits stolen for the exponent
         // Shift by MW-1 to move MSB of mask just below the mantissa, then up HalfExpW
         // more to take in the bits that will be lost for the exponent when it is non-zero.
-        LCapAddress lmaskLor = lmask>>fromInteger(shiftAmount+1);
-        LCapAddress lmaskLo  = lmask>>fromInteger(shiftAmount);
+        CapAddrPlus2 lmaskLor = lmask>>fromInteger(shiftAmount+1);
+        CapAddrPlus2 lmaskLo  = lmask>>fromInteger(shiftAmount);
         // For the len, we're not actually losing significance since we're not storing it,
         // we just want to know if any low bits are non-zero so that we will know if it will
         // cause the total length to round up.
@@ -452,8 +442,8 @@ function SetBoundsReturn#(CapFat, CapAddressW) setBoundsFat(CapFat cap, Address 
         // an extra "1" that will be added to the "mantissa" bits of the length, potentially causing overflow.
         // Finally check how close the requested length is to overflow, and test in relation to how much the
         // length will increase.
-        LCapAddress topLo = (lmaskLor & len) + (lmaskLor & base);
-        LCapAddress mwLsbMask = lmaskLor ^ lmaskLo;
+        CapAddrPlus2 topLo = (lmaskLor & len) + (lmaskLor & base);
+        CapAddrPlus2 mwLsbMask = lmaskLor ^ lmaskLo;
         // If the first bit of the mantissa of the top is not the sum of the corrosponding bits of base and length, there was a carry in.
         Bool lengthCarryIn = (mwLsbMask & top) != ((mwLsbMask & base)^(mwLsbMask & len));
         Bool lengthRoundUp = lostSignificantTop;
@@ -489,11 +479,11 @@ function SetBoundsReturn#(CapFat, CapAddressW) setBoundsFat(CapFat cap, Address 
         end
 
         // Begin calculate newLength in case this is a request just for a representable length:
-        LCapAddress newLength = zeroExtend(length);
-        LCapAddress baseMask = -1; // Override the result from the previous line if we represent everything.
+        CapAddrPlus2 newLength = zeroExtend(length);
+        CapAddrPlus2 baseMask = -1; // Override the result from the previous line if we represent everything.
         if (intExp) begin
-            LCapAddress oneInLsb = (lmask ^ (lmask>>1)) >> shiftAmount;
-            LCapAddress newLengthRounded = newLength + oneInLsb;
+            CapAddrPlus2 oneInLsb = (lmask ^ (lmask>>1)) >> shiftAmount;
+            CapAddrPlus2 newLengthRounded = newLength + oneInLsb;
             newLength        = (newLength        & (~lmaskLor));
             newLengthRounded = (newLengthRounded & (~lmaskLor));
             if (lostSignificantLen) newLength = newLengthRounded;
@@ -515,8 +505,8 @@ function CapFat unseal(CapFat cap, x _);
         return ret;
 endfunction
 function VnD#(CapFat) incOffsetFat( CapFat cap
-                                  , LCapAddress pointer
-                                  , Bit#(CapAddressW) offset // this is the increment in inc offset, and the offset in set offset
+                                  , CapAddr pointer
+                                  , CapAddr offset // this is the increment in inc offset, and the offset in set offset
                                   , TempFields tf
                                   , Bool setOffset);
 // NOTE:
@@ -548,10 +538,10 @@ function VnD#(CapFat) incOffsetFat( CapFat cap
         // that is −S < 'offset' < S. This test reduces to a check that there are no
         // significant bits in the high bits of 'offset', that is they are all ones or all
         // zeros.
-        CapAddress offsetAddr = truncate(offset);
-        Bit#(TSub#(CapAddressW,MW)) signBits       = signExtend(offset[valueOf(TSub#(CapAddressW,1))]);
-        Bit#(TSub#(CapAddressW,MW)) highOffsetBits = unpack(truncateLSB(offsetAddr));
-        Bit#(TSub#(CapAddressW,MW)) highBitsfilter = -1 << e;
+        CapAddr offsetAddr = truncate(offset);
+        Bit#(TSub#(CapAddrW,MW)) signBits       = signExtend(offset[valueOf(TSub#(CapAddrW,1))]);
+        Bit#(TSub#(CapAddrW,MW)) highOffsetBits = unpack(truncateLSB(offsetAddr));
+        Bit#(TSub#(CapAddrW,MW)) highBitsfilter = -1 << e;
         highOffsetBits = (highOffsetBits ^ signBits) & highBitsfilter;
         Bool inRange = (highOffsetBits == 0);
 
@@ -570,7 +560,7 @@ function VnD#(CapFat) incOffsetFat( CapFat cap
         //   to a false positive on the i >= toBounds comparison)
 
         // The sign of the increment
-        Bool posInc = offsetAddr[valueOf(CapAddressW)-1] == 1'b0;
+        Bool posInc = offsetAddr[valueOf(CapAddrW)-1] == 1'b0;
 
         // The offsetBits value corresponds to the appropriate slice of the 'offsetAddr' argument
         Bit#(MW) offsetBits  = truncate(offsetAddr >> e);
@@ -623,7 +613,7 @@ function VnD#(CapFat) incOffsetFat( CapFat cap
         // ------------------------------
         if (setOffset) begin
             // Get the base and add the offsetAddr. This could be slow, but seems to pass timing.
-            ret.address = truncate(getBotFat(cap,tf) + zeroExtend(offsetAddr));
+            ret.address = getBotFat(cap,tf) + zeroExtend(offsetAddr);
             // TODO write comments on this
             Bit#(TAdd#(MW,2)) newAddrBits = zeroExtend(cap.bounds.baseBits) + zeroExtend(offsetBits);
             ret.addrBits = (e == resetExp)   ? {2'b0,truncate(newAddrBits)} :
@@ -640,15 +630,15 @@ function VnD#(CapFat) incOffsetFat( CapFat cap
         // return updated / invalid capability
         return VnD {v: inBounds, d: ret};
 endfunction
-function VnD#(CapFat) setAddress(CapFat cap, LCapAddress address, TempFields tf);
+function VnD#(CapFat) setAddress(CapFat cap, CapAddr address, TempFields tf);
         CapFat ret = setCapPointer(cap, address);
         Exp e = cap.bounds.exp;
         // Calculate what the upper bits of the new address must be if it is to be in representable bounds.
         Bool newAddrHi  = truncateLSB(ret.addrBits) < tf.repBoundTopBits;
         // Shift amount needed to look at only the bits above the mantissa.
         Exp toUpperBits = e + fromInteger(valueOf(MW));
-        CapAddress mask = -1 << toUpperBits;
-        CapAddress newAddrDiff = (truncate(cap.address)&mask) - (truncate(address)&mask);
+        CapAddr mask = -1 << toUpperBits;
+        CapAddr newAddrDiff = (truncate(cap.address)&mask) - (truncate(address)&mask);
         // Assert that the bits above the mantissa are all equal.
         Bool inRepBounds = True;
         // If the difference between the upper bits of the new address and the current
@@ -678,7 +668,7 @@ endfunction
 
 
 // Exponent that pushes the implied +1 of the top 1 bit outside the address space
-Exp resetExp = fromInteger(valueOf(TSub#(SizeOf#(LCapAddress),MW)));
+Exp resetExp = fromInteger(valueOf(TSub#(TAdd#(CapAddrW,2),MW)));
 
 Bit#(MW) resetTop = {2'b01,0};
 typedef struct
@@ -856,7 +846,7 @@ typedef struct {
   TempFields tempFields;
 } CapPipe deriving (Bits);
 
-instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
+instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
   function isValidCap (x);
     CapabilityInMemory capMem = unpack(x);
     return capMem.isCapability;
@@ -897,12 +887,12 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function setSoftPerms = error("setSoftPerms not implemented for CapMem");
   function getKind = error("getKind not implemented for CapMem");
   function setKind = error("setKind not implemented for CapMem");
-  function Bit#(CapAddressW) getAddr(CapMem cap);
+  function Bit#(CapAddrW) getAddr(CapMem cap);
       CapabilityInMemory capMem = unpack(cap);
       return capMem.address;
   endfunction
   function setAddr = error("setAddr not implemented for CapMem");
-  function CapMem setAddrUnsafe (CapMem cap, Bit#(CapAddressW) address);
+  function CapMem setAddrUnsafe (CapMem cap, Bit#(CapAddrW) address);
     CapabilityInMemory capMem = unpack(cap);
     capMem.address = address;
     return pack(capMem);
@@ -921,9 +911,9 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
     return cast(res);
   endfunction
   function nullCapFromDummy (x) = packCap(null_cap);
-  function Bool validAsType (CapMem dummy, Bit#(CapAddressW) checkType);
-    UInt#(CapAddressW) checkTypeUnsigned = unpack(checkType);
-    UInt#(CapAddressW) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
+  function Bool validAsType (CapMem dummy, Bit#(CapAddrW) checkType);
+    UInt#(CapAddrW) checkTypeUnsigned = unpack(checkType);
+    UInt#(CapAddrW) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
     return checkTypeUnsigned <= otypeMaxUnsigned;
   endfunction
   function fromMem = error("fromMem not implemented for CapMem");
@@ -955,7 +945,7 @@ instance Eq #(CapReg);
 //  function Bool \/= (CapPipe x, CapPipe y);
 endinstance
 
-instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
+instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
 
   function isValidCap (x) = x.isCapability;
 
@@ -1038,9 +1028,8 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   function setAddr = error("setAddr not implemented for CapReg");
 
-  function CapReg setAddrUnsafe (CapReg cap, Bit#(CapAddressW) address);
-    return setCapPointer(cap, zeroExtend(address));
-  endfunction
+  function CapReg setAddrUnsafe (CapReg cap, Bit#(CapAddrW) address) =
+    setCapPointer(cap, address);
 
   function addAddrUnsafe (cap, inc) = setAddrUnsafe(cap, getAddr(cap) + signExtend(inc));
 
@@ -1051,9 +1040,9 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function getLength = error("getLength not implemented for CapReg");
   function isInBounds = error("isInBounds not implemented for CapReg");
 
-  function SetBoundsReturn#(CapReg, CapAddressW) setBoundsCombined(CapReg cap, Bit#(CapAddressW) length) = setBoundsFat(cap, length);
+  function SetBoundsReturn#(CapReg, CapAddrW) setBoundsCombined(CapReg cap, Bit#(CapAddrW) length) = setBoundsFat(cap, length);
 
-  function CapReg nullWithAddr (Bit#(CapAddressW) addr) = setAddrUnsafe(null_cap, addr);
+  function CapReg nullWithAddr (Bit#(CapAddrW) addr) = setAddrUnsafe(null_cap, addr);
 
   function almightyCap = defaultCapFat;
 
@@ -1063,11 +1052,10 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   function toMem (x) = unpack(cast(x));
 
-  function CapReg maskAddr (CapReg cap, Bit#(TSub#(MW, 3)) mask);
-    return setCapPointer(cap, zeroExtend(cap.address) & {~0,mask});
-  endfunction
+  function CapReg maskAddr (CapReg cap, Bit#(TSub#(MW, 3)) mask) =
+    setCapPointer(cap, cap.address & {~0,mask});
 
-  function Bool validAsType (CapReg dummy, Bit#(CapAddressW) checkType);
+  function Bool validAsType (CapReg dummy, Bit#(CapAddrW) checkType);
     CapMem nullC = nullCap;
     return validAsType(nullC, checkType);
   endfunction
@@ -1090,7 +1078,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
 endinstance
 
-instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
+instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
 
   //Functions supported by CapReg are just passed through
   function isValidCap (x) = isValidCap(x.capFat);
@@ -1115,7 +1103,7 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
   function CapPipe maskAddr (CapPipe cap, Bit#(TSub#(MW, 3)) mask);
     return CapPipe {capFat: maskAddr(cap.capFat, mask), tempFields: cap.tempFields};
   endfunction
-  function Bool validAsType (CapPipe dummy, Bit#(CapAddressW) checkType);
+  function Bool validAsType (CapPipe dummy, Bit#(CapAddrW) checkType);
     return validAsType(dummy.capFat, checkType);
   endfunction
   function toMem (cap) = toMem(cap.capFat);
@@ -1123,12 +1111,12 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   //Functions supported by CapReg but which require TempFields to be changed
 
-  function SetBoundsReturn#(CapPipe, CapAddressW) setBoundsCombined(CapPipe cap, Bit#(CapAddressW) length);
+  function SetBoundsReturn#(CapPipe, CapAddrW) setBoundsCombined(CapPipe cap, Bit#(CapAddrW) length);
     let result = setBoundsCombined(cap.capFat, length);
     return SetBoundsReturn {cap: CapPipe{capFat: result.cap, tempFields: getTempFields(result.cap)}, exact: result.exact, length: result.length, mask: result.mask};
   endfunction
 
-  function CapPipe nullWithAddr (Bit#(CapAddressW) addr);
+  function CapPipe nullWithAddr (Bit#(CapAddrW) addr);
     CapReg res = nullWithAddr(addr);
     return CapPipe {capFat: res, tempFields: getTempFields(res)};
   endfunction
@@ -1150,14 +1138,14 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   //Functions that require TempFields
 
-  function Exact#(CapPipe) setAddr (CapPipe cap, Bit#(CapAddressW) address);
-    let result = setAddress(cap.capFat, zeroExtend(address), cap.tempFields);
+  function Exact#(CapPipe) setAddr (CapPipe cap, Bit#(CapAddrW) address);
+    let result = setAddress(cap.capFat, address, cap.tempFields);
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
   endfunction
 
-  function CapPipe setAddrUnsafe (CapPipe cap, Bit#(CapAddressW) address);
+  function CapPipe setAddrUnsafe (CapPipe cap, Bit#(CapAddrW) address);
     cap.capFat = setAddrUnsafe(cap.capFat, address);
     cap.tempFields = getTempFields(cap.capFat);
     return cap;
@@ -1167,24 +1155,22 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddressW, CapW, TSub#(MW, 3));
 
   function getOffset (x) = getOffsetFat(x.capFat, x.tempFields);
 
-  function Exact#(CapPipe) modifyOffset (CapPipe cap, Bit#(CapAddressW) offset, Bool doInc);
-    let result = incOffsetFat(cap.capFat, zeroExtend(cap.capFat.address) + zeroExtend(offset), zeroExtend(offset), cap.tempFields, !doInc);
+  function Exact#(CapPipe) modifyOffset (CapPipe cap, Bit#(CapAddrW) offset, Bool doInc);
+    let result = incOffsetFat(cap.capFat, cap.capFat.address + offset, zeroExtend(offset), cap.tempFields, !doInc);
     cap.capFat = result.d;
     cap.tempFields = getTempFields(cap.capFat);
     return Exact {exact: result.v, value: cap};
   endfunction
 
-  function Bit#(CapAddressW) getBase (CapPipe cap);
-    return truncate(getBotFat(cap.capFat, cap.tempFields));
+  function Bit#(CapAddrW) getBase (CapPipe cap);
+    return getBotFat(cap.capFat, cap.tempFields);
   endfunction
 
-  function Bit#(TAdd#(CapAddressW,1)) getTop (CapPipe cap);
-    return truncate(getTopFat(cap.capFat, cap.tempFields));
-  endfunction
+  function Bit#(TAdd#(CapAddrW,1)) getTop (CapPipe cap) =
+    getTopFat(cap.capFat, cap.tempFields);
 
-  function Bit#(TAdd#(CapAddressW,1)) getLength (CapPipe cap);
-    return truncate(getLengthFat(cap.capFat, cap.tempFields));
-  endfunction
+  function Bit#(TAdd#(CapAddrW,1)) getLength (CapPipe cap) =
+    getLengthFat(cap.capFat, cap.tempFields);
 
   function Bool isInBounds (CapPipe cap, Bool inclusive);
     return capInBounds(cap.capFat, cap.tempFields, inclusive);
@@ -1238,9 +1224,9 @@ instance Cast#(function CapReg f0(t x), function CapPipe f1(t y));
   endfunction
 endinstance
 
-instance Cast#(function CapPipe f0(t y), function Bit#(CapAddressW) f1(t x));
+instance Cast#(function CapPipe f0(t y), function Bit#(CapAddrW) f1(t x));
   function cast(f0);
-      function Bit#(CapAddressW) f1(t arg) = getAddr(f0(arg));
+      function Bit#(CapAddrW) f1(t arg) = getAddr(f0(arg));
       return f1;
   endfunction
 endinstance
