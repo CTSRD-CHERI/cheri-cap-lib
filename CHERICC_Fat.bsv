@@ -847,57 +847,57 @@ typedef struct {
 } CapPipe deriving (Bits);
 
 instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
-  function isValidCap (x);
-    CapabilityInMemory capMem = unpack(x);
-    return capMem.isCapability;
+  function isValidCap (capMem);
+    CapabilityInMemory cap = unpack(capMem);
+    return cap.isCapability;
   endfunction
-  function setValidCap (x, v);
-    CapabilityInMemory capMem = unpack(x);
-    capMem.isCapability = v;
-    return pack(capMem);
+  function setValidCap (capMem, v);
+    CapabilityInMemory cap = unpack(capMem);
+    cap.isCapability = v;
+    return pack(cap);
   endfunction
-  function getFlags (x);
-    CapabilityInMemory capMem = unpack(x);
-    return capMem.flags;
+  function getFlags (capMem);
+    CapabilityInMemory cap = unpack(capMem);
+    return cap.flags;
   endfunction
-  function setFlags (x, f);
-    CapabilityInMemory capMem = unpack(x);
-    capMem.flags = f;
-    return pack(capMem);
+  function setFlags (capMem, f);
+    CapabilityInMemory cap = unpack(capMem);
+    cap.flags = f;
+    return pack(cap);
   endfunction
-  function getHardPerms (x);
-    CapabilityInMemory cap = unpack(x);
+  function getHardPerms (capMem);
+    CapabilityInMemory cap = unpack(capMem);
     return HardPerms {
-      permitSetCID: cap.perms.hard.permit_set_CID,
-      accessSysRegs: cap.perms.hard.access_sys_regs,
-      permitUnseal: cap.perms.hard.permit_unseal,
-      permitCCall: cap.perms.hard.permit_ccall,
-      permitSeal: cap.perms.hard.permit_seal,
-      permitStoreLocalCap: cap.perms.hard.permit_store_ephemeral_cap,
-      permitStoreCap: cap.perms.hard.permit_store_cap,
-      permitLoadCap: cap.perms.hard.permit_load_cap,
-      permitStore: cap.perms.hard.permit_store,
-      permitLoad: cap.perms.hard.permit_load,
-      permitExecute: cap.perms.hard.permit_execute,
-      global: cap.perms.hard.non_ephemeral
-    };
+      permitSetCID:        cap.perms.hard.permit_set_CID
+    , accessSysRegs:       cap.perms.hard.access_sys_regs
+    , permitUnseal:        cap.perms.hard.permit_unseal
+    , permitCCall:         cap.perms.hard.permit_ccall
+    , permitSeal:          cap.perms.hard.permit_seal
+    , permitStoreLocalCap: cap.perms.hard.permit_store_ephemeral_cap
+    , permitStoreCap:      cap.perms.hard.permit_store_cap
+    , permitLoadCap:       cap.perms.hard.permit_load_cap
+    , permitStore:         cap.perms.hard.permit_store
+    , permitLoad:          cap.perms.hard.permit_load
+    , permitExecute:       cap.perms.hard.permit_execute
+    , global:              cap.perms.hard.non_ephemeral };
   endfunction
   function setHardPerms = error("setHardPerms not implemented for CapMem");
   function getSoftPerms = error("getSoftPerms not implemented for CapMem");
   function setSoftPerms = error("setSoftPerms not implemented for CapMem");
   function getKind = error("getKind not implemented for CapMem");
   function setKind = error("setKind not implemented for CapMem");
-  function Bit#(CapAddrW) getAddr(CapMem cap);
-      CapabilityInMemory capMem = unpack(cap);
-      return capMem.address;
+  function getAddr(capMem);
+    CapabilityInMemory cap = unpack(capMem);
+    return cap.address;
   endfunction
   function setAddr = error("setAddr not implemented for CapMem");
-  function CapMem setAddrUnsafe (CapMem cap, Bit#(CapAddrW) address);
-    CapabilityInMemory capMem = unpack(cap);
-    capMem.address = address;
-    return pack(capMem);
+  function setAddrUnsafe (capMem, address);
+    CapabilityInMemory cap = unpack(capMem);
+    cap.address = address;
+    return pack(cap);
   endfunction
-  function addAddrUnsafe (cap, inc) = setAddrUnsafe(cap, getAddr(cap) + signExtend(inc));
+  function addAddrUnsafe (capMem, inc) =
+    setAddrUnsafe(capMem, getAddr(capMem) + signExtend(inc));
   function getOffset = error("getOffset not implemented for CapMem");
   function modifyOffset = error("modifyOffset not implemented for CapMem");
   function getBase = error("getBase not implemented for CapMem");
@@ -910,8 +910,8 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
     CapReg res = almightyCap;
     return cast(res);
   endfunction
-  function nullCapFromDummy (x) = packCap(null_cap);
-  function Bool validAsType (CapMem dummy, Bit#(CapAddrW) checkType);
+  function nullCapFromDummy (dummy) = packCap(null_cap);
+  function validAsType (dummy, checkType);
     UInt#(CapAddrW) checkTypeUnsigned = unpack(checkType);
     UInt#(CapAddrW) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
     return checkTypeUnsigned <= otypeMaxUnsigned;
