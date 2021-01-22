@@ -626,11 +626,13 @@ function VnD#(CapFat) incOffsetFat( CapFat cap
     // Get the base and add the offsetAddr. This could be slow, but seems to
     // pass timing.
     ret.address = getBotFat(cap,tf) + offsetAddr;
-    // TODO write comments on this
-    Bit#(TAdd#(MW,2)) newAddrBits = zeroExtend(cap.bounds.baseBits) + zeroExtend(offsetBits);
-    ret.addrBits = (e == resetExp)   ? {2'b0, truncate(newAddrBits)} :
-                   (e == resetExp-1) ? {1'b0, truncate(newAddrBits)} :
-                                       truncate(newAddrBits);
+    // Work out the slice of the address we are interested in using MW-bit
+    // arithmetics.
+    Bit#(MW) newAddrBits = cap.bounds.baseBits + offsetBits;
+    // Ensure the bits of the address slice past the top of the address space
+    // are zero
+    Bit#(2) mask = (e == resetExp) ? 2'b00 : (e == resetExp-1) ? 2'b01 : 2'b11;
+    ret.addrBits = {mask, ~0} & newAddrBits;
   end else begin
     // In the incOffset case, the 'pointer' argument already contains the new
     // address
