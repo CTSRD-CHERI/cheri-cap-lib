@@ -653,8 +653,9 @@ function VnD#(CapFat) setAddress(CapFat cap, CapAddr address, TempFields tf);
   Bool newAddrHi  = truncateLSB(ret.addrBits) < tf.repBoundTopBits;
   // Shift amount needed to look at only the bits above the mantissa.
   Exp toUpperBits = e + fromInteger(valueOf(MW));
-  CapAddr mask = -1 << toUpperBits;
-  CapAddr newAddrDiff = (cap.address&mask) - (address&mask);
+  CapAddrPlus1 mask = -1 << toUpperBits;
+  CapAddrPlus1 newAddrDiff =
+    (signExtend(cap.address)&mask) - (signExtend(address)&mask);
   // Assert that the bits above the mantissa are all equal.
   Bool inRepBounds = True;
   // If the difference between the upper bits of the new address and the
