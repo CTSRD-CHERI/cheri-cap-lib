@@ -2,6 +2,7 @@
  * Copyright (c) 2015-2019 Jonathan Woodruff
  * Copyright (c) 2017-2021 Alexandre Joannou
  * Copyright (c) 2019 Peter Rugg
+ * Copyright (c) 2021 Dapeng Gao
  * All rights reserved.
  *
  * This software was developed by SRI International and the University of
@@ -648,34 +649,14 @@ endfunction
 function VnD#(CapFat) setAddress(CapFat cap, CapAddr address, TempFields tf);
   CapFat ret = setCapPointer(cap, address);
   Exp e = cap.bounds.exp;
-  // Calculate what the upper bits of the new address must be if it is to be in
-  // representable bounds.
+  // Calculate what the difference in the upper bits of the new and original addresses must be if
+  // the new address is within representable bounds.
   Bool newAddrHi  = truncateLSB(ret.addrBits) < tf.repBoundTopBits;
-  // Shift amount needed to look at only the bits above the mantissa.
-  Exp toUpperBits = e + fromInteger(valueOf(MW));
-  CapAddrPlus1 mask = -1 << toUpperBits;
-  CapAddrPlus1 newAddrDiff =
-    (signExtend(cap.address)&mask) - (signExtend(address)&mask);
-  // Assert that the bits above the mantissa are all equal.
-  Bool inRepBounds = True;
-  // If the difference between the upper bits of the new address and the
-  // current address does not match the expected difference, call it outside of
-  // representable bounds.  We construct the "actual" diff assuming that the
-  // inRepBounds check above succeeded.
-  Int#(2) diff = ?;
-  if (newAddrDiff == 0) diff = 0;
-  else if (newAddrDiff == mask) diff = -1;
-  else if (newAddrDiff == (mask^(mask<<1))) diff = 1;
-  else inRepBounds = False;
-  let t2 = tuple2;
-  Int#(2) expectedDiff = case (t2(tf.addrHi,newAddrHi))
-                           t2(True,  True):  return  0;
-                           t2(True,  False): return  1;
-                           t2(False, True):  return -1;
-                           t2(False, False): return  0;
-                        endcase;
-  if (diff != expectedDiff) inRepBounds = False;
-  if (e >= resetExp - 2) inRepBounds = True;
+  Bit#(TSub#(CapAddrW,MW)) deltaAddrHi = signExtend({1'b0,pack(newAddrHi)} - {1'b0,pack(tf.addrHi)}) << e;
+  // Calculate the actual difference between the upper bits of the new address and the original address.
+  Bit#(TSub#(CapAddrW,MW)) mask = -1 << e;
+  Bit#(TSub#(CapAddrW,MW)) deltaAddrUpper = (truncateLSB(cap.address)&mask) - (truncateLSB(address)&mask);
+  Bool inRepBounds = deltaAddrHi == deltaAddrUpper;
   if (!inRepBounds) ret.isCapability = False;
   return VnD {v: inRepBounds, d: ret};
 endfunction
