@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.16)
+project(cap-lib-verilated)
+set(CMAKE_CXX_STANDARD 14)
+find_package(verilator HINTS $ENV{VERILATOR_ROOT})
+if (NOT verilator_FOUND)
+    message(FATAL_ERROR "Verilator was not found. Either install it, or set the VERILATOR_ROOT environment variable")
+endif()
+add_executable(cap128_fromMem sim_main.cpp)
+if (APPLE)
+    # verilate() complains about --compiler appleclang otherwise
+    set(CMAKE_CXX_COMPILER_ID clang FORCE)
+endif()
+verilate(cap128_fromMem SOURCES module_wrap128_fromMem.v VERILATOR_ARGS --compiler clang)
