@@ -62,35 +62,35 @@ function Kind#(OTypeW) `W(getKind) (`CAPTYPE cap) = getKind(cap);
 (* noinline *)
 function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind#(OTypeW) kind) = setKind(cap, kind);
 (* noinline *)
-function Bit#(CapAddressW) `W(getAddr) (`CAPTYPE cap) = getAddr(cap);
+function Bit#(CapAddrW) `W(getAddr) (`CAPTYPE cap) = getAddr(cap);
 (* noinline *)
-function Exact#(`CAPTYPE) `W(setAddr) (`CAPTYPE cap, Bit#(CapAddressW) addr) = setAddr(cap, addr);
+function Exact#(`CAPTYPE) `W(setAddr) (`CAPTYPE cap, Bit#(CapAddrW) addr) = setAddr(cap, addr);
 (* noinline *)
-function Bit#(CapAddressW) `W(getOffset) (`CAPTYPE cap) = getOffset(cap);
+function Bit#(CapAddrW) `W(getOffset) (`CAPTYPE cap) = getOffset(cap);
 (* noinline *)
-function Exact#(`CAPTYPE) `W(modifyOffset) (`CAPTYPE cap, Bit#(CapAddressW) offset, Bool doInc) = modifyOffset (cap, offset, doInc);
+function Exact#(`CAPTYPE) `W(modifyOffset) (`CAPTYPE cap, Bit#(CapAddrW) offset, Bool doInc) = modifyOffset (cap, offset, doInc);
 (* noinline *)
-function Exact#(`CAPTYPE) `W(setOffset) (`CAPTYPE cap, Bit#(CapAddressW) offset) = setOffset (cap, offset);
+function Exact#(`CAPTYPE) `W(setOffset) (`CAPTYPE cap, Bit#(CapAddrW) offset) = setOffset (cap, offset);
 (* noinline *)
-function Exact#(`CAPTYPE) `W(incOffset) (`CAPTYPE cap, Bit#(CapAddressW) inc) = incOffset (cap, inc);
+function Exact#(`CAPTYPE) `W(incOffset) (`CAPTYPE cap, Bit#(CapAddrW) inc) = incOffset (cap, inc);
 (* noinline *)
-function Bit#(CapAddressW) `W(getBase) (`CAPTYPE cap) = getBase(cap);
+function Bit#(CapAddrW) `W(getBase) (`CAPTYPE cap) = getBase(cap);
 (* noinline *)
-function Bit#(TAdd#(CapAddressW, 1)) `W(getTop) (`CAPTYPE cap) = getTop(cap);
+function Bit#(TAdd#(CapAddrW, 1)) `W(getTop) (`CAPTYPE cap) = getTop(cap);
 (* noinline *)
-function Bit#(TAdd#(CapAddressW, 1)) `W(getLength) (`CAPTYPE cap) = getLength(cap);
+function Bit#(TAdd#(CapAddrW, 1)) `W(getLength) (`CAPTYPE cap) = getLength(cap);
 (* noinline *)
 function Bool `W(isInBounds) (`CAPTYPE cap, Bool isTopIncluded) = isInBounds(cap, isTopIncluded);
 (* noinline *)
-function Exact#(`CAPTYPE) `W(setBounds) (`CAPTYPE cap, Bit#(CapAddressW) length) = setBounds(cap, length);
+function Exact#(`CAPTYPE) `W(setBounds) (`CAPTYPE cap, Bit#(CapAddrW) length) = setBounds(cap, length);
 (* noinline *)
-function `CAPTYPE `W(nullWithAddr) (Bit#(CapAddressW) addr) = nullWithAddr(addr);
+function `CAPTYPE `W(nullWithAddr) (Bit#(CapAddrW) addr) = nullWithAddr(addr);
 (* noinline *)
 function `CAPTYPE `W(almightyCap) = almightyCap;
 (* noinline *)
 function `CAPTYPE `W(nullCap) = nullCap;
 (* noinline *)
-function Bool `W(validAsType) (`CAPTYPE dummy, Bit#(CapAddressW) checkType) = validAsType(dummy, checkType);
+function Bool `W(validAsType) (`CAPTYPE dummy, Bit#(CapAddrW) checkType) = validAsType(dummy, checkType);
 (* noinline *)
 function `CAPTYPE `W(fromMem) (Tuple2#(Bool, Bit#(CapW)) mem_cap) = fromMem(mem_cap);
 (* noinline *)
