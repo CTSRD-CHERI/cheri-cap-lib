@@ -22,7 +22,7 @@ class BlarneyWrapper:
     self.out = out
   def verilogModuleName(self):
     return "module_wrap{:d}_{:s}".format(self.size, self.name)
-  def verilodInputNames(self):
+  def verilogInputNames(self):
     return ["wrap{:d}_{:s}_{:s}".format(self.size, self.name, nm)
                 for nm in [x[0] for x in self.ins]]
   def verilogOutputName(self):
@@ -35,13 +35,14 @@ class BlarneyWrapper:
       " -> ".join(["Bit {:d}".format(n) for n in ins_wdths]),
       " -> " if self.ins else "",
       "Bit {:d}".format(self.out[1]))
-    str_decl = "{:s} {:s} = FromBV $\n  makePrim1 (Custom \"{:s}\" [{:s}] [{:s}] [] False) [{:s}] {:d}".format(
+    str_decl = "{:s} {:s} = FromBV $\n  makePrim1 (Custom \"{:s}\" [{:s}] [{:s}] [] False Nothing) [{:s}]".format(
         self.name, " ".join(ins_names),
         self.verilogModuleName(),
-        ", ".join(["\"{:s}\"".format(n) for n in self.verilodInputNames()]),
+        ", ".join(["(\"{:s}\", {:d})".format(n, w)
+                     for (n, w) in zip(self.verilogInputNames(),
+                                       ins_wdths)]),
         "(\"{:s}\", {:d})".format(self.verilogOutputName(), self.out[1]),
-        ", ".join(["toBV {:s}".format(nm) for nm in ins_names]),
-        self.out[1])
+        ", ".join(["toBV {:s}".format(nm) for nm in ins_names]))
     return "{:s}\n{:s}".format(str_type, str_decl)
 
 def main():
@@ -84,7 +85,7 @@ def main():
     #print("module CHERI{:d} where\n".format(size))
     f.write("module "+args.output+" where\n\n")
     f.write("import Blarney\n")
-    f.write("import Blarney.BV\n")
+    f.write("import Blarney.Core.BV\n")
     for w in wrappers:
       f.write("\n{:s}\n".format(w.emitBlarney()))
 
