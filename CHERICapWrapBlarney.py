@@ -157,9 +157,12 @@ class Bluetcl:
 # ====
 
 # Check args
-if len(sys.argv) != 1:
-  print("Usage: CHERICapWrapBlarney.py")
+if len(sys.argv) != 2:
+  print("Usage: CHERICapWrapBlarney.py <MODULE_NAME>")
   sys.exit()
+
+# Name of generated Haskell module
+moduleName = sys.argv[1]
 
 # Load CHERICapWrap module into bluetcl
 bluetcl = Bluetcl()
@@ -264,7 +267,7 @@ def genBlarneyTypeSyns():
   print("type CapInternal = Bit CapInternalWidth")
   print()
 
-print("module CHERIBlarneyWrappers where")
+print("module " + moduleName + " where")
 print()
 print("import Blarney")
 print("import Blarney.Core.BV")
