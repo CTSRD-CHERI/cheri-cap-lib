@@ -1,93 +1,218 @@
 #! /usr/bin/env python3
 
-import argparse
 import re
+import sys
+import subprocess
 
-parser = argparse.ArgumentParser(description=
-  '''Generates a Blarney wrapper for the given Bluespec generated verilog file
-     containing a module definition of a purely combinational CHERI function.
-  ''')
-parser.add_argument('verilog_files', metavar='VERILOG_FILE', type=str, nargs='+',
-                    help='The file(s) to process')
-parser.add_argument('--output', '-o', metavar='OUTPUT_FILE', type=str, nargs='?',
-                    default="CHERIBlarneyWrappers",
-                    help='The output Blarney Haskell module to generate')
-args = parser.parse_args()
+# Parsing TCL structures
+# ======================
 
-class BlarneyWrapper:
-  def __init__(self, size, name, ins, out):
-    self.size = size
-    self.name = name
-    self.ins = ins
-    self.out = out
-  def verilogModuleName(self):
-    return "module_wrap{:d}_{:s}".format(self.size, self.name)
-  def verilogInputNames(self):
-    return ["wrap{:d}_{:s}_{:s}".format(self.size, self.name, nm)
-                for nm in [x[0] for x in self.ins]]
-  def verilogOutputName(self):
-    return "wrap{:d}_{:s}".format(self.size, self.name)
-  def emitBlarney(self):
-    ins_names = [x[0] for x in self.ins]
-    ins_wdths = [x[1] for x in self.ins]
-    str_type = "{:s} :: {:s}{:s}{:s}".format(
-      self.name,
-      " -> ".join(["Bit {:d}".format(n) for n in ins_wdths]),
-      " -> " if self.ins else "",
-      "Bit {:d}".format(self.out[1]))
-    str_decl = "{:s} {:s} = FromBV $\n  makePrim1 (Custom \"{:s}\" [{:s}] [{:s}] [] False Nothing) [{:s}]".format(
-        self.name, " ".join(ins_names),
-        self.verilogModuleName(),
-        ", ".join(["(\"{:s}\", {:d})".format(n, w)
-                     for (n, w) in zip(self.verilogInputNames(),
-                                       ins_wdths)]),
-        "(\"{:s}\", {:d})".format(self.verilogOutputName(), self.out[1]),
-        ", ".join(["toBV {:s}".format(nm) for nm in ins_names]))
-    return "{:s}\n{:s}".format(str_type, str_decl)
+# Parse nested TCL structure into nested python list (helper function)
+def parseTCLHelper(s):
+  result = []
+  s = s.lstrip()
+  while s:
+    if s[0] == '{':
+      (subtree, s) = parseTCLHelper(s[1:])
+      result.append(subtree)
+    elif s[0] == '}':
+      return (result, s[1:])
+    else:
+      word = ""
+      while s and s[0] not in [' ', '{', '}']:
+        word = word + s[0]
+        s = s[1:]
+      result.append(word)
+    s = s.lstrip()
 
-def main():
-  # define module regexp
-  modDecl = re.compile("^module\s+module_wrap(\d+)_(\w+)\(")
-  # TODO handle size 1
-  #
-  wrappers = []
-  for fname in args.verilog_files:
-    size = 0
-    name = None
-    ins = []
-    out = ("",0)
-    with open(fname, "r") as f:
-      for ln in f:
-        modM = modDecl.match(ln)
-        if modM:
-          size = int(modM.group(1))
-          name = modM.group(2)
-          break
-      if not name:
-        print("Couldn't find a valid Verilog module definition")
-        exit(-1)
-      # define input/output regexp
-      inDecl  = re.compile("^\s*input(\s+\[(\d+)\s+:\s+0\])?\s+wrap(\d+)_"+name+"_(\w+);")
-      outDecl = re.compile("^\s*output(\s+\[(\d+)\s+:\s+0\])?\s+wrap(\d+)_"+name+";")
+  return (result, s)
 
-      for ln in f:
-        inM  = inDecl.match(ln)
-        outM = outDecl.match(ln)
-        if inM:
-          ins.append((inM.group(4), (int(inM.group(2)) + 1) if inM.group(1) else 1))
-        elif outM:
-          out = (name, (int(outM.group(2)) + 1) if outM.group(1) else 1)
-        #else:
-        #  print("===>> no match for line: {:s}".format(ln))
-    wrappers.append(BlarneyWrapper(size, name, ins, out))
+# Parse nested TCL structure into nested python list
+def parseTCL(s):
+  return parseTCLHelper(s)[0]
 
-  with open(args.output+".hs", "w") as f:
-    #print("module CHERI{:d} where\n".format(size))
-    f.write("module "+args.output+" where\n\n")
-    f.write("import Blarney\n")
-    f.write("import Blarney.Core.BV\n")
-    for w in wrappers:
-      f.write("\n{:s}\n".format(w.emitBlarney()))
+# Helper functions
+# ================
 
-if __name__ == "__main__":
-  main()
+# Strip qualifiers from qualified name
+def stripQualifiers(s):
+  return s.split("::")[-1]
+
+# Is the given type a Module type constructor?
+def isModuleTypeCons(s):
+  return s[0:8] == "Module#(" and s[-1] == ")"
+
+# Unwrap Module#(t) to t
+def stripModuleTypeCons(s):
+  if isModuleTypeCons(s):
+    return s[8:-1]
+  else:
+    return s
+
+# Flatten list of strings to a string
+def flatString(x):
+  if type(x) == list:
+    if x:
+      return flatString(x[0]) + flatString(x[1:])
+    else:
+      return ""
+  else:
+    return x
+
+# Flatten input to a list of strings
+def listOfString(x):
+  if type(x) == list:
+    if x:
+      return [flatString(x[0])] + listOfString(x[1:])
+    else:
+      return []
+  else:
+    return [x]
+
+# Split args at outermost nesting level
+def splitArgs(s):
+  nestCount = 0
+  args = []
+  arg = ""
+  for c in s:
+    if c == '(':
+      nestCount = nestCount + 1
+    elif c == ')':
+      nestCount = nestCount - 1
+    if c == ',' and nestCount == 0:
+      args.append(arg)
+      arg = ""
+    else:
+      arg = arg + c
+  if arg: args.append(arg)
+  return args
+
+# Bluetcl interaction
+# ===================
+
+# Interactive interface to bluetcl
+class Bluetcl:
+  # Constructor: open bluetcl as a subprocess
+  def __init__(self):
+    try:
+      self.p = subprocess.Popen(['bluetcl'],
+                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                 stderr=subprocess.PIPE, text=True)
+      self.p.stdin.write("namespace import ::Bluetcl::*\n")
+      self.p.stdin.flush();
+    except subprocess.CalledProcessError:
+      print("Couldn't open bluetcl")
+      sys.exit()
+
+  # Destructor: terminate bluetcl process
+  def __del__(self):
+    self.p.terminate()
+
+  # Load package
+  def loadPackage(self, pkg):
+    self.p.stdin.write("bpackage load " + pkg + "\n")
+    self.p.stdin.flush();
+
+  # Get bit-level representation of given type
+  def bitify(self, typeName):
+    self.p.stdin.write("puts [type bitify " + typeName + "]\n")
+    self.p.stdin.flush()
+    return parseTCL(self.p.stdout.readline())
+
+  # Determine bit width of given type
+  def bitWidth(self, typeName):
+    tree = self.bitify(typeName)
+    return tree[2]
+
+  # Get all functions in given package
+  def getFuncs(self, pkg):
+    self.p.stdin.write("puts [defs func " + pkg + "]\n")
+    self.p.stdin.flush()
+    return parseTCL(self.p.stdout.readline())
+
+  # Get info for given type
+  def getTypeInfo(self, typeName):
+    self.p.stdin.write("puts [type full " + typeName + "]\n")
+    self.p.stdin.flush()
+    return parseTCL(self.p.stdout.readline())
+
+# Main
+# ====
+
+# Check args
+if len(sys.argv) != 1:
+  print("Usage: CHERICapWrapBlarney2.py")
+  sys.exit()
+
+# Load CHERICapWrap module into bluetcl
+bluetcl = Bluetcl()
+bluetcl.loadPackage("CHERICapWrap")
+
+# Translate Bluespec type to Blarney type
+def translateType(t):
+  if t == "Bool":
+    return "Bit 1"
+  elif t[0:5] == "Tuple" and t[6:8] == "#(" and t[-1] == ")":
+    args = splitArgs(t[8:-1])
+    return '(' + ", ".join([translateType(arg) for arg in args]) + ')'
+  else:
+    w = bluetcl.bitWidth(t)
+    return "Bit " + w
+
+# Get type sigs for each function
+def getFuncSigs():
+  sigs = []
+  funcs = bluetcl.getFuncs("CHERICapWrap")
+  for func in funcs:
+    if func[0] == "function":
+      funcName = stripQualifiers(func[1])
+      resultType = func[2][1]
+      if isModuleTypeCons(resultType):
+        ifcName = stripModuleTypeCons(resultType)
+        ifc = bluetcl.getTypeInfo(ifcName)
+        if ifc[0] == "Interface":
+          method = ifc[2][1][0][1:][0]
+          methodRet = flatString(method[0])
+          methodName = method[1]
+          methodArgs = listOfString(method[2])
+          ports = listOfString(method[3])[0][9:-3]
+          inputNames = ports.replace('"', '').split(",")
+          sigs.append(
+            { 'funcName': methodName
+            , 'argNames' : inputNames if ports else []
+            , 'argTypes' : [translateType(arg) for arg in methodArgs]
+            , 'argWidths' : [bluetcl.bitWidth(arg) for arg in methodArgs]
+            , 'returnType' : translateType(methodRet)
+            , 'returnWidth' : bluetcl.bitWidth(methodRet)
+            })
+  return sigs
+
+# Generate function wrappers in Blarney
+def genBlarneyWrappers():
+  sigs = getFuncSigs()
+  for sig in sigs:
+    modName = "module_" + sig['funcName']
+    funcName = sig['funcName'][7:]
+    # Blarney type signature
+    print(funcName + " :: " +
+            " -> ".join(sig['argTypes'] + [sig['returnType']]))
+    # Blarney function LHS
+    print(funcName + " " + " ".join(sig['argNames']) + " = ")
+    # Blarney function RHS
+    print('  unpack $ FromBV $ makePrim1 (Custom')
+    print('   ', '"' + modName + '"')
+    print('   ', '[' + ", ".join(
+      [ '("' + sig['funcName'] + '_' + arg + '", ' + w + ')'
+        for (arg, w) in zip(sig['argNames'], sig['argWidths'])]) + ']')
+    print('   ', '[("' + sig['funcName'] + '", ' + sig['returnWidth'] + ')]')
+    print('   ', '[]', 'False', 'Nothing) $ ')
+    print('     ', '[' + ", ".join(
+      ['toBV $ pack ' + arg for arg in sig['argNames']]) + ']')
+    print()
+
+print("module CHERIBlarneyWrappers where")
+print()
+print("import Blarney")
+print("import Blarney.Core.BV")
+print()
+genBlarneyWrappers()
