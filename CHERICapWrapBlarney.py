@@ -2,6 +2,7 @@
 
 import re
 import sys
+import select
 import subprocess
 
 # Parsing TCL structures
@@ -34,9 +35,32 @@ def parseTCL(s):
 # Helper functions
 # ================
 
+# Split string at outermost nesting level (w.r.t. parentheses)
+def splitOuter(s, sep = ','):
+  nestCount = 0
+  args = []
+  arg = ""
+  strLen = len(s)
+  sepLen = len(sep)
+  i = 0
+  while i < strLen:
+    if s[i] == '(':
+      nestCount = nestCount + 1
+    elif s[i] == ')':
+      nestCount = nestCount - 1
+    if nestCount == 0 and i+sepLen <= strLen and s[i:i+sepLen] == sep:
+      args.append(arg)
+      arg = ""
+      i = i + sepLen
+    else:
+      arg = arg + s[i]
+      i = i + 1
+  args.append(arg)
+  return args
+
 # Strip qualifiers from qualified name
 def stripQualifiers(s):
-  return s.split("::")[-1]
+  return splitOuter(s, "::")[-1]
 
 # Is the given type a Module type constructor?
 def isModuleTypeCons(s):
@@ -69,24 +93,6 @@ def listOfString(x):
   else:
     return [x]
 
-# Split args at outermost nesting level
-def splitArgs(s):
-  nestCount = 0
-  args = []
-  arg = ""
-  for c in s:
-    if c == '(':
-      nestCount = nestCount + 1
-    elif c == ')':
-      nestCount = nestCount - 1
-    if c == ',' and nestCount == 0:
-      args.append(arg)
-      arg = ""
-    else:
-      arg = arg + c
-  if arg: args.append(arg)
-  return args
-
 # Bluetcl interaction
 # ===================
 
@@ -108,6 +114,14 @@ class Bluetcl:
   def __del__(self):
     self.p.terminate()
 
+  # Wait for response on bluetcl's stdout or stderr
+  # Abort if stderr is non-empty
+  def awaitResponse(self):
+    ready = select.select([self.p.stderr, self.p.stdout], [], [], 1.0)
+    if self.p.stderr in ready[0]:
+      print("Bluetcl error: ", self.p.stderr.readline())
+      sys.exit()
+
   # Load package
   def loadPackage(self, pkg):
     self.p.stdin.write("bpackage load " + pkg + "\n")
@@ -117,6 +131,7 @@ class Bluetcl:
   def bitify(self, typeName):
     self.p.stdin.write("puts [type bitify " + typeName + "]\n")
     self.p.stdin.flush()
+    self.awaitResponse()
     return parseTCL(self.p.stdout.readline())
 
   # Determine bit width of given type
@@ -128,12 +143,14 @@ class Bluetcl:
   def getFuncs(self, pkg):
     self.p.stdin.write("puts [defs func " + pkg + "]\n")
     self.p.stdin.flush()
+    self.awaitResponse()
     return parseTCL(self.p.stdout.readline())
 
   # Get info for given type
   def getTypeInfo(self, typeName):
     self.p.stdin.write("puts [type full " + typeName + "]\n")
     self.p.stdin.flush()
+    self.awaitResponse()
     return parseTCL(self.p.stdout.readline())
 
 # Main
@@ -141,7 +158,7 @@ class Bluetcl:
 
 # Check args
 if len(sys.argv) != 1:
-  print("Usage: CHERICapWrapBlarney2.py")
+  print("Usage: CHERICapWrapBlarney.py")
   sys.exit()
 
 # Load CHERICapWrap module into bluetcl
@@ -153,8 +170,20 @@ def translateType(t):
   if t == "Bool":
     return "Bit 1"
   elif t[0:5] == "Tuple" and t[6:8] == "#(" and t[-1] == ")":
-    args = splitArgs(t[8:-1])
+    args = splitOuter(t[8:-1])
     return '(' + ", ".join([translateType(arg) for arg in args]) + ')'
+  elif stripQualifiers(t) == "CapPipe":
+    return "CapInternal"
+  elif stripQualifiers(t) == "HardPerms":
+    return "HardPerms"
+  elif stripQualifiers(t)[0:7] == "Exact#(" and t[-1] == ")":
+    tbase = stripQualifiers(t)
+    arg = translateType(tbase[7:-1])
+    if " " in arg:
+      arg = '(' + arg + ')'
+    return "Exact " + arg
+  elif t and t[0].islower():
+    return t
   else:
     w = bluetcl.bitWidth(t)
     return "Bit " + w
@@ -210,9 +239,37 @@ def genBlarneyWrappers():
       ['toBV $ pack ' + arg for arg in sig['argNames']]) + ']')
     print()
 
+# Generate Blarney type for given Bluespec struct
+def genBlarneyStruct(t):
+  info = bluetcl.getTypeInfo(t)
+  ctrName = t.split("#")[0]
+  tnew = translateType(t)
+  if info[0] != "Struct":
+    print("Type", t, "is not a struct")
+    sys.exit()
+  print("data", tnew, "=")
+  print(" ", ctrName, "{")
+  infoIndex = 3 if info[2] == "polymorphic" else 2
+  ctrs = info[infoIndex][1]
+  first = True
+  for ctr in ctrs:
+    print(" ", " " if first else ",", ctr[1], "::", translateType(ctr[0]))
+    first = False
+  print(" ", "} deriving (Generic, Interface, Bits)")
+  print()
+
+# Helpful type synonyms
+def genBlarneyTypeSyns():
+  print("type CapInternalWidth =", bluetcl.bitWidth("CapPipe"))
+  print("type CapInternal = Bit CapInternalWidth")
+  print()
+
 print("module CHERIBlarneyWrappers where")
 print()
 print("import Blarney")
 print("import Blarney.Core.BV")
 print()
+genBlarneyTypeSyns()
+genBlarneyStruct("Exact#(t)")
+genBlarneyStruct("HardPerms")
 genBlarneyWrappers()
