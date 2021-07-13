@@ -18,7 +18,7 @@ verilog-wrappers: CHERICapWrap.bsv CHERICap.bsv CHERICC_Fat.bsv
 blarney-wrappers: CHERICapWrapBlarney.py verilog-wrappers
 	@./CHERICapWrapBlarney.py CHERIBlarneyWrappers > CHERIBlarneyWrappers.hs
 
-.PHONY: clean clean-verilog-wrappers
+.PHONY: clean clean-verilog-wrappers clean-blarney-wrappers clean-all
 
 clean-verilog-wrappers: clean
 	rm -f *.v
@@ -28,3 +28,5 @@ clean-blarney-wrappers: clean
 
 clean:
 	rm -f *.bo
+
+clean-all: clean-verilog-wrappers clean-blarney-wrappers

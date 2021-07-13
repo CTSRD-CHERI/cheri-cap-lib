@@ -62,6 +62,9 @@ function Kind#(OTypeW) `W(getKind) (`CAPTYPE cap) = getKind(cap);
 (* noinline *)
 function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind#(OTypeW) kind) = setKind(cap, kind);
 (* noinline *)
+function Bool `W(isUnsealed) (`CAPTYPE cap) =
+  getKind(cap) matches tagged UNSEALED ? True : False;
+(* noinline *)
 function Bit#(CapAddrW) `W(getAddr) (`CAPTYPE cap) = getAddr(cap);
 (* noinline *)
 function Exact#(`CAPTYPE) `W(setAddr) (`CAPTYPE cap, Bit#(CapAddrW) addr) = setAddr(cap, addr);

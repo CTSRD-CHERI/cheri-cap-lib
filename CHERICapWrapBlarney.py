@@ -176,7 +176,7 @@ def translateType(t):
     args = splitOuter(t[8:-1])
     return '(' + ", ".join([translateType(arg) for arg in args]) + ')'
   elif stripQualifiers(t) == "CapPipe":
-    return "CapInternal"
+    return "InternalCap"
   elif stripQualifiers(t) == "HardPerms":
     return "HardPerms"
   elif stripQualifiers(t)[0:7] == "Exact#(" and t[-1] == ")":
@@ -231,15 +231,16 @@ def genBlarneyWrappers():
     # Blarney function LHS
     print(funcName + " " + " ".join(sig['argNames']) + " = ")
     # Blarney function RHS
-    print('  unpack $ FromBV $ makePrim1 (Custom')
+    print('  unpack $ FromBV $ head $ makePrim (Custom')
     print('   ', '"' + modName + '"')
     print('   ', '[' + ", ".join(
       [ '("' + sig['funcName'] + '_' + arg + '", ' + w + ')'
         for (arg, w) in zip(sig['argNames'], sig['argWidths'])]) + ']')
     print('   ', '[("' + sig['funcName'] + '", ' + sig['returnWidth'] + ')]')
-    print('   ', '[]', 'False', 'Nothing) $ ')
+    print('   ', '[]', 'False', 'Nothing) ')
     print('     ', '[' + ", ".join(
       ['toBV $ pack ' + arg for arg in sig['argNames']]) + ']')
+    print('     ', '[Just "' + sig['funcName'] + '"]')
     print()
 
 # Generate Blarney type for given Bluespec struct
@@ -263,8 +264,13 @@ def genBlarneyStruct(t):
 
 # Helpful type synonyms
 def genBlarneyTypeSyns():
-  print("type CapInternalWidth =", bluetcl.bitWidth("CapPipe"))
-  print("type CapInternal = Bit CapInternalWidth")
+  icapWidth = bluetcl.bitWidth("CapPipe")
+  addrWidth = bluetcl.getTypeInfo("CapAddrW")[2]
+  print("type InternalCapWidth =", icapWidth)
+  print("type InternalCap = Bit InternalCapWidth")
+  print()
+  print("type InternalCapMetaDataWidth =", int(icapWidth) - int(addrWidth))
+  print("type InternalCapMetaData = Bit InternalCapMetaDataWidth")
   print()
 
 print("module " + moduleName + " where")
