@@ -2,6 +2,7 @@
 
 import re
 import sys
+import glob
 import select
 import subprocess
 
@@ -153,6 +154,22 @@ class Bluetcl:
     self.awaitResponse()
     return parseTCL(self.p.stdout.readline())
 
+# Verilog extraction
+# ==================
+
+# Generate Haskell definition of the null / almighty capability
+def genCapDefn(capValName):
+  files = glob.glob("*" + capValName + ".v")
+  if not files:
+    print("Can't find *" + capValName + ".v")
+    sys.exit()
+  with open(files[0]) as f:
+    for line in f:
+      m = re.match(".*" + capValName + " = [0-9]+'h([0-9a-fA-F]+).*", line)
+      if m:
+        print(capValName + "Integer :: Integer = 0x" + m.groups()[0])
+        return
+
 # Main
 # ====
 
@@ -282,3 +299,5 @@ genBlarneyTypeSyns()
 genBlarneyStruct("Exact#(t)")
 genBlarneyStruct("HardPerms")
 genBlarneyWrappers()
+genCapDefn("nullCap")
+genCapDefn("almightyCap")
