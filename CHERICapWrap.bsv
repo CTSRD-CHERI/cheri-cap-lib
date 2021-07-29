@@ -62,8 +62,32 @@ function Kind#(OTypeW) `W(getKind) (`CAPTYPE cap) = getKind(cap);
 (* noinline *)
 function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind#(OTypeW) kind) = setKind(cap, kind);
 (* noinline *)
+function `CAPTYPE `W(setType) (`CAPTYPE cap, Bit#(OTypeW) t) =
+  setKind(cap, case (t)
+                 -1: UNSEALED;
+                 -2: SENTRY;
+                 -3: RES0;
+                 -4: RES1;
+                 default: SEALED_WITH_TYPE(t);
+               endcase);
+(* noinline *)
+function Bit#(OTypeW) `W(getType) (`CAPTYPE cap) =
+  case (getKind(cap)) matches
+    tagged UNSEALED: -1;
+    tagged SENTRY: -2;
+    tagged RES0: -3;
+    tagged RES1: -4;
+    tagged SEALED_WITH_TYPE(.t): t;
+  endcase;
+(* noinline *)
 function Bool `W(isSealed) (`CAPTYPE cap) =
   getKind(cap) matches tagged UNSEALED ? False : True;
+(* noinline *)
+function Bool `W(isSentry) (`CAPTYPE cap) =
+  getKind(cap) matches tagged SENTRY ? True : False;
+(* noinline *)
+function Bool `W(isSealedWithType) (`CAPTYPE cap) =
+  getKind(cap) matches tagged SEALED_WITH_TYPE(.ot) ? True : False;
 (* noinline *)
 function Bit#(CapAddrW) `W(getAddr) (`CAPTYPE cap) = getAddr(cap);
 (* noinline *)
