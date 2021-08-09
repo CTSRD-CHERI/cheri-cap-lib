@@ -254,7 +254,7 @@ def genBlarneyWrappers():
       [ '("' + sig['funcName'] + '_' + arg + '", ' + w + ')'
         for (arg, w) in zip(sig['argNames'], sig['argWidths'])]) + ']')
     print('   ', '[("' + sig['funcName'] + '", ' + sig['returnWidth'] + ')]')
-    print('   ', '[]', 'False', 'Nothing) ')
+    print('   ', '[]', 'False', 'False', 'Nothing) ')
     print('     ', '[' + ", ".join(
       ['toBV $ pack ' + arg for arg in sig['argNames']]) + ']')
     print('     ', '[Just "' + sig['funcName'] + '"]')
