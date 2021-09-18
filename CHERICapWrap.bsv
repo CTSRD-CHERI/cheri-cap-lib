@@ -122,5 +122,7 @@ function Bool `W(validAsType) (`CAPTYPE dummy, Bit#(CapAddrW) checkType) = valid
 function `CAPTYPE `W(fromMem) (Tuple2#(Bool, Bit#(CapW)) mem_cap) = fromMem(mem_cap);
 (* noinline *)
 function Tuple2#(Bool, Bit#(CapW)) `W(toMem) (`CAPTYPE cap) = toMem(cap);
+(* noinline *)
+function Bit#(TSub#(CapW, CapAddrW)) `W(getMeta) (`CAPTYPE cap) = getMeta(cap);
 
 endpackage
