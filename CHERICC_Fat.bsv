@@ -92,6 +92,7 @@ typedef `FLAGSW FlagsW;
 typedef 64  CapAddrW;
 typedef 128 CapW;
 `endif
+
 // The Address type is used to represent the full sized address returned to the
 // consuming pipeline. In cases where fewer than CapAddrW bits are stored to
 // represent a memory address (and remaining bits are usable for storing extra
@@ -145,7 +146,7 @@ typedef struct {
   Bit#(OTypeW) otype;
   CBounds      bounds;
   CapAddr      address;
-} CapabilityInMemory deriving(Bits, Eq, FShow); // CapW + 1 (tag bit)
+} CapabilityInMemory deriving (Bits, Eq, FShow); // CapW + 1 (tag bit)
 // The full capability structure as Bits, including the "tag" bit.
 typedef Bit#(TAdd#(CapW,1)) Capability;
 // not including the tag bit
@@ -180,7 +181,7 @@ typedef struct {
   Bit#(OTypeW)   otype;
   Format         format;
   Bounds         bounds;
-} CapFat deriving(Bits);
+} CapFat deriving (Bits);
 
 // "Architectural FShow"
 function Fmt showArchitectural(CapFat cap) =
@@ -847,7 +848,7 @@ typedef struct {
   TempFields tempFields;
 } CapPipe deriving (Bits);
 
-instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
+instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   function isValidCap (capMem);
     CapabilityInMemory cap = unpack(capMem);
     return cap.isCapability;
@@ -887,9 +888,17 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
   function setSoftPerms = error("setSoftPerms not implemented for CapMem");
   function getKind = error("getKind not implemented for CapMem");
   function setKind = error("setKind not implemented for CapMem");
+  function getMeta(capMem);
+    CapabilityInMemory cap = unpack(capMem);
+    return { pack (cap.perms)
+           , pack (cap.reserved)
+           , pack (cap.flags)
+           , pack (cap.otype)
+           , pack (cap.bounds) };
+  endfunction
   function getAddr(capMem);
     CapabilityInMemory cap = unpack(capMem);
-    return cap.address;
+    return pack (cap.address);
   endfunction
   function setAddr = error("setAddr not implemented for CapMem");
   function setAddrUnsafe (capMem, address);
@@ -946,7 +955,7 @@ instance Eq #(CapReg);
 //  function Bool \/= (CapPipe x, CapPipe y);
 endinstance
 
-instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
+instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
   function isValidCap (x) = x.isCapability;
 
@@ -1016,7 +1025,15 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
     tagged SEALED_WITH_TYPE .ot: seal(cap, ?, VnD {v: True, d:ot});
   endcase;
 
-  function getAddr (cap) = cap.address;
+  function getMeta(capReg);
+    CapMem cap = unpack (pack (toMem (capReg)));
+    return getMeta (cap);
+  endfunction
+
+  function getAddr (capReg);
+    CapMem cap = unpack (pack (toMem (capReg)));
+    return getAddr (cap);
+  endfunction
 
   function setAddr = error("setAddr not implemented for CapReg");
 
@@ -1091,7 +1108,9 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
   function setKind (cap, kind) =
     CapPipe { capFat:setKind(cap.capFat,kind)
             , tempFields: cap.tempFields };
-  function getAddr (cap) = getAddr(cap.capFat);
+
+  function getMeta (cap) = getMeta (cap.capFat);
+  function getAddr (cap) = getAddr (cap.capFat);
   function maskAddr (cap, mask) =
     CapPipe { capFat: maskAddr(cap.capFat, mask)
             , tempFields: cap.tempFields };

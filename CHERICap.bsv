@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2018-2019 Alexandre Joannou
+ * Copyright (c) 2018-2021 Alexandre Joannou
  * Copyright (c) 2019 Peter Rugg
  * All rights reserved.
  *
@@ -29,27 +29,29 @@
 
 package CHERICap;
 
-// CHERI capability typeclass
+// CHERI public types
 ////////////////////////////////////////////////////////////////////////////////
+
 // Permission bits
 
-typedef Bit#(16) SoftPerms;
+typedef Bit #(16) SoftPerms;
+
 typedef struct {
-  Bool     permitSetCID;
-  Bool     accessSysRegs;
-  Bool     permitUnseal;
-  Bool     permitCCall;
-  Bool     permitSeal;
-  Bool     permitStoreLocalCap;
-  Bool     permitStoreCap;
-  Bool     permitLoadCap;
-  Bool     permitStore;
-  Bool     permitLoad;
-  Bool     permitExecute;
-  Bool     global;
+  Bool permitSetCID;
+  Bool accessSysRegs;
+  Bool permitUnseal;
+  Bool permitCCall;
+  Bool permitSeal;
+  Bool permitStoreLocalCap;
+  Bool permitStoreCap;
+  Bool permitLoadCap;
+  Bool permitStore;
+  Bool permitLoad;
+  Bool permitExecute;
+  Bool global;
 } HardPerms deriving(Bits, Eq, FShow);
 
-instance Bitwise#(HardPerms);
+instance Bitwise #(HardPerms);
   function \& (x1, x2) = unpack(pack(x1) & pack(x2));
   function \| (x1, x2) = unpack(pack(x1) | pack(x2));
   function \^ (x1, x2) = unpack(pack(x1) ^ pack(x2));
@@ -62,31 +64,45 @@ instance Bitwise#(HardPerms);
   function lsb (x) = lsb(pack(x));
 endinstance
 
-// Type to return the result of an operation along with whether the operation was exact
-// In cases where no sensible inexact representation exists, the only guarantee is that
-// the tag bit is not set.
+// Helper type to return the result of an operation along with whether the
+// operation was exact. In cases where no sensible inexact representation
+// exists, the only guarantee is that the tag bit is not set.
+
 typedef struct {
   Bool exact;
   t    value;
 } Exact #(type t) deriving (Bits);
+
+// Kind of a capability, that is whether it is "sealed with a given otype", or
+// if it is a "sentry" or simply "unsealed".
 
 typedef union tagged {
   void UNSEALED;
   void SENTRY;
   void RES0;
   void RES1;
-  Bit#(ot) SEALED_WITH_TYPE;
-} Kind#(numeric type ot) deriving (Bits, Eq, FShow);
+  Bit #(ot) SEALED_WITH_TYPE;
+} Kind #(numeric type ot) deriving (Bits, Eq, FShow);
 
-typedef struct
-{
+// Helper type for the return value of the 'setBoundsCombined' method
+
+typedef struct {
   t cap;
   Bool exact;
-  Bit#(n) length;
-  Bit#(n) mask;
-} SetBoundsReturn#(type t, numeric type n) deriving (Bits, Eq, FShow);
+  Bit #(n) length;
+  Bit #(n) mask;
+} SetBoundsReturn #(type t, numeric type n) deriving (Bits, Eq, FShow);
 
-typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, numeric type mem_sz, numeric type maskable_bits)
+
+// CHERI capability typeclass
+////////////////////////////////////////////////////////////////////////////////
+
+typeclass CHERICap #( type t
+                    , numeric type ot
+                    , numeric type flg
+                    , numeric type n
+                    , numeric type mem_sz
+                    , numeric type maskable_bits )
   dependencies (t determines (ot, flg, n, mem_sz, maskable_bits));
 
   // Return whether the Capability is valid
@@ -112,14 +128,22 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
     zeroExtend({pack(getSoftPerms(cap)), 3'h0, pack(getHardPerms(cap))});
   // Set the architectural permissions
   function t setPerms (t cap, Bit#(31) perms) =
-    setSoftPerms(setHardPerms(cap, unpack(perms[11:0])), unpack(truncate(perms[30:15])));
+    setSoftPerms ( setHardPerms(cap, unpack(perms[11:0]))
+                 , unpack(truncate(perms[30:15])) );
 
-  // Manipulate the kind of the capability, i.e. whether it is sealed, sentry, unsealed, ...
+  // Manipulate the kind of the capability, i.e. whether it is sealed, sentry,
+  // unsealed, ...
   function Kind#(ot) getKind (t cap);
   function t setKind (t cap, Kind#(ot) kind);
 
-  // Get the address pointed to by the capability
-  function Bit#(n) getAddr (t cap);
+  // Get the in-memory architectural representation of the capability metadata
+  function Bit #(TSub #(mem_sz, n)) getMeta (t cap);
+  // Get the in-memory architectural representation of the capability address
+  function Bit #(n) getAddr (t cap);
+
+  // Note that the following rule is expected to hold:
+  // fromMem (tuple2 (isValidCap (cap), {getMeta (cap), getAddr (cap)})) == cap
+
   // Set the address of the capability. Result invalid if unrepresentable
   function Exact#(t) setAddr (t cap, Bit#(n) addr);
   // Set the address of the capability. Result assumed to be representable
@@ -153,7 +177,8 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
     return isNotTooLow && isNotTooHigh;
   endfunction
 
-  // Set the length of the capability. Inexact: result length may be different to requested
+  // Set the length of the capability. Inexact: result length may be different
+  // to requested
   function Exact#(t) setBounds (t cap, Bit#(n) length);
     let combinedResult = setBoundsCombined(cap, length);
     return Exact {exact: combinedResult.exact, value: combinedResult.cap};
@@ -175,7 +200,7 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   // Check if a type is valid
   function Bool validAsType (t dummy, Bit#(n) checkType);
 
-  // convert from and to bit memory representation
+  // Convert from and to bit memory representation
   function t fromMem (Tuple2#(Bool, Bit#(mem_sz)) mem_cap);
   function Tuple2#(Bool, Bit#(mem_sz)) toMem (t cap);
 
@@ -192,7 +217,8 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
   function Bit#(2) getBaseAlignment (t cap);
 
   // Get representable alignment mask
-  function Bit#(n) getRepresentableAlignmentMask (t dummy, Bit#(n) length_request) =
+  function Bit#(n) getRepresentableAlignmentMask ( t dummy
+                                                 , Bit#(n) length_request) =
     setBoundsCombined(nullCapFromDummy(dummy), length_request).mask;
 
   // Get representable length
@@ -204,7 +230,8 @@ typeclass CHERICap#(type t, numeric type ot, numeric type flg, numeric type n, n
 
 endtypeclass
 
-function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, flg, n, mem_sz, maskable_bits));
+function Fmt showCHERICap (t cap)
+  provisos (CHERICap #(t , ot, flg, n, mem_sz, maskable_bits));
   return $format( "Valid: 0x%0x", isValidCap(cap)) +
          $format(" Perms: 0x%0x", getPerms(cap)) +
          $format(" Kind: ", fshow(getKind(cap))) +
@@ -212,6 +239,9 @@ function Fmt showCHERICap(t cap) provisos (CHERICap#(t, ot, flg, n, mem_sz, mask
          $format(" Base: 0x%0x", getBase(cap)) +
          $format(" Length: 0x%0x", getLength(cap));
 endfunction
+
+// Cast typeclass to convert from one type to another. Helpful for converting
+// a capability format to another.
 
 typeclass Cast#(type src, type dest);
   function dest cast (src x);
