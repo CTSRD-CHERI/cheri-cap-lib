@@ -258,6 +258,98 @@ typedef MetaInfo TempFields;
 
 // Interface functions
 //------------------------------------------------------------------------------
+function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf);
+  // XXX TODO base top length repBase repTop repLength
+  // XXX DONE base top length
+
+  // shared useful bindings and precomputed values
+  //////////////////////////////////////////////////////////////////////////////
+
+  // bind the Bounds field of the CapFat to shorter handy names
+  Exp exp = cap.bounds.exp;
+  Bit #(MW) baseBits = cap.bounds.baseBits;
+  Bit #(MW) topBits = cap.bounds.topBits;
+
+  // Get the top and base bits with the 2 correction bits prepended
+  Bit #(TAdd #(MW, 2)) correctBase = {pack(tf.baseCorrection), baseBits};
+  Bit #(TAdd #(MW, 2)) correctTop  = {pack(tf.topCorrection), topBits};
+
+  // Build a mask on the high bits of a full length value
+  Bit #(TSub #(CapAddrW, MW)) maskBase = ~0 << exp;
+  Bit #(TSub #(TAdd #(CapAddrW, 1), MW)) maskTop = ~0 << exp;
+
+  // compute base
+  //////////////////////////////////////////////////////////////////////////////
+
+  // First, construct a full length value with the base bits and the correction
+  // bits above, and shift that value to the appropriate spot.
+  CapAddr addBase = signExtend (correctBase) << exp;
+  // Extract the high bits of the address (and append the implied zeros at the
+  // bottom), and add with the previously prepared value.
+  CapAddr base = {truncateLSB (cap.address) & maskBase, 0} + addBase;
+
+  // compute top
+  //////////////////////////////////////////////////////////////////////////////
+
+  // First, construct a full length value with the top bits and the correction
+  // bits above, and shift that value to the appropriate spot.
+  CapAddrPlus1 addTop = signExtend (correctTop) << exp;
+  // Extract the high bits of the address (and append the implied zeros at the
+  // bottom), and add with the previously prepared value.
+  CapAddrPlus1 top = {truncateLSB ({1'b0, cap.address}) & maskTop, 0} + addTop;
+  // If the base and top are more than an address space away from eachother,
+  // invert the 64th/32nd bit of Top. This corrects for errors that happen when
+  // the representable space wraps the address space.
+  Bit #(2) topTip = truncateLSB (top);
+  Bit #(2) baseTip = {1'b0, msb (base)};
+  // If the bit we're interested in are actually coming from baseBits, select
+  // the correct one from there.
+  // exp == (resetExp - 1) doesn't matter since we will not flip unless
+  // exp < resetExp - 1.
+  if (exp == (resetExp - 2)) baseTip = {1'b0, baseBits[valueOf(MW) - 1]};
+  // Do the final check.
+  // If exp >= resetExp - 1, the bits we're looking at are coming directly from
+  // topBits and baseBits, are not being inferred, and therefore do not need
+  // correction. If we are below this range, check that the difference between
+  // the resulting top and bottom is less than one address space.  If not, flip
+  // the msb of the top.
+  if (exp < (resetExp - 1) && (topTip - baseTip) > 1)
+    top[valueOf(CapAddrW)] = ~top[valueOf(CapAddrW)];
+
+  // compute length
+  //////////////////////////////////////////////////////////////////////////////
+
+  // Get the length by subtracting base from top and shifting appropriately, and
+  // saturate in case of big exponent
+  CapAddrPlus1 length =
+    (exp >= resetExp) ? ~0 : zeroExtend (correctTop - correctBase) << exp;
+
+  // compute repBase
+  //////////////////////////////////////////////////////////////////////////////
+
+  CapAddr repBase = error ("TODO implement CapFat repBase");
+
+  // compute repTop
+  //////////////////////////////////////////////////////////////////////////////
+
+  CapAddrPlus1 repTop = error ("TODO implement CapFat repTop");
+
+  // compute repLength
+  //////////////////////////////////////////////////////////////////////////////
+
+  CapAddrPlus1 repLength = error ("TODO implement CapFat repLength");
+
+  // return populated BoundsInfo structure
+  //////////////////////////////////////////////////////////////////////////////
+
+  return BoundsInfo { base: base
+                    , top: top
+                    , length: length
+                    , repBase: repBase
+                    , repTop: repTop
+                    , repLength: repLength };
+endfunction
+
 function CapAddr getBotFat(CapFat cap, TempFields tf);
   // First, construct a full length value with the base bits and the
   // correction bits above, and shift that value to the appropriate spot.
@@ -910,10 +1002,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
     setAddrUnsafe(capMem, getAddr(capMem) + signExtend(inc));
   function getOffset = error("getOffset not implemented for CapMem");
   function modifyOffset = error("modifyOffset not implemented for CapMem");
-  function getBase = error("getBase not implemented for CapMem");
-  function getTop = error("getTop not implemented for CapMem");
-  function getLength = error("getLength not implemented for CapMem");
-  function isInBounds = error("isInBounds not implemented for CapMem");
+  function getBoundsInfo = error("getBoundsInfo not implemented for CapMem");
   function setBoundsCombined = error("setBoundsCombined not implemented for CapMem");
   function nullWithAddr = setAddrUnsafe(packCap(null_cap));
   function almightyCap;
@@ -1044,10 +1133,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
   function getOffset = error("getOffset not implemented for CapReg");
   function modifyOffset = error("modifyOffset not implemented for CapReg");
-  function getBase = error("getBase not implemented for CapReg");
-  function getTop = error("getTop not implemented for CapReg");
-  function getLength = error("getLength not implemented for CapReg");
-  function isInBounds = error("isInBounds not implemented for CapReg");
+  function getBoundsInfo = error("getBoundsInfo not implemented for CapReg");
 
   function setBoundsCombined(cap, length) = setBoundsFat(cap, length);
 
@@ -1181,6 +1267,8 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
     cap.tempFields = getTempFields(cap.capFat);
     return Exact { exact: result.v, value: cap };
   endfunction
+
+  function getBoundsInfo (cap) = getBoundsInfoFat (cap.capFat, cap.tempFields);
 
   function getBase (cap) = getBotFat(cap.capFat, cap.tempFields);
 
