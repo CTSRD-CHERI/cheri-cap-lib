@@ -113,9 +113,9 @@ function Exact#(`CAPTYPE) `W(setBounds) (`CAPTYPE cap, Bit#(CapAddrW) length) = 
 (* noinline *)
 function `CAPTYPE `W(nullWithAddr) (Bit#(CapAddrW) addr) = nullWithAddr(addr);
 (* noinline *)
-function `CAPTYPE `W(almightyCap) = almightyCap;
+function `CAPTYPE `W(almightyCapPipe) = almightyCap;
 (* noinline *)
-function `CAPTYPE `W(nullCap) = nullCap;
+function `CAPTYPE `W(nullCapPipe) = nullCap;
 (* noinline *)
 function Bool `W(validAsType) (`CAPTYPE dummy, Bit#(CapAddrW) checkType) = validAsType(dummy, checkType);
 (* noinline *)
@@ -124,5 +124,9 @@ function `CAPTYPE `W(fromMem) (Tuple2#(Bool, Bit#(CapW)) mem_cap) = fromMem(mem_
 function Tuple2#(Bool, Bit#(CapW)) `W(toMem) (`CAPTYPE cap) = toMem(cap);
 (* noinline *)
 function Bit#(TSub#(CapW, CapAddrW)) `W(getMeta) (`CAPTYPE cap) = getMeta(cap);
+(* noinline *)
+function CapMem `W(almightyCapMem) = almightyCap;
+(* noinline *)
+function CapMem `W(nullCapMem) = nullCap;
 
 endpackage

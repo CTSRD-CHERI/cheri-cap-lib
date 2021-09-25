@@ -192,8 +192,6 @@ def translateType(t):
   elif t[0:5] == "Tuple" and t[6:8] == "#(" and t[-1] == ")":
     args = splitOuter(t[8:-1])
     return '(' + ", ".join([translateType(arg) for arg in args]) + ')'
-  elif stripQualifiers(t) == "CapPipe":
-    return "InternalCap"
   elif stripQualifiers(t) == "HardPerms":
     return "HardPerms"
   elif stripQualifiers(t)[0:7] == "Exact#(" and t[-1] == ")":
@@ -283,11 +281,21 @@ def genBlarneyStruct(t):
 def genBlarneyTypeSyns():
   icapWidth = bluetcl.bitWidth("CapPipe")
   addrWidth = bluetcl.getTypeInfo("CapAddrW")[2]
-  print("type InternalCapWidth =", icapWidth)
-  print("type InternalCap = Bit InternalCapWidth")
+  capWidth = bluetcl.getTypeInfo("CapW")[2]
+  print("type CapPipeWidth =", icapWidth)
+  print("type CapPipe = Bit CapPipeWidth")
   print()
-  print("type InternalCapMetaDataWidth =", int(icapWidth) - int(addrWidth))
-  print("type InternalCapMetaData = Bit InternalCapMetaDataWidth")
+  print("type CapPipeMetaWidth =", int(icapWidth) - int(addrWidth))
+  print("type CapPipeMeta = Bit CapPipeMetaWidth")
+  print()
+  print("type CapMemWidth =", int(capWidth) + 1)
+  print("type CapMem = Bit CapMemWidth")
+  print()
+  print("type CapMemMetaWidth =", int(capWidth) - int(addrWidth) + 1)
+  print("type CapMemMeta = Bit CapMemMetaWidth")
+  print()
+  print("type CapAddrWidth =", int(addrWidth))
+  print("type CapAddr = Bit CapAddrWidth")
   print()
 
 print("module " + moduleName + " where")
@@ -299,5 +307,7 @@ genBlarneyTypeSyns()
 genBlarneyStruct("Exact#(t)")
 genBlarneyStruct("HardPerms")
 genBlarneyWrappers()
-genCapDefn("nullCap")
-genCapDefn("almightyCap")
+genCapDefn("nullCapMem")
+genCapDefn("almightyCapMem")
+genCapDefn("nullCapPipe")
+genCapDefn("almightyCapPipe")
