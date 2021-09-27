@@ -29,16 +29,6 @@
 
 package CHERICap;
 
-export SoftPerms;
-export HardPerms;
-export Kind;
-export BoundsInfo;
-export Exact;
-export SetBoundsReturn;
-export showCHERICap;
-export CHERICap :: *;
-export Cast;
-
 // CHERI capability types
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -208,6 +198,7 @@ typeclass CHERICap #( type t
   // capability in-memory architectural representation
   //////////////////////////////////////////////////////////////////////////////
   // Note that the following rule is expected to hold:
+  // fromMem (toMem (cap)) == cap
   // fromMem (tuple2 (isValidCap (cap), {getMeta (cap), getAddr (cap)})) == cap
 
   // Get the in-memory architectural representation of the capability metadata
@@ -246,9 +237,9 @@ typeclass CHERICap #( type t
   // capability architectural bounds queries
   //////////////////////////////////////////////////////////////////////////////
   // Note that the following rules are expected to hold:
-  // getBase (cap) + getLength (cap) == getLength (cap)
-  // getRepBase (cap) + getRepLength (cap) == getRepLength (cap)
-  // isInRepBounds (cap) ==> isInRepBounds (cap)
+  // getBase (cap) + getLength (cap) == getTop (cap)
+  // getRepBase (cap) + getRepLength (cap) == getRepTop (cap)
+  // isInBounds (cap) ==> isInRepBounds (cap)
 
   // Get all architectural bound information for a capability
   function BoundsInfo#(n) getBoundsInfo (t cap);
