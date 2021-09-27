@@ -945,9 +945,6 @@ function MetaInfo getMetaInfo (CapFat cap);
     , baseCorrection : baseCorrection };
 endfunction
 
-// ===============================================================================
-// Typeclass instance for interface
-
 typedef Bit#(TAdd#(1, CapW)) CapMem;
 
 typedef CapFat CapReg;
@@ -957,27 +954,41 @@ typedef struct {
   TempFields tempFields;
 } CapPipe deriving (Bits);
 
+// CapMem CHERICap instance
+////////////////////////////////////////////////////////////////////////////////
+// Note: commented out methods have a provided default implementation in the
+//       CHERICap typeclass definition
+
 instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
+
+  // capability validity
+  //////////////////////////////////////////////////////////////////////////////
   function isValidCap (capMem);
-    CapabilityInMemory cap = unpack(capMem);
+    CapabilityInMemory cap = unpack (capMem);
     return cap.isCapability;
   endfunction
   function setValidCap (capMem, v);
-    CapabilityInMemory cap = unpack(capMem);
+    CapabilityInMemory cap = unpack (capMem);
     cap.isCapability = v;
-    return pack(cap);
+    return pack (cap);
   endfunction
+
+  // capability flags
+  //////////////////////////////////////////////////////////////////////////////
   function getFlags (capMem);
-    CapabilityInMemory cap = unpack(capMem);
+    CapabilityInMemory cap = unpack (capMem);
     return cap.flags;
   endfunction
   function setFlags (capMem, f);
-    CapabilityInMemory cap = unpack(capMem);
+    CapabilityInMemory cap = unpack (capMem);
     cap.flags = f;
-    return pack(cap);
+    return pack (cap);
   endfunction
+
+  // capability permissions
+  //////////////////////////////////////////////////////////////////////////////
   function getHardPerms (capMem);
-    CapabilityInMemory cap = unpack(capMem);
+    CapabilityInMemory cap = unpack (capMem);
     return HardPerms {
       permitSetCID:        cap.perms.hard.permit_set_CID
     , accessSysRegs:       cap.perms.hard.access_sys_regs
@@ -992,51 +1003,93 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
     , permitExecute:       cap.perms.hard.permit_execute
     , global:              cap.perms.hard.non_ephemeral };
   endfunction
-  function setHardPerms = error("setHardPerms not implemented for CapMem");
-  function getSoftPerms = error("getSoftPerms not implemented for CapMem");
-  function setSoftPerms = error("setSoftPerms not implemented for CapMem");
-  function getKind = error("getKind not implemented for CapMem");
-  function setKind = error("setKind not implemented for CapMem");
-  function getMeta(capMem);
-    CapabilityInMemory cap = unpack(capMem);
+  function setHardPerms = error ("setHardPerms not implemented for CapMem");
+  function getSoftPerms = error ("getSoftPerms not implemented for CapMem");
+  function setSoftPerms = error ("setSoftPerms not implemented for CapMem");
+  //function getPerms = error ("getPerms not implemented for CapMem");
+  //function setPerms = error ("setPerms not implemented for CapMem");
+
+  // capability kind
+  //////////////////////////////////////////////////////////////////////////////
+  function getKind = error ("getKind not implemented for CapMem");
+  function setKind = error ("setKind not implemented for CapMem");
+  function validAsType (dummy, checkType);
+    UInt #(CapAddrW) checkTypeUnsigned = unpack (checkType);
+    UInt #(CapAddrW) otypeMaxUnsigned = unpack (zeroExtend (otype_max));
+    return checkTypeUnsigned <= otypeMaxUnsigned;
+  endfunction
+
+  // capability in-memory architectural representation
+  //////////////////////////////////////////////////////////////////////////////
+  function getMeta (capMem);
+    CapabilityInMemory cap = unpack (capMem);
     return { pack (cap.perms)
            , pack (cap.reserved)
            , pack (cap.flags)
            , pack (cap.otype)
            , pack (cap.bounds) };
   endfunction
-  function getAddr(capMem);
-    CapabilityInMemory cap = unpack(capMem);
+  function getAddr (capMem);
+    CapabilityInMemory cap = unpack (capMem);
     return pack (cap.address);
   endfunction
-  function setAddr = error("setAddr not implemented for CapMem");
+  function fromMem = error ("fromMem not implemented for CapMem");
+  function toMem = error ("toMem not implemented for CapMem");
+
+  // capability address/offset manipulation
+  //////////////////////////////////////////////////////////////////////////////
+  function setAddr = error ("setAddr not implemented for CapMem");
   function setAddrUnsafe (capMem, address);
-    CapabilityInMemory cap = unpack(capMem);
+    CapabilityInMemory cap = unpack (capMem);
     cap.address = address;
-    return pack(cap);
+    return pack (cap);
   endfunction
   function addAddrUnsafe (capMem, inc) =
-    setAddrUnsafe(capMem, getAddr(capMem) + signExtend(inc));
-  function getOffset = error("getOffset not implemented for CapMem");
-  function modifyOffset = error("modifyOffset not implemented for CapMem");
-  function getBoundsInfo = error("getBoundsInfo not implemented for CapMem");
-  function setBoundsCombined = error("setBoundsCombined not implemented for CapMem");
-  function nullWithAddr = setAddrUnsafe(packCap(null_cap));
+    setAddrUnsafe (capMem, getAddr (capMem) + signExtend (inc));
+  function maskAddr = error ("maskAddr not implemented for CapMem");
+  //function getOffset = error ("getOffset not implemented for CapMem");
+  function modifyOffset = error ("modifyOffset not implemented for CapMem");
+  //function setOffset = error ("setOffset not implemented for CapMem");
+  //function incOffset = error ("incOffset not implemented for CapMem");
+
+  // capability architectural bounds queries
+  //////////////////////////////////////////////////////////////////////////////
+  function getBoundsInfo = error ("getBoundsInfo not implemented for CapMem");
+  //function getBase = error ("getBase not implemented for CapMem");
+  //function getTop = error ("getTop not implemented for CapMem");
+  //function getLength = error ("getLength not implemented for CapMem");
+  //function isInBounds = error ("isInBounds not implemented for CapMem");
+  //function getRepBase = error ("getRepBase not implemented for CapMem");
+  //function getRepTop = error ("getRepTop not implemented for CapMem");
+  //function getRepLength = error ("getRepLength not implemented for CapMem");
+  //function isInRepBounds = error ("isInRepBounds not implemented for CapMem");
+  function getBaseAlignment =
+    error ("getBaseAlignment not implemented for CapMem");
+  //function getRepresentableAlignmentMask =
+  //  error ("getRepresentableAlignmentMask not implemented for CapMem");
+  //function getRepresentableLength =
+  //  error ("getRepresentableLength not implemented for CapMem");
+
+  // capability derivation (bounds set)
+  //////////////////////////////////////////////////////////////////////////////
+  //function setBounds = error ("setBounds not implemented for CapMem");
+  function setBoundsCombined =
+    error ("setBoundsCombined not implemented for CapMem");
+
+  // common capabilities
+  //////////////////////////////////////////////////////////////////////////////
+  //function nullCap = error ("nullCap not implemented for CapMem");
+  function nullWithAddr = setAddrUnsafe (packCap (null_cap));
   function almightyCap;
     CapReg res = almightyCap;
-    return cast(res);
+    return cast (res);
   endfunction
-  function nullCapFromDummy (dummy) = packCap(null_cap);
-  function validAsType (dummy, checkType);
-    UInt#(CapAddrW) checkTypeUnsigned = unpack(checkType);
-    UInt#(CapAddrW) otypeMaxUnsigned = unpack(zeroExtend(otype_max));
-    return checkTypeUnsigned <= otypeMaxUnsigned;
-  endfunction
-  function fromMem = error("fromMem not implemented for CapMem");
-  function toMem = error("toMem not implemented for CapMem");
-  function maskAddr = error("maskAddr not implemented for CapMem");
-  function getBaseAlignment = error("getBaseAlignment not implemented for CapMem");
-  function isDerivable = error("isDerivable not implemented for CapMem");
+  function nullCapFromDummy (dummy) = packCap (null_cap);
+
+  // Assert that the encoding is valid
+  //////////////////////////////////////////////////////////////////////////////
+  function isDerivable = error ("isDerivable not implemented for CapMem");
+
 endinstance
 
 instance FShow #(CapPipe);
