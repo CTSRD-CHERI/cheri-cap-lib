@@ -945,7 +945,13 @@ function MetaInfo getMetaInfo (CapFat cap);
     , baseCorrection : baseCorrection };
 endfunction
 
-typedef Bit#(TAdd#(1, CapW)) CapMem;
+// XXX TODO
+// to avoid an orphan instance here, we should make CapMem a "newtype",
+// basically:
+// typedef struct {
+//   Bit #(TAdd #(1, CapW)) cap;
+// } CapMem;
+typedef Bit #(TAdd #(1, CapW)) CapMem;
 
 typedef CapFat CapReg;
 
