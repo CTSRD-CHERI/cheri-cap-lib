@@ -37,9 +37,6 @@ export CapMem;
 export CapReg;
 export CapPipe;
 
-// -----
-// Auxiliary requried imports. TODO find a way around this?
-
 export CapFat;
 export MW;
 export OTypeW;

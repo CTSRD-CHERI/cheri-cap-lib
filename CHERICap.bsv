@@ -72,19 +72,19 @@ typedef union tagged {
   void SENTRY;
   void RES0;
   void RES1;
-  Bit #(ot) SEALED_WITH_TYPE;
-} Kind #(numeric type ot) deriving (Bits, Eq, FShow);
+  Bit #(otypeW) SEALED_WITH_TYPE;
+} Kind #(numeric type otypeW) deriving (Bits, Eq, FShow);
 
 // helper type for gathering bounds information on a capability
 
 typedef struct {
-  Bit#(n) base;
-  Bit#(TAdd#(n, 1)) top;
-  Bit#(TAdd#(n, 1)) length;
-  Bit#(n) repBase;
-  Bit#(TAdd#(n, 1)) repTop;
-  Bit#(TAdd#(n, 1)) repLength;
-} BoundsInfo #(numeric type n) deriving (Bits, Eq, FShow);
+  Bit #(addrW) base;
+  Bit #(TAdd #(addrW, 1)) top;
+  Bit #(TAdd #(addrW, 1)) length;
+  Bit #(addrW) repBase;
+  Bit #(TAdd #(addrW, 1)) repTop;
+  Bit #(TAdd #(addrW, 1)) repLength;
+} BoundsInfo #(numeric type addrW) deriving (Bits, Eq, FShow);
 
 // helper types and functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -101,11 +101,11 @@ typedef struct {
 // Helper type for the return value of the 'setBoundsCombined' method
 
 typedef struct {
-  t cap;
+  capT cap;
   Bool exact;
-  Bit #(n) length;
-  Bit #(n) mask;
-} SetBoundsReturn #(type t, numeric type n) deriving (Bits, Eq, FShow);
+  Bit #(addrW) length;
+  Bit #(addrW) mask;
+} SetBoundsReturn #(type capT, numeric type addrW) deriving (Bits, Eq, FShow);
 
 // helper function to test belonging to a range
 function Bool belongsToRange ( Bit #(n) x, Bit #(n) low, Bit #(n) high
@@ -116,8 +116,8 @@ function Bool belongsToRange ( Bit #(n) x, Bit #(n) low, Bit #(n) high
 endfunction
 
 // XXX TODO augment with all architectural bounds/ repbounds ?
-function Fmt showCHERICap (t cap)
-  provisos (CHERICap #(t , ot, flg, n, mem_sz, maskable_bits));
+function Fmt showCHERICap (capT cap)
+  provisos (CHERICap #(capT , otypeW, flgW, addrW, inMemW, maskableW));
   return $format( "Valid: 0x%0x", isValidCap(cap)) +
          $format(" Perms: 0x%0x", getPerms(cap)) +
          $format(" Kind: ", fshow(getKind(cap))) +
@@ -129,59 +129,60 @@ endfunction
 // Cast typeclass to convert from one type to another. Helpful for converting
 // a capability format to another.
 
-typeclass Cast#(type src, type dest);
+typeclass Cast #(type src, type dest);
   function dest cast (src x);
 endtypeclass
 
-instance Cast#(t, t);
+instance Cast #(capT, capT);
   function cast = id;
 endinstance
 
 // CHERI capability typeclass
 ////////////////////////////////////////////////////////////////////////////////
 
-typeclass CHERICap #( type t
-                    , numeric type ot
-                    , numeric type flg
-                    , numeric type n
-                    , numeric type mem_sz
-                    , numeric type maskable_bits )
-  dependencies (t determines (ot, flg, n, mem_sz, maskable_bits));
+typeclass CHERICap #( type capT              // type of the CHERICap capability
+                    , numeric type otypeW    // width of the object type
+                    , numeric type flgW      // width of the flags field
+                    , numeric type addrW     // width of the address
+                    , numeric type inMemW    // width of the capability in mem
+                    , numeric type maskableW // width of maskable bits
+                    )
+  dependencies (capT determines (otypeW, flgW, addrW, inMemW, maskableW));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
 
   // Return whether the Capability is valid
-  function Bool isValidCap (t cap);
+  function Bool isValidCap (capT cap);
   // Set the capability as valid. All fields left unchanged
-  function t setValidCap (t cap, Bool valid);
+  function capT setValidCap (capT cap, Bool valid);
 
   // capability flags
   //////////////////////////////////////////////////////////////////////////////
 
   // Get the flags field
-  function Bit#(flg) getFlags (t cap);
+  function Bit #(flgW) getFlags (capT cap);
   // Set the flags field
-  function t setFlags (t cap, Bit#(flg) flags);
+  function capT setFlags (capT cap, Bit #(flgW) flags);
 
   // capability permissions
   //////////////////////////////////////////////////////////////////////////////
 
   // Get the hardware permissions
-  function HardPerms getHardPerms (t cap);
+  function HardPerms getHardPerms (capT cap);
   // Set the hardware permissions
-  function t setHardPerms (t cap, HardPerms hardperms);
+  function capT setHardPerms (capT cap, HardPerms hardperms);
   // Get the software permissions
-  function SoftPerms getSoftPerms (t cap);
+  function SoftPerms getSoftPerms (capT cap);
   // Set the software permissions
-  function t setSoftPerms (t cap, SoftPerms softperms);
+  function capT setSoftPerms (capT cap, SoftPerms softperms);
   // Get the architectural permissions
-  function Bit#(31) getPerms (t cap) =
-    zeroExtend({pack(getSoftPerms(cap)), 3'h0, pack(getHardPerms(cap))});
+  function Bit #(31) getPerms (capT cap) =
+    zeroExtend ({pack (getSoftPerms (cap)), 3'h0, pack (getHardPerms (cap))});
   // Set the architectural permissions
-  function t setPerms (t cap, Bit#(31) perms) =
-    setSoftPerms ( setHardPerms(cap, unpack(perms[11:0]))
-                 , unpack(truncate(perms[30:15])) );
+  function capT setPerms (capT cap, Bit #(31) perms) =
+    setSoftPerms ( setHardPerms (cap, unpack (perms[11:0]))
+                 , unpack (truncate (perms[30:15])) );
 
   // capability kind
   //////////////////////////////////////////////////////////////////////////////
@@ -189,11 +190,11 @@ typeclass CHERICap #( type t
   // unsealed, ...
 
   // get the kind of a capability
-  function Kind#(ot) getKind (t cap);
+  function Kind #(otypeW) getKind (capT cap);
   // set the kind of a capability
-  function t setKind (t cap, Kind#(ot) kind);
+  function capT setKind (capT cap, Kind #(otypeW) kind);
   // XXX TODO Check if a type is valid
-  function Bool validAsType (t dummy, Bit#(n) checkType);
+  function Bool validAsType (capT dummy, Bit #(addrW) checkType);
 
   // capability in-memory architectural representation
   //////////////////////////////////////////////////////////////////////////////
@@ -202,36 +203,38 @@ typeclass CHERICap #( type t
   // fromMem (tuple2 (isValidCap (cap), {getMeta (cap), getAddr (cap)})) == cap
 
   // Get the in-memory architectural representation of the capability metadata
-  function Bit #(TSub #(mem_sz, n)) getMeta (t cap);
+  function Bit #(TSub #(inMemW, addrW)) getMeta (capT cap);
   // Get the in-memory architectural representation of the capability address
-  function Bit #(n) getAddr (t cap);
+  function Bit #(addrW) getAddr (capT cap);
   // Convert from in-memory architectural bit representation to capability type
-  function t fromMem (Tuple2#(Bool, Bit#(mem_sz)) mem_cap);
+  function capT fromMem (Tuple2 #(Bool, Bit #(inMemW)) mem_cap);
   // Convert from capability type to in-memory architectural bit representation
-  function Tuple2#(Bool, Bit#(mem_sz)) toMem (t cap);
+  function Tuple2 #(Bool, Bit #(inMemW)) toMem (capT cap);
 
   // capability address/offset manipulation
   //////////////////////////////////////////////////////////////////////////////
 
   // Set the address of the capability. Result invalid if unrepresentable
-  function Exact#(t) setAddr (t cap, Bit#(n) addr);
+  function Exact #(capT) setAddr (capT cap, Bit #(addrW) addr);
   // Set the address of the capability. Result assumed to be representable
-  function t setAddrUnsafe (t cap, Bit#(n) addr);
+  function capT setAddrUnsafe (capT cap, Bit #(addrW) addr);
   // Add to the address of the capability. Result assumed to be representable
-  function t addAddrUnsafe (t cap, Bit#(maskable_bits) inc);
+  function capT addAddrUnsafe (capT cap, Bit #(maskableW) inc);
   // Mask the least significant bits of capability address with a mask
   // maskable_width should be small enough to make this
   // safe with respect to representability
-  function t maskAddr (t cap, Bit#(maskable_bits) mask);
+  function capT maskAddr (capT cap, Bit #(maskableW) mask);
   // Get the offset of the capability
-  function Bit#(n) getOffset (t cap) = getAddr(cap) - getBase(cap);
+  function Bit #(addrW) getOffset (capT cap) = getAddr(cap) - getBase(cap);
   // Modify the offset of the capability. Result invalid if unrepresentable
-  function Exact#(t) modifyOffset (t cap, Bit#(n) offset, Bool doInc);
+  function Exact #(capT) modifyOffset ( capT cap
+                                      , Bit #(addrW) offset
+                                      , Bool doInc);
   // Set the offset of the capability. Result invalid if unrepresentable
-  function Exact#(t) setOffset (t cap, Bit#(n) offset) =
+  function Exact #(capT) setOffset (capT cap, Bit #(addrW) offset) =
     modifyOffset(cap, offset, False);
   // Set the offset of the capability. Result invalid if unrepresentable
-  function Exact#(t) incOffset (t cap, Bit#(n) inc) =
+  function Exact #(capT) incOffset (capT cap, Bit #(addrW) inc) =
     modifyOffset(cap, inc, True);
 
   // capability architectural bounds queries
@@ -242,29 +245,31 @@ typeclass CHERICap #( type t
   // isInBounds (cap) ==> isInRepBounds (cap)
 
   // Get all architectural bound information for a capability
-  function BoundsInfo#(n) getBoundsInfo (t cap);
+  function BoundsInfo #(addrW) getBoundsInfo (capT cap);
   // Get the base
-  function Bit#(n) getBase (t cap) = getBoundsInfo(cap).base;
+  function Bit #(addrW) getBase (capT cap) = getBoundsInfo(cap).base;
   // Get the top
-  function Bit#(TAdd#(n, 1)) getTop (t cap) = getBoundsInfo(cap).top;
+  function Bit #(TAdd #(addrW, 1)) getTop (capT cap) = getBoundsInfo(cap).top;
   // Get the length
-  function Bit#(TAdd#(n, 1)) getLength (t cap) = getBoundsInfo(cap).length;
+  function Bit #(TAdd #(addrW, 1)) getLength (capT cap) =
+    getBoundsInfo(cap).length;
   // Assertion that the capability's address is between its base and top
-  function Bool isInBounds (t cap, Bool isTopIncluded) =
+  function Bool isInBounds (capT cap, Bool isTopIncluded) =
     belongsToRange ( zeroExtend (getAddr (cap))
                    , zeroExtend (getBase (cap))
                    , getTop (cap)
                    , isTopIncluded );
   // Get the representable base
-  function Bit#(n) getRepBase (t cap) = getBoundsInfo(cap).repBase;
+  function Bit #(addrW) getRepBase (capT cap) = getBoundsInfo(cap).repBase;
   // Get the representable top
-  function Bit#(TAdd#(n, 1)) getRepTop (t cap) = getBoundsInfo(cap).repTop;
+  function Bit #(TAdd #(addrW, 1)) getRepTop (capT cap) =
+    getBoundsInfo(cap).repTop;
   // Get the representable length
-  function Bit#(TAdd#(n, 1)) getRepLength (t cap) =
+  function Bit #(TAdd #(addrW, 1)) getRepLength (capT cap) =
     getBoundsInfo(cap).repLength;
   // Assertion that the capability's address is between its representable
   // base and top
-  function Bool isInRepBounds (t cap, Bool isRepTopIncluded) =
+  function Bool isInRepBounds (capT cap, Bool isRepTopIncluded) =
     belongsToRange ( zeroExtend (getAddr (cap))
                    , zeroExtend (getRepBase (cap))
                    , getRepTop (cap)
@@ -273,45 +278,48 @@ typeclass CHERICap #( type t
   // XXX TODO Check the alignment of the base, giving least significant 2 bits.
   // This relies on the fact that internal exponents take up 2 bits of the
   // base.
-  function Bit#(2) getBaseAlignment (t cap);
+  function Bit #(2) getBaseAlignment (capT cap);
 
   // XXX TODO Get representable alignment mask
-  function Bit#(n) getRepresentableAlignmentMask ( t dummy
-                                                 , Bit#(n) length_request) =
-    setBoundsCombined(nullCapFromDummy(dummy), length_request).mask;
+  function Bit #(addrW) getRepresentableAlignmentMask ( capT dummy
+                                                      , Bit #(addrW) lenReq) =
+    setBoundsCombined (nullCapFromDummy (dummy), lenReq).mask;
 
   // XXX TODO Get representable length
-  function Bit#(n) getRepresentableLength (t dummy, Bit#(n) length_request) =
-    setBoundsCombined(nullCapFromDummy(dummy), length_request).length;
+  function Bit #(addrW) getRepresentableLength ( capT dummy
+                                               , Bit #(addrW) lenReq) =
+    setBoundsCombined (nullCapFromDummy (dummy), lenReq).length;
 
   // capability derivation (bounds set)
   //////////////////////////////////////////////////////////////////////////////
 
   // Set the length of the capability. Inexact: result length may be different
   // to requested
-  function Exact#(t) setBounds (t cap, Bit#(n) length);
-    let combinedResult = setBoundsCombined(cap, length);
+  function Exact #(capT) setBounds (capT cap, Bit #(addrW) length);
+    let combinedResult = setBoundsCombined (cap, length);
     return Exact {exact: combinedResult.exact, value: combinedResult.cap};
   endfunction
   // XXX TODO
-  function SetBoundsReturn#(t, n) setBoundsCombined (t cap, Bit#(n) length);
+  function SetBoundsReturn #(capT, addrW)
+    setBoundsCombined (capT cap, Bit #(addrW) length);
 
   // common capabilities
   //////////////////////////////////////////////////////////////////////////////
 
   // the null capability
-  function t nullCap = nullCapFromDummy(?);
+  function capT nullCap = nullCapFromDummy(?);
   // a null capability with a given address set
-  function t nullWithAddr (Bit#(n) addr);
+  function capT nullWithAddr (Bit #(addrW) addr);
   // maximally permissive capability (initial register state)
-  function t almightyCap;
+  function capT almightyCap;
   // XXX TODO Workaround to allow null cap to be derived in default
   // implementations
-  function t nullCapFromDummy(t dummy);
+  function capT nullCapFromDummy (capT dummy);
 
   // Assert that the encoding is valid
   //////////////////////////////////////////////////////////////////////////////
-  function Bool isDerivable (t cap);
+
+  function Bool isDerivable (capT cap);
 
 endtypeclass
 
