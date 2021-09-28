@@ -139,6 +139,11 @@ endinstance
 
 // CHERI capability typeclass
 ////////////////////////////////////////////////////////////////////////////////
+// Note: Some class methods receive a "dummy" capability as a type proxy
+//       argument. This is useful for methods to know which capability format is
+//       being operated on without requiring a specific capability value.
+//       (A more elegant way to achieve this would be to use something along the
+//       lines of haskell's "@type" type application mechanism)
 
 typeclass CHERICap #( type capT              // type of the CHERICap capability
                     , numeric type otypeW    // width of the object type
@@ -193,7 +198,7 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function Kind #(otypeW) getKind (capT cap);
   // set the kind of a capability
   function capT setKind (capT cap, Kind #(otypeW) kind);
-  // XXX TODO Check if a type is valid
+  // Check if a type is valid (requires a dummy proxy)
   function Bool validAsType (capT dummy, Bit #(addrW) checkType);
 
   // capability in-memory architectural representation
@@ -274,46 +279,38 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
                    , zeroExtend (getRepBase (cap))
                    , getRepTop (cap)
                    , isRepTopIncluded );
-
-  // XXX TODO Check the alignment of the base, giving least significant 2 bits.
-  // This relies on the fact that internal exponents take up 2 bits of the
-  // base.
-  function Bit #(2) getBaseAlignment (capT cap);
-
-  // XXX TODO Get representable alignment mask
-  function Bit #(addrW) getRepresentableAlignmentMask ( capT dummy
-                                                      , Bit #(addrW) lenReq) =
-    setBoundsCombined (nullCapFromDummy (dummy), lenReq).mask;
-
-  // XXX TODO Get representable length
-  function Bit #(addrW) getRepresentableLength ( capT dummy
-                                               , Bit #(addrW) lenReq) =
-    setBoundsCombined (nullCapFromDummy (dummy), lenReq).length;
+  // Check the alignment of the base, giving least significant 2 bits.
+  function Bit #(2) getBaseAlignment (capT cap) = getBoundsInfo (cap).base[1:0];
 
   // capability derivation (bounds set)
   //////////////////////////////////////////////////////////////////////////////
 
+  // Set the length of the capability
+  function SetBoundsReturn #(capT, addrW)
+    setBoundsCombined (capT cap, Bit #(addrW) length);
   // Set the length of the capability. Inexact: result length may be different
   // to requested
   function Exact #(capT) setBounds (capT cap, Bit #(addrW) length);
     let combinedResult = setBoundsCombined (cap, length);
     return Exact {exact: combinedResult.exact, value: combinedResult.cap};
   endfunction
-  // XXX TODO
-  function SetBoundsReturn #(capT, addrW)
-    setBoundsCombined (capT cap, Bit #(addrW) length);
+  // Round a requested length (requires a dummy proxy)
+  function Bit #(addrW) roundLength (capT dummy, Bit #(addrW) reqLength) =
+    setBoundsCombined (nullCapFromDummy (dummy), reqLength).length;
+  // Get alignment mask for a requested length (requires a dummy proxy)
+  function Bit #(addrW) alignmentMask (capT dummy, Bit #(addrW) reqLength) =
+    setBoundsCombined (nullCapFromDummy (dummy), reqLength).mask;
 
   // common capabilities
   //////////////////////////////////////////////////////////////////////////////
 
   // the null capability
-  function capT nullCap = nullCapFromDummy(?);
+  function capT nullCap = nullCapFromDummy (?);
   // a null capability with a given address set
   function capT nullWithAddr (Bit #(addrW) addr);
   // maximally permissive capability (initial register state)
   function capT almightyCap;
-  // XXX TODO Workaround to allow null cap to be derived in default
-  // implementations
+  // the null capability (requires a dummy proxy)
   function capT nullCapFromDummy (capT dummy);
 
   // Assert that the encoding is valid

@@ -1072,16 +1072,14 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   //function isInRepBounds = error ("isInRepBounds not implemented for CapMem");
   function getBaseAlignment =
     error ("getBaseAlignment not implemented for CapMem");
-  //function getRepresentableAlignmentMask =
-  //  error ("getRepresentableAlignmentMask not implemented for CapMem");
-  //function getRepresentableLength =
-  //  error ("getRepresentableLength not implemented for CapMem");
 
   // capability derivation (bounds set)
   //////////////////////////////////////////////////////////////////////////////
-  //function setBounds = error ("setBounds not implemented for CapMem");
   function setBoundsCombined =
     error ("setBoundsCombined not implemented for CapMem");
+  //function setBounds = error ("setBounds not implemented for CapMem");
+  //function roundLength = error ("roundLength not implemented for CapMem");
+  //function alignmentMask = error ("alignmentMask not implemented for CapMem");
 
   // common capabilities
   //////////////////////////////////////////////////////////////////////////////
@@ -1246,15 +1244,13 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
     // have a zero exponent, so the least significant two bits of the base are
     // the least significant bits of the encoded base
     (cap.bounds.exp == 0) ? cap.bounds.baseBits[1:0] : 2'b0;
-  //function getRepresentableAlignmentMask =
-  //  error ("getRepresentableAlignmentMask not implemented for CapReg");
-  //function getRepresentableLength =
-  //  error ("getRepresentableLength not implemented for CapReg");
 
   // capability derivation (bounds set)
   //////////////////////////////////////////////////////////////////////////////
-  //function setBounds = error ("setBounds not implemented for CapReg");
   function setBoundsCombined (cap, length) = setBoundsFat (cap, length);
+  //function setBounds = error ("setBounds not implemented for CapReg");
+  //function roundLength = error ("roundLength not implemented for CapReg");
+  //function alignmentMask = error ("alignmentMask not implemented for CapReg");
 
   // common capabilities
   //////////////////////////////////////////////////////////////////////////////
