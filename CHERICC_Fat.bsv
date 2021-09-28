@@ -256,7 +256,8 @@ typedef MetaInfo TempFields;
 // Interface functions
 //------------------------------------------------------------------------------
 function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
-  provisos ( NumAlias #(upperW, TSub #(TAdd #(CapAddrW, 1), MW))
+  provisos ( NumAlias #(fullW, TAdd #(CapAddrW, 1))
+           , NumAlias #(upperW, TSub #(fullW, MW))
            , NumAlias #(lowerW, MW) );
 
   // shared useful bindings and precomputed values
@@ -272,10 +273,10 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   // prepare typed "lower" MW zeroes for simpler concatenation
   Bit #(lowerW) lowerZeroes = 0;
 
-  // prepare "upper" version for baseBits, topBits and repBoundBits
-  Bit #(upperW) baseBitsUpper = zeroExtend (baseBits) << exp;
-  Bit #(upperW) topBitsUpper = zeroExtend (topBits) << exp;
-  Bit #(upperW) repBoundBitsUpper = zeroExtend (repBoundBits) << exp;
+  // prepare "full" version for baseBits, topBits and repBoundBits
+  Bit #(fullW) baseBitsFull = zeroExtend (baseBits) << exp;
+  Bit #(fullW) topBitsFull = zeroExtend (topBits) << exp;
+  Bit #(fullW) repBoundBitsFull = zeroExtend (repBoundBits) << exp;
 
   // shared +1 and -1/~0 shifted by exponent
   Bit #(upperW) allOnesExpShifted = ~0 << exp;
@@ -294,18 +295,18 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   //////////////////////////////////////////////////////////////////////////////
 
   // Use the appropriate upper bits of the address based on whether the base is
-  // in the "hi" or the "lo" region, or in the base bits in place and append the
-  // implied zeros in the lower bits
+  // in the "hi" or the "lo" region, append implied zeroes in the lower bits,
+  // and or in the base bits
   CapAddr base =
-    {truncate (addrUpper (tf.baseHi) | baseBitsUpper), lowerZeroes};
+    truncate ({addrUpper (tf.baseHi), lowerZeroes} | baseBitsFull);
 
   // compute top
   //////////////////////////////////////////////////////////////////////////////
 
   // Use the appropriate upper bits of the address based on whether the top is
-  // in the "hi" or the "lo" region, or in the top bits in place and append the
-  // implied zeros in the lower bits
-  CapAddrPlus1 top = {addrUpper (tf.topHi) | topBitsUpper, lowerZeroes};
+  // in the "hi" or the "lo" region, append implied zeroes in the lower bits,
+  // and or in the top bits
+  CapAddrPlus1 top = {addrUpper (tf.topHi), lowerZeroes} | topBitsFull;
   // If the base and top are more than an address space away from eachother,
   // invert the 64th/32nd bit of Top. This corrects for errors that happen when
   // the representable space wraps the address space.
@@ -339,17 +340,17 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   // compute repBase
   //////////////////////////////////////////////////////////////////////////////
 
-  // Use the "lo" region upper bits of the address, or in the representable
-  // bound bits in place and append the implied zeros in the lower bits
+  // Use the "lo" region upper bits of the address, append implied zeroes in the
+  // lower bits, and or in the representable bound bits
   CapAddr repBase =
-    {truncate (addrUpperLo | repBoundBitsUpper), lowerZeroes};
+    truncate ({addrUpperLo, lowerZeroes} | repBoundBitsFull);
 
   // compute repTop
   //////////////////////////////////////////////////////////////////////////////
 
-  // Use the "hi" region upper bits of the address, or in the representable
-  // bound bits in place and append the implied zeros in the lower bits
-  CapAddrPlus1 repTop = {addrUpperHi | repBoundBitsUpper, lowerZeroes};
+  // Use the "hi" region upper bits of the address, append implied zeroes in the
+  // lower bits, and or in the representable bound bits
+  CapAddrPlus1 repTop = {addrUpperHi, lowerZeroes} | repBoundBitsFull;
 
   // compute repLength
   //////////////////////////////////////////////////////////////////////////////
