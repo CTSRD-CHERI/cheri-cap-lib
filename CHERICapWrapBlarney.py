@@ -194,6 +194,8 @@ def translateType(t):
     return '(' + ", ".join([translateType(arg) for arg in args]) + ')'
   elif stripQualifiers(t) == "HardPerms":
     return "HardPerms"
+  elif stripQualifiers(t)[0:10] == "BoundsInfo":
+    return "BoundsInfo"
   elif stripQualifiers(t)[0:7] == "Exact#(" and t[-1] == ")":
     tbase = stripQualifiers(t)
     arg = translateType(tbase[7:-1])
@@ -298,6 +300,7 @@ def genBlarneyTypeSyns():
   print("type CapAddr = Bit CapAddrWidth")
   print()
 
+addrWidth = bluetcl.getTypeInfo("CapAddrW")[2]
 print("module " + moduleName + " where")
 print()
 print("import Blarney")
@@ -306,6 +309,7 @@ print()
 genBlarneyTypeSyns()
 genBlarneyStruct("Exact#(t)")
 genBlarneyStruct("HardPerms")
+genBlarneyStruct("BoundsInfo#(" + str(addrWidth) + ")")
 genBlarneyWrappers()
 genCapDefn("nullCapMem")
 genCapDefn("almightyCapMem")

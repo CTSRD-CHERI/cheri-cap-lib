@@ -128,5 +128,7 @@ function Bit#(TSub#(CapW, CapAddrW)) `W(getMeta) (`CAPTYPE cap) = getMeta(cap);
 function CapMem `W(almightyCapMem) = almightyCap;
 (* noinline *)
 function CapMem `W(nullCapMem) = nullCap;
-
+(* noinline *)
+function BoundsInfo#(CapAddrW) `W(getBoundsInfo) (`CAPTYPE cap) =
+  getBoundsInfo(cap);
 endpackage
