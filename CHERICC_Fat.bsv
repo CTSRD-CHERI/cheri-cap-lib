@@ -335,7 +335,8 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   // Get the length by subtracting base from top and shifting appropriately, and
   // saturate in case of big exponent
   CapAddrPlus1 length =
-    (exp >= resetExp) ? ~0 : zeroExtend (correctTop - correctBase) << exp;
+    zeroExtend (correctTop - correctBase) << exp; // mn416
+    //(exp >= resetExp) ? ~0 : zeroExtend (correctTop - correctBase) << exp;
 
   // compute repBase
   //////////////////////////////////////////////////////////////////////////////
