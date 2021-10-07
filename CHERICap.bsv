@@ -84,6 +84,7 @@ typedef struct {
   Bit #(addrW) repBase;
   Bit #(TAdd #(addrW, 1)) repTop;
   Bit #(TAdd #(addrW, 1)) repLength;
+  Bool repSplit;
 } BoundsInfo #(numeric type addrW) deriving (Bits, Eq, FShow);
 
 // helper types and functions
@@ -272,13 +273,18 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // Get the representable length
   function Bit #(TAdd #(addrW, 1)) getRepLength (capT cap) =
     getBoundsInfo(cap).repLength;
+  // Check if the capapbility's representable region is split (i.e. wrapping the
+  // address space)
+  function Bool isRepSplit (capT cap) = getBoundsInfo(cap).repSplit;
   // Assertion that the capability's address is between its representable
   // base and top
-  function Bool isInRepBounds (capT cap, Bool isRepTopIncluded) =
-    belongsToRange ( zeroExtend (getAddr (cap))
-                   , zeroExtend (getRepBase (cap))
-                   , getRepTop (cap)
-                   , isRepTopIncluded );
+  function Bool isInRepBounds (capT cap);
+    let addr = getAddr (cap);
+    let bInfo = getBoundsInfo (cap);
+    let okLo = addr >= bInfo.repBase;
+    let okHi = zeroExtend (addr) < bInfo.repTop;
+    return (okLo && okHi) || (bInfo.repSplit && (okLo != okHi));
+  endfunction
   // Check the alignment of the base, giving least significant 2 bits.
   function Bit #(2) getBaseAlignment (capT cap) = getBoundsInfo (cap).base[1:0];
 

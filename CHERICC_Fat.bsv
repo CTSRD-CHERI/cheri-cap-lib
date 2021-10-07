@@ -278,6 +278,11 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   Bit #(fullW) topBitsFull = zeroExtend (topBits) << exp;
   Bit #(fullW) repBoundBitsFull = zeroExtend (repBoundBits) << exp;
 
+  // other helper values
+  CapAddr capAddr0 = 0;
+  CapAddrPlus1 addrSpaceTop = {1'b1, capAddr0};
+  Bool alwaysRep = exp >= resetExp - 2;
+
   // shared +1 and -1/~0 shifted by exponent
   Bit #(upperW) allOnesExpShifted = ~0 << exp;
   let mask = allOnesExpShifted;
@@ -341,21 +346,33 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   //////////////////////////////////////////////////////////////////////////////
 
   // Use the "lo" region upper bits of the address, append implied zeroes in the
-  // lower bits, and or in the representable bound bits
+  // lower bits, and or in the representable bound bit.
+  // Saturate to zero when in the "always representable" case,
+  // i.e. exp >= resetExp - 2.
   CapAddr repBase =
-    truncate ({addrUpperLo, lowerZeroes} | repBoundBitsFull);
+    alwaysRep ? capAddr0
+              : truncate ({addrUpperLo, lowerZeroes} | repBoundBitsFull);
 
   // compute repTop
   //////////////////////////////////////////////////////////////////////////////
 
   // Use the "hi" region upper bits of the address, append implied zeroes in the
   // lower bits, and or in the representable bound bits
-  CapAddrPlus1 repTop = {addrUpperHi, lowerZeroes} | repBoundBitsFull;
+  // Saturate to 1 and all zeroes when in the "always representable" case,
+  // i.e. exp >= resetExp - 2.
+  CapAddrPlus1 repTop =
+    alwaysRep ? addrSpaceTop
+              : {addrUpperHi, lowerZeroes} | repBoundBitsFull;
 
   // compute repLength
   //////////////////////////////////////////////////////////////////////////////
 
   CapAddrPlus1 repLength = {oneExpShifted, lowerZeroes};
+
+  // compute split of representable space
+  //////////////////////////////////////////////////////////////////////////////
+
+  Bool repSplit = alwaysRep ? False : ! unpack (reduceOr (addrUpperHi));
 
   // return populated BoundsInfo structure
   //////////////////////////////////////////////////////////////////////////////
@@ -365,7 +382,8 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
                     , length: length
                     , repBase: repBase
                     , repTop: repTop
-                    , repLength: repLength };
+                    , repLength: repLength
+                    , repSplit: repSplit };
 endfunction
 
 function CapAddr getBotFat(CapFat cap, TempFields tf);
