@@ -378,8 +378,6 @@ function SetBoundsReturn#(CapFat, CapAddrW) setBoundsFat(CapFat cap, Address len
   // Do this without subtraction
   //fromInteger(valueof(TSub#(SizeOf#(Address),TSub#(MW,1)))) - zeros;
   Exp e = (resetExp-1) - zeros;
-  // Force otype to unsealed.
-  ret.otype = otype_unsealed;
   // Derive new base bits by extracting MW bits from the capability address
   // starting at the new exponent's position.
   CapAddrPlus2 base = {2'b0, cap.address};
