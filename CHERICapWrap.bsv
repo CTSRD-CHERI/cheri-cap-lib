@@ -111,6 +111,8 @@ function Bool `W(isInBounds) (`CAPTYPE cap, Bool isTopIncluded) = isInBounds(cap
 (* noinline *)
 function Exact#(`CAPTYPE) `W(setBounds) (`CAPTYPE cap, Bit#(CapAddrW) length) = setBounds(cap, length);
 (* noinline *)
+function SetBoundsReturn#(`CAPTYPE, CapAddrW) `W(setBoundsCombined) (`CAPTYPE cap, Bit#(CapAddrW) length) = setBoundsCombined(cap, length);
+(* noinline *)
 function `CAPTYPE `W(nullWithAddr) (Bit#(CapAddrW) addr) = nullWithAddr(addr);
 (* noinline *)
 function `CAPTYPE `W(almightyCapPipe) = almightyCap;

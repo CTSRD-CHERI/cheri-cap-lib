@@ -196,13 +196,31 @@ def translateType(t):
     return "HardPerms"
   elif stripQualifiers(t)[0:10] == "BoundsInfo":
     return "BoundsInfo"
+  elif stripQualifiers(t)[0:5] == "Bit#(" and t[-1] == ")":
+    tbase = stripQualifiers(t)
+    arg = tbase[5:-1]
+    if " " in arg:
+      arg = '(' + arg + ')'
+    return "Bit " + arg
   elif stripQualifiers(t)[0:7] == "Exact#(" and t[-1] == ")":
     tbase = stripQualifiers(t)
     arg = translateType(tbase[7:-1])
     if " " in arg:
       arg = '(' + arg + ')'
     return "Exact " + arg
+  elif stripQualifiers(t)[0:17] == "SetBoundsReturn#(" and t[-1] == ")":
+    tbase = stripQualifiers(t)
+    args = tbase[17:-1].split(",")
+    argStr = ""
+    for arg in args:
+      arg = translateType(stripQualifiers(arg))
+      if " " in arg:
+        arg = '(' + arg + ')'
+      argStr = argStr + arg + " "
+    return "SetBoundsReturn " + argStr
   elif t and t[0].islower():
+    return t
+  elif t.isnumeric():
     return t
   else:
     w = bluetcl.bitWidth(t)
@@ -301,6 +319,7 @@ def genBlarneyTypeSyns():
   print()
 
 addrWidth = bluetcl.getTypeInfo("CapAddrW")[2]
+print("{-# LANGUAGE NoFieldSelectors #-}")
 print("module " + moduleName + " where")
 print()
 print("import Blarney")
@@ -308,6 +327,7 @@ print("import Blarney.Core.BV")
 print()
 genBlarneyTypeSyns()
 genBlarneyStruct("Exact#(t)")
+genBlarneyStruct("SetBoundsReturn#(t,n)")
 genBlarneyStruct("HardPerms")
 genBlarneyStruct("BoundsInfo#(" + str(addrWidth) + ")")
 genBlarneyWrappers()
