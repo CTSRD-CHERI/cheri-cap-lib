@@ -113,63 +113,85 @@ typedef struct {
 
 === CHERI CAP API "methods"
 
-==== Return whether the Capability is valid
+==== isValidCap
+
+This method returns whether the Cheri capability is valid.
 
 [source, pseudo-code]
 ----
 function Bool isValidCap (t cap);
 ----
 
-==== Set the capability as valid. All fields left unchanged
+==== setValidCap
+
+This method sets the CHERI capability as valid. The CHERI capability is
+otherwise unchanged.
 
 [source, pseudo-code]
 ----
 function t setValidCap (t cap, Bool valid);
 ----
 
-==== Get the flags field
+==== getFlags
+
+Get the flags field of a CHERI capability. The `flags` field can include
+information such as whether we are currently executing in capability mode,
+changing the interpretation of certain instructions (memory operations in
+particular).
 
 [source, pseudo-code]
 ----
 function Bit#(flg) getFlags (t cap);
 ----
 
-==== Set the flags field
+==== setFlags
+
+Set the flags field of a CHERI capability.
 
 [source, pseudo-code]
 ----
 function t setFlags (t cap, Bit#(flg) flags);
 ----
 
-==== Get the hardware permissions
+==== getHardPerms
+
+Get the hardware permissions field of a CHERI capability.
 
 [source, pseudo-code]
 ----
 function HardPerms getHardPerms (t cap);
 ----
 
-==== Set the hardware permissions
+==== setHardPerms
+
+Set the hardware permissions field of a CHERI capability.
 
 [source, pseudo-code]
 ----
 function t setHardPerms (t cap, HardPerms hardperms);
 ----
 
-==== Get the software permissions
+==== getSoftPerms
+
+Get the software permissions of a CHERI capability.
 
 [source, pseudo-code]
 ----
 function SoftPerms getSoftPerms (t cap);
 ----
 
-==== Set the software permissions
+==== setSoftPerms
+
+Set the software permissions of a CHERI capability.
 
 [source, pseudo-code]
 ----
 function t setSoftPerms (t cap, SoftPerms softperms);
 ----
 
-==== Get the architectural permissions
+==== getPerms
+
+Get the architectural permissions of a CHERI capability.
 
 [source, pseudo-code]
 ----
@@ -183,7 +205,9 @@ function Bit#(31) getPerms (t cap) =
   zeroExtend({pack(getSoftPerms(cap)), 3'h0, pack(getHardPerms(cap))});
 ----
 
-==== Set the architectural permissions
+==== setPerms
+
+Set the architectural permissions of a CHERI capability.
 
 [source, pseudo-code]
 ----
@@ -198,70 +222,118 @@ function t setPerms (t cap, Bit#(31) perms) =
                , unpack(truncate(perms[30:15])) );
 ----
 
-==== Manipulate the kind of the capability
+==== getKind
+
+Get the kind of a CHERI capability.
 
 [source, pseudo-code]
 ----
 function Kind#(ot) getKind (t cap);
+----
+
+==== setKind
+
+Set the kind of a CHERI capability.
+
+[source, pseudo-code]
+----
 function t setKind (t cap, Kind#(ot) kind);
 ----
 
-==== Get the in-memory architectural representation of the capability
+==== getMetadata
 
-The Metadata:
+Get the in-memory architectural representation of the CHERI capability's
+metadata.
+
 [source, pseudo-code]
 ----
 function Bit #(TSub #(mem_sz, n)) getMeta (t cap);
 ----
 
-The Address:
+==== getAddr
+
+Get the in-memory architectural representation of the CHERI capability's
+address.
+
 [source, pseudo-code]
 ----
 function Bit #(n) getAddr (t cap);
 ----
 
-Note, the following holds:
+===== Note on `getMetadata` and `getAddr`
+
 [source, pseudo-code]
 ----
 fromMem ({isValidCap (cap), getMeta (cap), getAddr (cap)}) == cap
 ----
 
-==== Set the address of the capability. Result invalid if unrepresentable
+==== setAddr
+
+Set the address of the CHERI capability. The result will be invalid if it is not
+representable.
 
 [source, pseudo-code]
 ----
 function Exact#(t) setAddr (t cap, Bit#(n) addr);
 ----
 
-==== Set the address of the capability. Result assumed to be representable
+==== setAddrUnsafe
+
+Set the address of the CHERI capability, assumed to be representable.
+
+This is explicitly labeled as unsafe as, in order to still provide all the CHERI
+guaranties, one will need to perform extra checks.
 
 [source, pseudo-code]
 ----
 function t setAddrUnsafe (t cap, Bit#(n) addr);
 ----
 
-==== Add to the address of the capability. Result assumed to be representable
+==== addAddrUnsafe
+
+Add to the address of the CHERI capability, assumed to be representable.
+
+This is explicitly labeled as unsafe as, in order to still provide all the CHERI
+guaranties, one will need to perform extra checks.
 
 [source, pseudo-code]
 ----
 function t addAddrUnsafe (t cap, Bit#(maskable_bits) inc);
 ----
 
-==== Get the offset of the capability
+==== getOffset
+
+Get the offset of the CHERI capability.
+
+[source, pseudo-code]
+----
+function Bit#(n) getOffset (t cap);
+----
+
+Note:
 
 [source, pseudo-code]
 ----
 function Bit#(n) getOffset (t cap) = getAddr(cap) - getBase(cap);
 ----
 
-==== Modify the offset of the capability. Result invalid if unrepresentable
+==== modifyOffset
+
+Modify the offset of the CHERI capability (either by setting it to or
+incrementing it by the value provided).
+
+The result captures whether it is representable or not.
 
 [source, pseudo-code]
 ----
 function Exact#(t) modifyOffset (t cap, Bit#(n) offset, Bool doInc);
 ----
 
-==== Set the offset of the capability. Result invalid if unrepresentable
+==== setOffset
+
+Set the offset of the CHERI capability.
+
+The result captures whether it is representable or not.
 
 [source, pseudo-code]
 ----
@@ -276,7 +348,11 @@ function Exact#(t) setOffset (t cap, Bit#(n) offset) =
   modifyOffset(cap, offset, False);
 ----
 
-==== Set the offset of the capability. Result invalid if unrepresentable
+==== incOffset
+
+Increment the offset of the CHERI capability.
+
+The result captures whether it is representable or not.
 
 [source, pseudo-code]
 ----
@@ -291,28 +367,36 @@ function Exact#(t) incOffset (t cap, Bit#(n) inc) =
   modifyOffset(cap, inc, True);
 ----
 
-==== Get the base
+==== getBase
+
+Get the base of the CHERI capability.
 
 [source, pseudo-code]
 ----
 function Bit#(n) getBase (t cap);
 ----
 
-==== Get the top
+==== getTop
+
+Get the top of the CHERI capability.
 
 [source, pseudo-code]
 ----
 function Bit#(TAdd#(n, 1)) getTop (t cap);
 ----
 
-==== Get the length
+==== getLength
+
+Get the length of the CHERI capability.
 
 [source, pseudo-code]
 ----
 function Bit#(TAdd#(n, 1)) getLength (t cap);
 ----
 
-==== Assertion that address is between base and top
+==== isInBounds
+
+Assert that the address of the CHERI capability is between its base and its top.
 
 [source, pseudo-code]
 ----
@@ -331,8 +415,10 @@ function Bool isInBounds (t cap, Bool isTopIncluded);
 endfunction
 ----
 
-==== Set the length of the capability
-Inexact: result length may be different to requested
+==== setBounds and setBoundsCombined
+
+Set the bounds of the CHERI capability by providing a desired length. Based on
+the initial CHERI capability, the result length may not match the requested one.
 
 [source, pseudo-code]
 ----
@@ -350,28 +436,36 @@ function Exact#(t) setBounds (t cap, Bit#(n) length);
 endfunction
 ----
 
-==== The "null" CHERI capability
+==== nullCap
+
+The "null" CHERI capability.
 
 [source, pseudo-code]
 ----
 function t nullCap;
 ----
 
-==== A "null" CHERI capability with an address set to the argument
+==== nullWithAddr
+
+A "null" CHERI capability with an address set to the argument.
 
 [source, pseudo-code]
 ----
 function t nullWithAddr (Bit#(n) addr);
 ----
 
-==== A "maximally permissive" CHERI capability (initial register state)
+==== almightyCap
+
+A "maximally permissive" CHERI capability (initial register state).
 
 [source, pseudo-code]
 ----
 function t almightyCap;
 ----
 
-==== Check if a value can be used as a type
+==== validAsType
+
+Check if a value can be used as a type for the CHERI capability.
 
 All bit patterns are not necessarily legal types (some will overlap with the bit
 patterns used to represent sentry capabilities, unsealed capabilities...).
@@ -381,7 +475,9 @@ patterns used to represent sentry capabilities, unsealed capabilities...).
 function Bool validAsType (Bit#(n) checkType);
 ----
 
-==== Convert from and to bit memory representation
+==== fromMem and toMem
+
+Convert from and to bit memory representation of the CHERI capability.
 
 [source, pseudo-code]
 ----
@@ -389,11 +485,11 @@ function t fromMem (Tuple2#(Bool, Bit#(mem_sz)) mem_cap);
 function Tuple2#(Bool, Bit#(mem_sz)) toMem (t cap);
 ----
 
-Note: Composing these two functions (in either order) is the identity
+Note: Composing these two functions (in either order) is the identity.
 
 === Functions that can be cheap by relying on current capability representation
 
-==== Mask the least significant bits of a CHERI capability address
+==== maskAddr
 
 Mask the least significant bits of a CHERI capability address with a mask which
 should be small enough to make this safe with respect to representability.
@@ -403,16 +499,19 @@ should be small enough to make this safe with respect to representability.
 function t maskAddr (t cap, Bit#(maskable_bits) mask);
 ----
 
-==== Get alignment of the CHERI capability base
+==== getBaseAlignment
 
-Check the alignment of the base, giving least significant 2 bits.
+Get the alignment of the base of the CHERI capability, giving the least
+significant 2 bits.
 
 [source, pseudo-code]
 ----
 function Bit#(2) getBaseAlignment (t cap);
 ----
 
-==== Get representable alignment mask
+==== getRepresentableAlignmentMask
+
+Get the representable alignment mask for a requested length.
 
 [source, pseudo-code]
 ----
@@ -427,7 +526,9 @@ function Bit#(n) getRepresentableAlignmentMask (Bit#(n) length_request) =
   setBoundsCombined(nullCap, length_request).mask;
 ----
 
-==== Get representable length
+==== getRepresentableLength
+
+Get the representable length from a requested length.
 
 [source, pseudo-code]
 ----
@@ -442,7 +543,9 @@ function Bit#(n) getRepresentableLength (Bit#(n) length_request) =
   setBoundsCombined(nullCap, length_request).length;
 ----
 
-==== Assert that the encoding is valid
+==== isDerivable
+
+Assert that a provided bit pattern is a valid encoding of a CHERI capability.
 
 [source, pseudo-code]
 ----
