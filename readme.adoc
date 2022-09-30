@@ -1,0 +1,87 @@
+:toc: macro                                                                           
+:toclevels: 4                                                                         
+:toc-title:                                                                           
+:toc-placement!:                                                                      
+:source-highlighter:                                                                  
+                                                                                      
+++++                                                                                  
+<br/>                                                                                 
+++++                                                                                  
+                                                                                      
+[discrete]                                                                            
+= CHERI CAP LIB                                                                       
+                                                                                      
+++++                                                                                  
+<br/>                                                                                 
+++++                                                                                  
+                                                                                      
+The https://github.com/CTSRD-CHERI/cheri-cap-lib[cheri-cap-lib] repository            
+provides an RTL API for CHERI capabilities, as well as a reference                    
+implementation of it. It aims to serve as a central implementation providing          
+various wrappers to avoid the need for multiplicity of implementation efforts.        
+This is particularly desirable when considering the verification work already         
+spent and the overall tricky nature of the algorithms involved.                       
+                                                                                      
+The explicit goal of CHERI CAP LIB is to provide a set of relatively low level        
+operation to interact with CHERI capabilities, and allow the user to abstract         
+away the specifics of the published                                                   
+https://www.cl.cam.ac.uk/research/security/ctsrd/pdfs/2019tc-cheri-concentrate.pdf[capability format]     
+as much as reasonably possible. Other implementations could easily comply to the      
+CHERI CAP LIB API.                                                                    
+                                                                                                             
+The CHERI CAP LIB API is here to guaranty that subtleties in capability                   
+manipulations are handled correctly. This means that direct bit manipulation on       
+CHERI capabilities bypassing the provided functions can very easily lead to           
+nonsense capabilities. For this reason, the CHERI CAP LIB API is more in the                                                    
+style of a set of accessors (java interface / haskell typeclass, etc...) rather                                             
+than a simple struct-style interface with direct field manipulation. Again, this      
+is deliberate and necessary to the good behaviour of capability operations.           
+                                                                                      
+Currently, the implementation of the API is in Bluespec System Verilog and              
+wrappers are available in Verilog and Blarney.
+
+[discrete]                                                                            
+== Contents                                                                           
+                                                                                      
+toc::[]                                                                               
+                                                                                      
+:sectnums:                                                                            
+                                                                                      
+== The CHERI CAP LIB API
+[source, bsv]                                                                  
+----                                                                             
+function Bool isValidCap (t cap);
+function t setValidCap (t cap, Bool valid);
+function Bit#(flg) getFlags (t cap);
+function t setFlags (t cap, Bit#(flg) flags);
+function HardPerms getHardPerms (t cap);
+function t setHardPerms (t cap, HardPerms hardperms);
+function SoftPerms getSoftPerms (t cap);
+function t setSoftPerms (t cap, SoftPerms softperms);
+function Bit#(31) getPerms (t cap);
+function t setPerms (t cap, Bit#(31) perms);
+function Kind getKind (t cap);
+function Bool isSentry (t cap);
+function Bool isSealedWithType (t cap);
+function Bool isSealed (t cap);
+function Bit#(ot) getType (t cap);
+function Exact#(t) setType (t cap, Bit#(ot) otype);
+function Bit#(n) getAddr (t cap);
+function Exact#(t) setAddr (t cap, Bit#(n) addr);
+function t maskAddr (t cap, Bit#(maskable_bits) mask);
+function Bit#(n) getOffset (t cap);
+function Exact#(t) modifyOffset (t cap, Bit#(n) offset, Bool doInc);
+function Exact#(t) setOffset (t cap, Bit#(n) offset);
+function Exact#(t) incOffset (t cap, Bit#(n) inc);
+function Bit#(n) getBase (t cap);
+function Bit#(TAdd#(n, 1)) getTop (t cap);
+function Bit#(TAdd#(n, 1)) getLength (t cap);
+function Bool isInBounds (t cap, Bool isTopIncluded);
+function Exact#(t) setBounds (t cap, Bit#(n) length);
+function t nullWithAddr (Bit#(n) addr);
+function t almightyCap;
+function t nullCap;
+function Bool validAsType (t dummy, Bit#(n) checkType);
+function t fromMem (Tuple2#(Bool, Bit#(mem_sz)) mem_cap);
+function Tuple2#(Bool, Bit#(mem_sz)) toMem (t cap);                                                         
+----  
