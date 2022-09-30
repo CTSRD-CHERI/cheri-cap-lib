@@ -1,3 +1,9 @@
+:toc: macro
+:toclevels: 4
+:toc-title:
+:toc-placement!:
+:source-highlighter:
+
 Given that HDL languages are not all as expressive as each other when it comes
 to capturing an API, we express the CHERI CAP API in terms of pseudo-code, with
 constructs that can at least map to Verilog, as well as higher level HDLs
@@ -20,6 +26,11 @@ fields observation through the methods provided in the CHERI CAP API.
 A Verilog implementation can only capture this as a set of functions. We aim for
 the higher level HDLs wrappers to make use of more advanced language features
 where appropriate (structured types, typeclasses...).
+
+[discrete]
+== Contents
+
+toc::[]
 
 === CHERI CAP API "types"
 
@@ -486,8 +497,6 @@ function Tuple2#(Bool, Bit#(mem_sz)) toMem (t cap);
 ----
 
 Note: Composing these two functions (in either order) is the identity.
-
-=== Functions that can be cheap by relying on current capability representation
 
 ==== maskAddr
 
