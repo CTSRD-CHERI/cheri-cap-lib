@@ -1,15 +1,25 @@
-The CHERI CAP API is described here with conceptual function prototypes. Given
-that HDL languages are not all as expressive as each other when it comes to
-capturing an API, we deliberately express the CHERI CAP API in terms of
-pseudo-code with constructs that can at least map to Verilog, as well as higher
-level HDLs (System Verilog, Bluespec System Verilog, Blarney...). Verilog does
-*NOT* support structured types (or types for that matter), so we will first
-explicitly describe collections of relevant information about capability fields
-which would typically be expressed as a typdef or equivalent in a language
-capable of it, and enrich function descriptions with comments mentioning these.
-Even though a Verilog implementation is not capable to capture this, we aim for
-the higher level HDLs provided wrappers to make use of more advanced language
-features where appropriate.
+Given that HDL languages are not all as expressive as each other when it comes
+to capturing an API, we express the CHERI CAP API in terms of pseudo-code, with
+constructs that can at least map to Verilog, as well as higher level HDLs
+(System Verilog, Bluespec System Verilog, Blarney...). Verilog does *NOT*
+support structured types (or types for that matter), so we will first explicitly
+describe collections of relevant information about capability fields which would
+typically be expressed as a typdef or equivalent in a language capable of it.
+Where relevant, we enrich function's pseudo code descriptions with comments
+mentioning these "types".
+
+The CHERI CAP API provide functions to manipulate "black-box" capability values
+*AND* to observe CHERI capability fields. Indeed, it often is necessary to
+perform some transformation on the format used to implement CHERI capabilities
+to access a "field" of a capability. It is *NOT* advisable to simply reach for
+a bitslice of a capability's bit representation (or a field of a struct) and
+expect it to provide something directly relevant. This is why RTL code using
+capabilities should perform *BOTH* capability manipulations *AND* capability
+fields observation through the methods provided in the CHERI CAP API.
+
+A Verilog implementation can only capture this as a set of functions. We aim for
+the higher level HDLs wrappers to make use of more advanced language features
+where appropriate (structured types, typeclasses...).
 
 === CHERI CAP API "types"
 
