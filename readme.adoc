@@ -27,7 +27,12 @@ operations to interact with CHERI capabilities, and allow the user to abstract
 away the specifics of the published
 https://www.cl.cam.ac.uk/research/security/ctsrd/pdfs/2019tc-cheri-concentrate.pdf[capability format]
 and its subsequent iterations as much as reasonably possible. Other
-implementations could easily comply with the CHERI CAP LIB API.
+implementations should easily be able to comply with the CHERI CAP LIB API.
+In particular, implementations exploring alterations to the underlying
+capability format will benefit from adhering to this API for easy integration
+with codebases already making use of the exisitng CHERI capability implementation.
+If some genuinely new behaviour is necessary, generalising the CHERI CAP API should
+be considered.
 
 The CHERI CAP LIB API is here to guaranty that subtleties in capability
 manipulations are handled correctly. This means that direct bit manipulation on
