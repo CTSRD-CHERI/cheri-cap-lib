@@ -489,7 +489,7 @@ function Bit#(n) smearMSBRight(Bit#(n) x);
   return res;
 endfunction
 
-function SetBoundsReturn#(CapFat, CapAddrW) setBoundsFat(CapFat cap, Address lengthFull);
+function SetBoundsReturn#(CapFat, CapAddrW) setBoundsFat(CapFat cap, Address lengthFull, TempFields tf);
   CapFat ret = cap;
   // Find new exponent by finding the index of the most significant bit of the
   // length, or counting leading zeros in the high bits of the length, and
@@ -618,11 +618,57 @@ function SetBoundsReturn#(CapFat, CapAddrW) setBoundsFat(CapFat cap, Address len
     baseMask = (lengthIsMax && lostSignificantTop) ? ~lmaskLo : ~lmaskLor;
   end
 
+  // In parallel, work out if the result is going to be in bounds
+
+  // Base computation simple since tf and addrBits already extracted
+  // Logic same as capInBounds
+  Bool newBaseInBounds = (tf.baseHi == tf.addrHi) ? cap.addrBits >= cap.bounds.baseBits
+                                                  : tf.addrHi;
+
+  // Interpret the requested length relative to the authorising cap
+  CapAddr lengthShifted = length >> cap.bounds.exp;
+
+  // Split the length into the mantissa, and the bits that overflowed
+  Bit#(TSub#(CapAddrW, MW)) lengthExcess = truncateLSB(lengthShifted);
+  Bit#(MW) lengthBits = truncate(lengthShifted);
+
+  // If length didn't fit into the mantissa, it's definitely too big
+  Bool lengthDisqualified = lengthExcess != 0;
+
+  // Compute the new top bits, assuming the same exponent
+  Bit#(TAdd#(MW, 1)) reqTopBits = {1'b0,cap.addrBits} + {1'b0,lengthBits};
+
+  // Find the difference between the current and new top bits
+  Int#(TAdd#(MW, 2)) topDiff = unpack({pack(tf.topCorrection), cap.bounds.topBits} - {1'b0,reqTopBits});
+
+  // Compute on bits below the mantissa for edge cases
+  CapAddrPlus2 lowMask = ~((~0) << cap.bounds.exp);
+  CapAddrPlus2 carryMask = ~lowMask & (lowMask << 1);
+
+  // Recover carry inputs to each bit of top calculation
+  CapAddrPlus2 carries = len ^ base ^ top;
+
+  Bool lowCarry = (carries & carryMask) != 0;
+  Bool lowRemainder = (top & lowMask) != 0;
+
+  // Address the cases for the top: difference in the mantissa bits dictates slack in the lower bits
+  Bool newTopInBounds = !lengthDisqualified && (
+                             topDiff > 1
+                          || (topDiff == 1 && !(lowCarry && lowRemainder))
+                          || (topDiff == 0 && !(lowCarry || lowRemainder))
+                        );
+
+  // Address the last case: address is zero being interpreted as the top of the address space.
+  Bool addressWrap = len == 0 && cap.address == 0 && cap.bounds.baseBits != 0;
+
+  Bool resultInBounds = newBaseInBounds && newTopInBounds && !addressWrap;
+
   // Return derived capability
   return SetBoundsReturn { cap:    ret
                          , exact:  exact
                          , length: truncate(newLength)
-                         , mask:   truncate(baseMask) };
+                         , mask:   truncate(baseMask)
+                         , inBounds: resultInBounds };
 endfunction
 function CapFat seal(CapFat cap, TempFields tf, CType otype);
   CapFat ret = cap;
@@ -1263,7 +1309,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
   // capability derivation (bounds set)
   //////////////////////////////////////////////////////////////////////////////
-  function setBoundsCombined (cap, length) = setBoundsFat (cap, length);
+  function setBoundsCombined (cap, length) = error ("setBoundsCombined not implemented for CapReg");
   //function setBounds = error ("setBounds not implemented for CapReg");
   //function roundLength = error ("roundLength not implemented for CapReg");
   //function alignmentMask = error ("alignmentMask not implemented for CapReg");
@@ -1326,11 +1372,12 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
   //Functions supported by CapReg but which require TempFields to be changed
 
   function setBoundsCombined (cap, length);
-    let result = setBoundsCombined(cap.capFat, length);
+    let result = setBoundsFat(cap.capFat, length, cap.tempFields);
     return SetBoundsReturn {
         cap: CapPipe { capFat: result.cap
                      , tempFields: getTempFields(result.cap) }
       , exact: result.exact
+      , inBounds: result.inBounds
       , length: result.length
       , mask: result.mask };
   endfunction

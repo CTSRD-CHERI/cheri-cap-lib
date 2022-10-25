@@ -104,6 +104,7 @@ typedef struct {
 typedef struct {
   capT cap;
   Bool exact;
+  Bool inBounds;
   Bit #(addrW) length;
   Bit #(addrW) mask;
 } SetBoundsReturn #(type capT, numeric type addrW) deriving (Bits, Eq, FShow);
