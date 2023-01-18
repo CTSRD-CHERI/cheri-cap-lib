@@ -2,6 +2,7 @@
 
 import argparse
 import re
+from abc import ABC, abstractmethod
 
 parser = argparse.ArgumentParser(description=
   '''Generates a Blarney wrapper for the given Bluespec generated verilog file
@@ -13,7 +14,7 @@ parser.add_argument('--output', '-o', metavar='OUTPUT_FILE', type=str, nargs='?'
                     default="",
                     help='The output Blarney Haskell module to generate')
 parser.add_argument('--generator', metavar='GENERATOR', type=str, nargs='?',
-                    default='Blarney',
+                    choices=['blarney','sv','systemverilog'], default='blarney',
                     help='The generator to be used')
 args = parser.parse_args()
 
@@ -31,8 +32,6 @@ class Wrapper:
                 for nm in [x[0] for x in self.ins]]
   def verilogOutputName(self):
     return "wrap{:d}_{:s}".format(self.size, self.name)
-  def emit(self):
-    raise NotImplementedError("Please Implement this method")
 
 
 # Generic generator class
@@ -40,7 +39,7 @@ class Wrapper:
 # A generator takes some list of Verilog modules (which includes information
 # about the module name, inputs, outputs, etc) and generates a list of file
 # contents that should be written.
-class Generator:
+class Generator(ABC):
   # namehint is a hint for naming, and each specific generator subclass will
   # interpret it in its own way. In many cases it may be the single generated
   # filename
@@ -56,8 +55,9 @@ class Generator:
 
   # Generates a list of tuples containing output file names and output file
   # contents to be written to disk
+  @abstractmethod
   def emit(self):
-    raise NotImplementedError("Method not implemented in subclass")
+    pass
 
 # Generates Blarney files
 # When the namehint is not empty, it is used as the filename and .hs is appended

@@ -15,8 +15,8 @@ all: verilog-wrappers blarney-wrappers
 verilog-wrappers: CHERICapWrap.bsv CHERICap.bsv CHERICC_Fat.bsv
 	bsc $(BSCFLAGS) -verilog -u $<
 
-blarney-wrappers: CHERICapWrapBlarney.py verilog-wrappers
-	./CHERICapWrapBlarney.py -o CHERIBlarneyWrappers *.v
+blarney-wrappers: CHERICapWrap.py verilog-wrappers
+	./CHERICapWrap.py -o CHERIBlarneyWrappers *.v
 
 .PHONY: clean clean-verilog-wrappers
 
