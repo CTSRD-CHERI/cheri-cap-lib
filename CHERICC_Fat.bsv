@@ -1494,4 +1494,43 @@ instance Cast#(function CapPipe f0(t y), function Bit#(CapAddrW) f1(t x));
   endfunction
 endinstance
 
+`ifdef CAP64
+typedef 32 VA_Width;
+`else
+typedef 48 VA_Width;
+`endif
+// Type and function to trim unnecessary fields of a capability that is known to
+// be unsealed with the tag set (e.g. PCC)
+typedef struct {
+  Perms        perms;
+  Bit#(FlagsW) flags;
+  CBounds      bounds;
+  Bit#(VA_Width)     address;
+  Bool         validAddress;
+} CapTrim deriving(Bits, Eq, FShow);
+function CapTrim  trimCap(CapMem cm);
+  CapabilityInMemory cap = unpack(cm);
+  Bit#(TSub#(CapAddrW,VA_Width)) addr_upper = truncateLSB(cap.address);
+  return CapTrim{perms: cap.perms,
+                 flags: cap.flags,
+                 bounds: cap.bounds,
+                 address: truncate(cap.address),
+                 validAddress: (addr_upper==signExtend(cap.address[valueOf(VA_Width)-1]))
+  };
+endfunction
+function CapMem untrimCap(CapTrim ct);
+  // Encode an invalid address as the bit above the last valid bit being different.
+  Bit#(1) addressMsb = ct.address[valueOf(VA_Width)-1];
+  if (!ct.validAddress) addressMsb = ^addressMsb;
+  return pack(CapabilityInMemory{
+                isCapability: True,
+                perms: ct.perms,
+                reserved: 0,
+                flags: ct.flags,
+                otype: otype_unsealed,
+                bounds: ct.bounds,
+                address: signExtend({addressMsb,ct.address})
+  });
+endfunction
+
 endpackage
