@@ -38,6 +38,7 @@ export CapReg;
 export CapPipe;
 
 export CapFat;
+export CapTrim;
 export MW;
 export OTypeW;
 export FlagsW;
@@ -51,6 +52,8 @@ export CapW;
 export ExpW;
 export CapAddrW;
 export CBoundsW;
+export CBounds;
+export VA_Width;
 export HPerms;
 export PermsW;
 export Exp;
