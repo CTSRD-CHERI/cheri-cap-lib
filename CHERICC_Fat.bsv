@@ -38,7 +38,6 @@ export CapReg;
 export CapPipe;
 
 export CapFat;
-export CapTrim;
 export MW;
 export OTypeW;
 export FlagsW;
@@ -59,6 +58,9 @@ export PermsW;
 export Exp;
 export MetaInfo;
 export SetBoundsReturn;
+export CapTrim;
+export trimCap;
+export untrimCap;
 
 // ===============================================================================
 
