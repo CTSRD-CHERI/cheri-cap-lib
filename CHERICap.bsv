@@ -165,14 +165,13 @@ typeclass CHERICap #( type t
   // Get the base
   function Bit#(n) getBase (t cap);
   // Get the top
-  function Bit#(TAdd#(n, 1)) getTop (t cap);
+  function Bit#(n) getTop (t cap);
   // Get the length
   function Bit#(TAdd#(n, 1)) getLength (t cap);
 
   // Assertion that address is between base and top
-  function Bool isInBounds (t cap, Bool isTopIncluded);
-    Bool isNotTooHigh = isTopIncluded ? zeroExtend(getAddr(cap)) <= getTop(cap)
-                                      : zeroExtend(getAddr(cap)) < getTop(cap);
+  function Bool isInBounds (t cap);
+    Bool isNotTooHigh = getAddr(cap) <= getTop(cap);
     Bool isNotTooLow = getAddr(cap) >= getBase(cap);
     return isNotTooLow && isNotTooHigh;
   endfunction
