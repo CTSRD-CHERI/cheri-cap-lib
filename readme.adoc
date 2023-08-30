@@ -4,16 +4,8 @@
 :toc-placement!:
 :source-highlighter:
 
-++++
-<br/>
-++++
-
 [discrete]
 = CHERI CAP LIB
-
-++++
-<br/>
-++++
 
 The https://github.com/CTSRD-CHERI/cheri-cap-lib[cheri-cap-lib] repository
 provides an RTL API for CHERI capabilities, as well as a reference
