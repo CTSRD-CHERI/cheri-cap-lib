@@ -1,0 +1,15 @@
+CAPI=2:
+name: "ucam:cheri:cheri-cap-lib-verilog-generator"
+description: "Generates Verilog versions of the cheri-cap-lib functions"
+
+# the only parameter that this generator takes from the yaml file is
+# capwidth,  which will be defined as a macro during bluespec compilation
+# the generated core file will have the name:
+# "ucam:cheri:cheri-cap-lib-verilog-autogen-$WIDTH"
+# where $WIDTH is the number after CAP in the capwidth parameter
+generators:
+  cheri-cap-lib-gen:
+    interpreter: python3
+    command: fusesoc-script.py
+    # TODO caching? for now, no
+
