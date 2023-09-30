@@ -36,7 +36,9 @@ print(capwidth)
 workdir = os.getcwd()
 
 # location of source files is actually one level above the location of the core file
-bsv_src_root = yamlcfg["files_root"] + "/.."
+bsv_src_root = os.path.join(os.path.dirname(__file__), "..")
+print("bsv_src_root")
+print(bsv_src_root)
 
 # set up bluespec command + arguments
 bscargs = list()
