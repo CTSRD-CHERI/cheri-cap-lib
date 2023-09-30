@@ -95,5 +95,11 @@ function Bool `W(validAsType) (`CAPTYPE dummy, Bit#(CapAddrW) checkType) = valid
 function `CAPTYPE `W(fromMem) (Tuple2#(Bool, Bit#(CapW)) mem_cap) = fromMem(mem_cap);
 (* noinline *)
 function Tuple2#(Bool, Bit#(CapW)) `W(toMem) (`CAPTYPE cap) = toMem(cap);
+(* noinline *)
+function Bit#(CapAddrW) `W(getRepresentableAlignmentMask) (`CAPTYPE dummy, Bit#(CapAddrW) length) = alignmentMask (dummy, length);
+(* noinline *)
+function Bit#(CapAddrW) `W(getRepresentableLength) (`CAPTYPE dummy, Bit#(CapAddrW) length) = roundLength (dummy, length);
+(* noinline *)
+function Bit#(2) `W(getBaseAlignment) (`CAPTYPE cap) = getBaseAlignment(cap);
 
 endpackage
