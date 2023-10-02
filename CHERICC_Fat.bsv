@@ -1500,7 +1500,11 @@ instance Cast#(function CapPipe f0(t y), function Bit#(CapAddrW) f1(t x));
 endinstance
 
 `ifdef CAP64
-typedef 32 VA_Width;
+// XXX TODO
+// This is probably the wrong fix but allows the code to compile, and the
+// code for CAP64 is not used anywhere.
+// Need to consider what the right size is.
+typedef 31 VA_Width;
 `else
 typedef 48 VA_Width;
 `endif
