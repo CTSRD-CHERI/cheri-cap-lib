@@ -104,16 +104,24 @@ class BlarneyGenerator(Generator):
 #   a typedef of cheri_cap_dec_t which is a decompressed capability
 # generates a _mod.sv file containing a module which combinationally takes an "opaque"
 # capability as the input and gives a decompressed capability as the output
+# In the filename, "cheri" is appended with the in-memory capability width
+# (i.e. the filename will be "cheri64_pkg.sv") so that differently sized capabilities
+# can exist
 class SystemVerilogGenerator(Generator):
   def emit(self):
-    cap_type_name = "cheri_cap_t"           # the name of the opaque cap type
-    cap_dec_type_name = "cheri_cap_dec_t"   # the name of the expanded cap type
-    cap_dec_mod_name = "cheri_cap_expander" # the name of the expanding module
-    cap_in_signal_name = "cap_i"            # the name of the input signal to the expanding module
-    cap_out_signal_name = "cap_o"           # the name of the output signal to the expanding module
-    cap_search_string = "cap"               # the string required for inferring capability width
+    # get the size of in-memory capability by assuming that the name of the
+    # modules matches "module_wrap$SIZE_..." and taking just the size part
+    in_mem_cap_size = self.modules[0].verilogModuleName()[11:]
+    in_mem_cap_size = in_mem_cap_size[:in_mem_cap_size.find("_")]
 
-    pkg_file_name = "cheri_pkg.sv"
+    cap_type_name = "cheri_cap_t"                                       # the name of the opaque cap type
+    cap_dec_type_name = "cheri_cap_dec_t"                               # the name of the expanded cap type
+    cap_dec_mod_name = "cheri{:s}_cap_expander".format(in_mem_cap_size) # the name of the expanding module
+    cap_in_signal_name = "cap_i"                                        # the name of the input signal to the expanding module
+    cap_out_signal_name = "cap_o"                                       # the name of the output signal to the expanding module
+    cap_search_string = "cap"                                           # the string required for inferring capability width
+
+    pkg_file_name = "cheri{:s}_pkg.sv".format(in_mem_cap_size)
     module_file_name = "{:s}.sv".format(cap_dec_mod_name)
 
     # prepend namehint if non-empty
