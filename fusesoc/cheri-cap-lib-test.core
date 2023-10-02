@@ -28,8 +28,12 @@ targets:
   test64:
     description: "Default target that generates 64bit versions"
     default_tool: verilator
+    # this adds a dependency on the generator, so that it appears on the
+    # dependency tree
     filesets:
       - cheri-cap-lib-dep
+    # this invokes the 64bit parameterization of the generator which is
+    # declared above
     generate:
       - cheri-cap-lib-64
   test128:
@@ -44,6 +48,8 @@ targets:
     default_tool: verilator
     filesets:
       - cheri-cap-lib-dep
+    # this invokes both the 64bit and 128bit parameterizations of the generator
+    # which is declared above
     generate:
       - cheri-cap-lib-64
       - cheri-cap-lib-128

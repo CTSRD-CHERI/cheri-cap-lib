@@ -48,3 +48,22 @@ toc::[]
 == The CHERI CAP LIB API
 
 include::CHERI_CAP_API.adoc[]
+
+== FuseSoC
+
+``cheri-cap-lib`` supports being used as a generator within FuseSoC. The scripts
+and cores for this are within the ``fusesoc`` directory, and the file
+``cheri-cap-lib-test.core`` shows how a core can declare a dependency on and
+use the ``cheri-cap-lib`` generator.
+
+The FuseSoC generator will generate Verilog modules for each of the functions
+in ``CHERICapWrap.bsv``, as well as a SystemVerilog package and module to
+make working with these modules _slightly_ simpler in SystemVerilog.
+
+To generate both the 64bit and 128bit wrappers and packages, run
+``fusesoc --cores-root . run --target test --setup ucam:cheri:cheri-cap-lib-test``
+
+The files will be generated in
+``build/ucam_cheri_cheri-cap-lib-test_0/test-verilator/generated/ucam_cheri_cheri-cap-lib-test-cheri-cap-lib-64_0/``
+and
+``build/ucam_cheri_cheri-cap-lib-test_0/test-verilator/generated/ucam_cheri_cheri-cap-lib-test-cheri-cap-lib-128_0/``
