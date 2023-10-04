@@ -121,6 +121,24 @@ class SystemVerilogGenerator(Generator):
     cap_out_signal_name = "cap_o"                                       # the name of the output signal to the expanding module
     cap_search_string = "cap"                                           # the string required for inferring capability width
 
+
+    # this wrapper generator is intended to make access to the "getter"
+    # modules (i.e. getAddr, getTop, etc) easier/cleaner
+    # ideally, to access the field it is cleaner to say "cap.address" rather than
+    # "cap.getAddress" or "cap.validCap" rather than "cap.isValidCap"
+    # the following is a list of "keywords" to remove from the field names
+    keywords_to_remove = ["get", "is"]
+    def mod_name_to_field_name(modname):
+      for kw in keywords_to_remove:
+        if modname.startswith(kw):
+          # remove the keyword from the start
+          modname = modname[len(kw):]
+          # make first letter lowercase
+          modname = modname[0].lower() + modname[1:]
+          # return after removing the first found keyword
+          return modname
+      return modname
+
     pkg_file_name = "cheri{:s}_pkg.sv".format(in_mem_cap_size)
     module_file_name = "{:s}.sv".format(cap_dec_mod_name)
 
@@ -159,7 +177,7 @@ class SystemVerilogGenerator(Generator):
     # structure definition
     struct_def_text = "  typedef struct packed {\n"
     for mod in struct_elems:
-      struct_def_text += "    logic [{:d}:{:d}] {:s};\n".format(mod.out[1]-1, 0, mod.name)
+      struct_def_text += "    logic [{:d}:{:d}] {:s};\n".format(mod.out[1]-1, 0, mod_name_to_field_name(mod.name))
     struct_def_text += "  }} {:s};\n".format(cap_dec_type_name)
 
     # package definition
@@ -179,7 +197,7 @@ class SystemVerilogGenerator(Generator):
     for mod in struct_elems:
       module_def_text += "  {:s} {:s}_mod (\n".format(mod.verilogModuleName(), mod.name)
       module_def_text += "    .{:s}({:s}),\n".format(mod.verilogInputNames()[0], cap_in_signal_name)
-      module_def_text += "    .{:s}({:s}.{:s})\n".format(mod.verilogOutputName(), cap_out_signal_name, mod.name)
+      module_def_text += "    .{:s}({:s}.{:s})\n".format(mod.verilogOutputName(), cap_out_signal_name, mod_name_to_field_name(mod.name))
       module_def_text += "  );\n"
 
     module_def_text += "endmodule\n"
