@@ -57,6 +57,14 @@ export Exp;
 export MetaInfo;
 export SetBoundsReturn;
 
+// Hacks from mn416
+export getTypeCapMem;
+export setTypeCapMem;
+export isSealedCapMem;
+export isSentryCapMem;
+export setPermsCapMem;
+export getBoundsBitsCapMem;
+
 // ===============================================================================
 
 typedef struct {
@@ -1019,8 +1027,18 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
   // capability kind
   //////////////////////////////////////////////////////////////////////////////
-  function getKind = error ("getKind not implemented for CapMem");
-  function setKind = error ("setKind not implemented for CapMem");
+  //function getKind = error ("getKind not implemented for CapMem");
+  function getKind (capMem);
+    CapPipe capPipe = cast(capMem);
+    return getKind(capPipe);
+  endfunction
+
+  //function setKind = error ("setKind not implemented for CapMem");
+  function setKind (capMem, kind);
+    CapPipe capPipe = cast(capMem);
+    return cast(setKind(capPipe, kind));
+  endfunction
+
   function validAsType (dummy, checkType);
     UInt #(CapAddrW) checkTypeUnsigned = unpack (checkType);
     UInt #(CapAddrW) otypeMaxUnsigned = unpack (zeroExtend (otype_max));
@@ -1431,5 +1449,36 @@ instance Cast#(function CapPipe f0(t y), function Bit#(CapAddrW) f1(t x));
     return f1;
   endfunction
 endinstance
+
+// Hacks from mn416 below
+
+function Bit#(OTypeW) getTypeCapMem(CapMem capMem);
+  CapabilityInMemory cap = unpack(capMem);
+  return ~cap.otype;
+endfunction
+
+function CapMem setTypeCapMem(CapMem capMem, Bit#(OTypeW) t);
+  CapabilityInMemory cap = unpack(capMem);
+  cap.otype = ~t;
+  return pack(cap);
+endfunction
+
+function Bool isSealedCapMem(CapMem capMem) =
+  getTypeCapMem(capMem) != otype_unsealed;
+
+function Bool isSentryCapMem(CapMem capMem) =
+  getTypeCapMem(capMem) == otype_sentry;
+
+function CapMem setPermsCapMem(CapMem capMem, Bit#(31) perms);
+  CapabilityInMemory cap = unpack(capMem);
+  cap.perms.soft = truncate(perms[30:15]);
+  cap.perms.hard = unpack(truncate(perms[11:0]));
+  return pack(cap);
+endfunction
+
+function Bit#(CBoundsW) getBoundsBitsCapMem(CapMem capMem);
+  CapabilityInMemory cap = unpack(capMem);
+  return cap.bounds;
+endfunction
 
 endpackage
