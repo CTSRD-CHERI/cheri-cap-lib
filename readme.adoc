@@ -64,6 +64,14 @@ To generate both the 64bit and 128bit wrappers and packages, run
 ``fusesoc --cores-root . run --target test --setup ucam:cheri:cheri-cap-lib-test``
 
 The files will be generated in
-``build/ucam_cheri_cheri-cap-lib-test_0/test-verilator/generated/ucam_cheri_cheri-cap-lib-test-cheri-cap-lib-64_0/``
+``build/ucam_cheri_cheri-cap-lib-test_0/src/ucam_cheri_cheri-cap-lib-verilog-autogen-64_0/``
 and
-``build/ucam_cheri_cheri-cap-lib-test_0/test-verilator/generated/ucam_cheri_cheri-cap-lib-test-cheri-cap-lib-128_0/``
+``build/ucam_cheri_cheri-cap-lib-test_0/src/ucam_cheri_cheri-cap-lib-verilog-autogen-128_0/``
+
+These fusesoc cores and instructions work using fusesoc 0.3 as installed
+by running
+``pip3 install -r python_requirements.txt``
+within the OpenTitan GitHub repository as of commit
+https://github.com/lowRISC/opentitan/commit/2438b17afe4fef0d815be2e890763c288c449918
+
+
