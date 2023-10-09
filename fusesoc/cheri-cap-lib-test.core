@@ -1,0 +1,56 @@
+CAPI=2:
+name: "ucam:cheri:cheri-cap-lib-test"
+description: "Targets to test cheri-cap-lib generator"
+
+# different parameterizations of the generator, one is 64bit and the other is 128bit
+generate:
+  cheri-cap-lib-64:
+    generator: cheri-cap-lib-gen
+    parameters:
+      capwidth : "CAP64"
+
+  cheri-cap-lib-128:
+    generator: cheri-cap-lib-gen
+    parameters:
+      capwidth : "CAP128"
+
+# cores need to explicitly depend on the generator, so an empty fileset with
+# a dependency on the generator's core is needed, like so:
+filesets:
+  cheri-cap-lib-dep:
+    depend:
+      - ucam:cheri:cheri-cap-lib-verilog-generator
+
+# the filelist can then be placed in the filesets section of the dependant core
+# to add the dependency, so that fusesoc can find the generator
+
+targets:
+  test64:
+    description: "Default target that generates 64bit versions"
+    default_tool: verilator
+    # this adds a dependency on the generator, so that it appears on the
+    # dependency tree
+    filesets:
+      - cheri-cap-lib-dep
+    # this invokes the 64bit parameterization of the generator which is
+    # declared above
+    generate:
+      - cheri-cap-lib-64
+  test128:
+    description: "Default target that generates 128bit versions"
+    default_tool: verilator
+    filesets:
+      - cheri-cap-lib-dep
+    generate:
+      - cheri-cap-lib-128
+  test:
+    description: "Default target that generates both 64bit and 128bit versions"
+    default_tool: verilator
+    filesets:
+      - cheri-cap-lib-dep
+    # this invokes both the 64bit and 128bit parameterizations of the generator
+    # which is declared above
+    generate:
+      - cheri-cap-lib-64
+      - cheri-cap-lib-128
+
