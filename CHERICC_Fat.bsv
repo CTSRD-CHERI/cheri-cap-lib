@@ -30,6 +30,7 @@
 
 package CHERICC_Fat;
 
+import Vector       :: *;
 import DefaultValue :: *;
 import CHERICap     :: *;
 
@@ -64,6 +65,7 @@ export isSealedCapMem;
 export isSentryCapMem;
 export setPermsCapMem;
 export getBoundsBitsCapMem;
+export vectorBoundsDecompress;
 
 // ===============================================================================
 
@@ -1479,6 +1481,157 @@ endfunction
 function Bit#(CBoundsW) getBoundsBitsCapMem(CapMem capMem);
   CapabilityInMemory cap = unpack(capMem);
   return cap.bounds;
+endfunction
+
+// Return base and top of a vector of capabilities that all have
+// the same compressed bounds.
+`define SIMTLanes 32
+function Vector#(`SIMTLanes, Tuple2#(Bit#(CapAddrW),
+                                     Bit#(TAdd#(CapAddrW, 1))))
+           vectorBoundsDecompress(
+             Bit#(CBoundsW) cboundsRaw,
+             Vector#(`SIMTLanes, Bit#(CapAddrW)) addrs)
+               provisos ( NumAlias #(fullW, TAdd #(CapAddrW, 1))
+                        , NumAlias #(upperW, TSub #(fullW, MW))
+                        , NumAlias #(lowerW, MW) );
+
+  // Compressed bounds
+  CBounds cbounds = cboundsRaw ^ getBoundsBitsCapMem(packCap(null_cap));
+
+  // Decode bounds
+  match {.boundsFmt, .bounds} = decBounds(cbounds);
+
+  // Compute address bits
+  BoundsEmbeddedExp tmpBounds = unpack(cbounds);
+  Exp potentialExp = unpack({tmpBounds.expTopHalf,tmpBounds.expBotHalf});
+  Vector#(`SIMTLanes, Bit#(MW)) vecAddrBits;
+  for (Integer i = 0; i < `SIMTLanes; i = i+1) begin
+    let address = addrs[i];
+    Bit#(MW) potentialAddrBits = truncate(address >> potentialExp);
+    vecAddrBits[i] = tmpBounds.embeddedExp ? potentialAddrBits
+                                           : truncate(address);
+  end
+
+  // Compute TempFields
+  Vector#(`SIMTLanes, TempFields) vecTempFields;
+  Bit#(3) tb = truncateLSB(bounds.topBits);
+  Bit#(3) bb = truncateLSB(bounds.baseBits);
+  Bit#(3) repBound = bb - 3'b001;
+  Bool topHi  = tb < repBound;
+  Bool baseHi = bb < repBound;
+  for (Integer i = 0; i < `SIMTLanes; i = i+1) begin
+    Bit#(3) ab = truncateLSB(vecAddrBits[i]);
+    Bool addrHi = ab < repBound;
+    Int#(2) topCorrection  = (topHi  ==  addrHi) ? 0 :
+                             (topHi  && !addrHi) ? 1 :
+                                                  -1;
+    Int#(2) baseCorrection = (baseHi ==  addrHi) ? 0 :
+                             (baseHi && !addrHi) ? 1 :
+                                                  -1;
+    vecTempFields[i] = MetaInfo {
+        repBoundTopBits: repBound
+      , topHi          : topHi
+      , baseHi         : baseHi
+      , addrHi         : addrHi
+      , topCorrection  : topCorrection
+      , baseCorrection : baseCorrection };
+  end
+
+  // bind the bounds field to shorter handy names
+  Exp exp = bounds.exp;
+  Bit #(MW) baseBits = bounds.baseBits;
+  Bit #(MW) topBits = bounds.topBits;
+
+  // prepare typed "lower" MW zeroes for simpler concatenation
+  Bit #(lowerW) lowerZeroes = 0;
+
+  // prepare "full" version for baseBits, topBits and repBoundBits
+  Bit #(fullW) baseBitsFull = zeroExtend (baseBits) << exp;
+  Bit #(fullW) topBitsFull = zeroExtend (topBits) << exp;
+
+  // other helper values
+  CapAddr capAddr0 = 0;
+  CapAddrPlus1 addrSpaceTop = {1'b1, capAddr0};
+
+  // shared +1 and -1/~0 shifted by exponent
+  Bit #(upperW) allOnesExpShifted = ~0 << exp;
+  let mask = allOnesExpShifted;
+  let minusOne = allOnesExpShifted;
+  Bit #(upperW) oneExpShifted = 1 << exp;
+  let plusOne = oneExpShifted;
+
+  Vector#(`SIMTLanes, Tuple2#(Bit#(CapAddrW),
+                              Bit#(TAdd#(CapAddrW, 1)))) vecResults;
+
+  for (Integer i = 0; i < `SIMTLanes; i = i+1) begin
+    let address = addrs[i];
+    let tf = vecTempFields[i];
+
+    // Prepare "upper" address and its "hi" and "lo" region versions
+    Bit #(upperW) addrUpperBits = truncateLSB ({1'b0, address}) & mask;
+    Bit #(upperW) addrUpperHi = addrUpperBits + (tf.addrHi ? 0 : plusOne);
+    Bit #(upperW) addrUpperLo = addrUpperBits + (tf.addrHi ? minusOne : 0);
+    function addrUpper (isHi) = isHi ? addrUpperHi : addrUpperLo;
+
+    // Compute base
+    CapAddr base =
+      truncate ({addrUpper (tf.baseHi), lowerZeroes} | baseBitsFull);
+
+    // Use the appropriate upper bits of the address based on whether
+    // the top is in the "hi" or the "lo" region, append implied
+    // zeroes in the lower bits, and or in the top bits
+    CapAddrPlus1 top = {addrUpper (tf.topHi), lowerZeroes} | topBitsFull;
+
+    // If the base and top are more than an address space away from
+    // eachother, invert the 64th/32nd bit of Top. This corrects for
+    // errors that happen when the representable space wraps the
+    // address space.
+    Bit #(2) topTip = truncateLSB (top);
+    Bit #(2) baseTip = {1'b0, msb (base)};
+    // If the bit we're interested in are actually coming from baseBits, select
+    // the correct one from there.
+    // exp == (resetExp - 1) doesn't matter since we will not flip unless
+    // exp < resetExp - 1.
+    if (exp == (resetExp - 2)) baseTip = {1'b0, baseBits[valueOf(MW) - 1]};
+    // Do the final check.
+    // If exp >= resetExp - 1, the bits we're looking at are coming
+    // directly from topBits and baseBits, are not being inferred, and
+    // therefore do not need correction. If we are below this range,
+    // check that the difference between the resulting top and bottom
+    // is less than one address space.  If not, flip the msb of the
+    // top.
+    if (exp < (resetExp - 1) && (topTip - baseTip) > 1)
+      top[valueOf(CapAddrW)] = ~top[valueOf(CapAddrW)];
+
+    vecResults[i] = tuple2(base, top);
+  end
+
+/*
+  for (Integer i = 0; i < `SIMTLanes; i = i+1) begin
+    let address = addrs[i];
+    let tf = vecTempFields[i];
+    // Prepare "upper" address and its "hi" and "lo" region versions
+    Bit #(upperW) addrUpperBits = truncateLSB ({1'b0, address}) & mask;
+    Bit #(upperW) addrUpperHi = addrUpperBits + (tf.addrHi ? 0 : plusOne);
+    Bit #(upperW) addrUpperLo = addrUpperBits + (tf.addrHi ? minusOne : 0);
+    function addrUpper (isHi) = isHi ? addrUpperHi : addrUpperLo;
+    CapAddr base =
+      truncate ({addrUpper (tf.baseHi), lowerZeroes} | baseBitsFull);
+
+    // Compute length
+    // Get the top and base bits with the 2 correction bits prepended
+    Bit #(TAdd #(MW, 2)) correctBase = {pack (tf.baseCorrection), baseBits};
+    Bit #(TAdd #(MW, 2)) correctTop  = {pack (tf.topCorrection), topBits};
+    // Get length by subtracting base from top and shifting appropriately, and
+    // saturate in case of big exponent
+    CapAddrPlus1 length =
+      (exp >= resetExp) ? ~0 : zeroExtend (correctTop - correctBase) << exp;
+
+    vecResults[i] = tuple2(base, length);
+  end
+*/
+
+  return vecResults;
 endfunction
 
 endpackage
