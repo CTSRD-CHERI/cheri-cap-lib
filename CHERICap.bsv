@@ -71,7 +71,8 @@ typedef union tagged {
   void UNSEALED;
   void SENTRY;
   void RES0;
-  void RES1;
+  void PTPCCISENTRY;
+  void LD_PTPCCISENTRY;
   Bit #(otypeW) SEALED_WITH_TYPE;
 } Kind #(numeric type otypeW) deriving (Bits, Eq, FShow);
 

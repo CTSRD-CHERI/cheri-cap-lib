@@ -166,11 +166,13 @@ typedef enum {Exp0, EmbeddedExp} Format deriving (Bits, Eq, FShow);
 typedef UInt#(ExpW) Exp;
 // Type for capability otype field
 typedef VnD#(Bit#(OTypeW)) CType;
-Bit#(OTypeW) otype_max      = -5;
+Bit#(OTypeW) otype_max      = -6;
 Bit#(OTypeW) otype_unsealed = -1;
 Bit#(OTypeW) otype_sentry   = -2;
 Bit#(OTypeW) otype_res0     = -3;
-Bit#(OTypeW) otype_res1     = -4;
+Bit#(OTypeW) otype_ptpcc    = -4;
+Bit#(OTypeW) otype_ptpcc_ld = -5;
+ 
 
 // unpacked capability format
 typedef struct {
@@ -1254,14 +1256,16 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
     otype_unsealed: UNSEALED;
     otype_sentry:   SENTRY;
     otype_res0:     RES0;
-    otype_res1:     RES1;
+    otype_ptpcc:    PTPCCISENTRY;
+    otype_ptpcc_ld: LD_PTPCCISENTRY;
     default:        SEALED_WITH_TYPE (cap.otype);
   endcase;
   function setKind (cap, kind) = case (kind) matches
     tagged UNSEALED:             unseal (cap, ?);
     tagged SENTRY:               seal (cap, ?, VnD {v: True, d:otype_sentry});
     tagged RES0:                 seal (cap, ?, VnD {v: True, d:otype_res0});
-    tagged RES1:                 seal (cap, ?, VnD {v: True, d:otype_res1});
+    tagged PTPCCISENTRY:         seal (cap, ?, VnD {v: True, d:otype_ptpcc});
+    tagged LD_PTPCCISENTRY:      seal (cap, ?, VnD {v: True, d:otype_ptpcc_ld});
     tagged SEALED_WITH_TYPE .ot: seal (cap, ?, VnD {v: True, d:ot});
   endcase;
   function validAsType (dummy, checkType);
