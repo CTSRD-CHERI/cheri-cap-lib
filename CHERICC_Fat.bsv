@@ -283,7 +283,7 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   Bit #(MW) baseBits = cap.bounds.baseBits;
   Bit #(MW) topBits = cap.bounds.topBits;
   // prepare representable bound bits
-  Bit #(MW) repBoundBits = {tf.repBoundTopBits, 0};
+  Bit #(MW) repBoundBits = tf.repBoundBits;
 
   // prepare typed "lower" MW zeroes for simpler concatenation
   Bit #(lowerW) lowerZeroes = 0;
@@ -778,16 +778,16 @@ function VnD#(CapFat) incOffsetFat( CapFat cap
   // the base to the representable edge. This can be computed efficiently, and
   // without relying on the temporary fields, as follows: equivalent to
   // (repBoundBits - cap.bounds.baseBits):
-  Bit#(MW) toBounds_A   = {3'b111,0} - {3'b000,truncate(cap.bounds.baseBits)};
+  Bit#(MW) toBounds_A   = {3'b110,0};
   // equivalent to (repBoundBits - cap.bounds.baseBits - 1):
-  Bit#(MW) toBoundsM1_A = {3'b110,~truncate(cap.bounds.baseBits)};
+  Bit#(MW) toBoundsM1_A = toBounds_A - 1;
   /*
   XXX not sure if we still care about that
   if (toBoundsM1_A != (toBounds_A-1)) $display("error %x", toBounds_A[15:13]);
   */
   // When the setOffset flag is not set, we need to use the temporary fields
   // with the upper bits of the representable bounds
-  Bit#(MW) repBoundBits = {tf.repBoundTopBits,0};
+  Bit#(MW) repBoundBits = tf.repBoundBits;
   Bit#(MW) toBounds_B   = repBoundBits - cap.addrBits;
   Bit#(MW) toBoundsM1_B = repBoundBits + ~cap.addrBits;
   // Select the appropriate toBounds value
@@ -842,7 +842,7 @@ function VnD#(CapFat) setAddress(CapFat cap, CapAddr address, TempFields tf);
   Exp e = cap.bounds.exp;
   // Calculate what the difference in the upper bits of the new and original addresses must be if
   // the new address is within representable bounds.
-  Bool newAddrHi  = truncateLSB(ret.addrBits) < tf.repBoundTopBits;
+  Bool newAddrHi  = ret.addrBits < tf.repBoundBits;
   Bit#(TSub#(CapAddrW,MW)) deltaAddrHi = signExtend({1'b0,pack(newAddrHi)} - {1'b0,pack(tf.addrHi)}) << e;
   // Calculate the actual difference between the upper bits of the new address and the original address.
   Bit#(TSub#(CapAddrW,MW)) mask = -1 << e;
@@ -995,7 +995,7 @@ function CBounds encBounds (Format format, Bounds bounds);
 endfunction
 
 typedef struct {
-  Bit#(3) repBoundTopBits;
+  Bit#(MW) repBoundBits;
   Bool    topHi;
   Bool    baseHi;
   Bool    addrHi;
@@ -1004,13 +1004,10 @@ typedef struct {
 } MetaInfo deriving(Bits, Eq, FShow);
 
 function MetaInfo getMetaInfo (CapFat cap);
-  Bit#(3) tb = truncateLSB(cap.bounds.topBits);
-  Bit#(3) bb = truncateLSB(cap.bounds.baseBits);
-  Bit#(3) ab = truncateLSB(cap.addrBits);
-  Bit#(3) repBound = bb - 3'b001;
-  Bool topHi  = tb < repBound;
-  Bool baseHi = bb < repBound;
-  Bool addrHi = ab < repBound;
+  Bit#(MW) repBound = cap.bounds.baseBits - {3'b010, 0};
+  Bool topHi  = cap.bounds.topBits < repBound;
+  Bool baseHi = cap.bounds.baseBits < repBound;
+  Bool addrHi = cap.addrBits < repBound;
   Int#(2) topCorrection  = (topHi  ==  addrHi) ? 0 :
                            (topHi  && !addrHi) ? 1 :
                                                 -1;
@@ -1018,7 +1015,7 @@ function MetaInfo getMetaInfo (CapFat cap);
                            (baseHi && !addrHi) ? 1 :
                                                 -1;
   return MetaInfo {
-      repBoundTopBits: repBound
+      repBoundBits: repBound
     , topHi          : topHi
     , baseHi         : baseHi
     , addrHi         : addrHi
@@ -1046,7 +1043,7 @@ typedef struct {
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
+instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, 0);
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1211,7 +1208,7 @@ endinstance
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
+instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, 0);
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1377,7 +1374,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
 endinstance
 
-instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
+instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, 0);
 
   //Functions supported by CapReg are just passed through
 
