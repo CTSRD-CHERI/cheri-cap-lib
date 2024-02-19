@@ -81,7 +81,7 @@ typedef struct {
 typedef 0  UPermW;
 typedef 10  MW;
 typedef 6  ExpW;
-typedef 1  OTypeW;
+typedef 2  OTypeW;
 typedef `FLAGSW FlagsW;
 typedef 32 CapAddrW;
 typedef 64 CapW;
@@ -115,18 +115,24 @@ typedef Bit#(TAdd#(CapAddrW,1)) CapAddrPlus1;
 typedef Bit#(TAdd#(CapAddrW,2)) CapAddrPlus2;
 // The Hardware permissions type
 typedef struct {
+`ifndef CAP64
   Bool permit_set_CID;
+`endif
   Bool access_sys_regs;
+`ifndef CAP64
   Bool permit_unseal;
   Bool permit_ccall;
   Bool permit_seal;
   Bool permit_store_ephemeral_cap;
   Bool permit_store_cap;
+`endif
   Bool permit_load_cap;
   Bool permit_store;
   Bool permit_load;
   Bool permit_execute;
+`ifndef CAP64
   Bool non_ephemeral;
+`endif
 } HPerms deriving(Bits, Eq, FShow); // 12 bits
 // The permissions field, including both "soft" and "hard" permission bits.
 typedef struct {
@@ -166,11 +172,15 @@ typedef enum {Exp0, EmbeddedExp} Format deriving (Bits, Eq, FShow);
 typedef UInt#(ExpW) Exp;
 // Type for capability otype field
 typedef VnD#(Bit#(OTypeW)) CType;
-Bit#(OTypeW) otype_max      = -5;
 Bit#(OTypeW) otype_unsealed = -1;
 Bit#(OTypeW) otype_sentry   = -2;
+`ifdef CAP64
+Bit#(OTypeW) otype_max      = 0;
+`else
+Bit#(OTypeW) otype_max      = -5;
 Bit#(OTypeW) otype_res0     = -3;
 Bit#(OTypeW) otype_res1     = -4;
+`endif
 
 // unpacked capability format
 typedef struct {
@@ -1067,18 +1077,25 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   function getHardPerms (capMem);
     CapabilityInMemory cap = unpack (capMem);
     return HardPerms {
-      permitSetCID:        cap.perms.hard.permit_set_CID
-    , accessSysRegs:       cap.perms.hard.access_sys_regs
+`ifndef CAP64
+      permitSetCID:        cap.perms.hard.permit_set_CID ,
+`endif
+      accessSysRegs:       cap.perms.hard.access_sys_regs
+`ifndef CAP64
     , permitUnseal:        cap.perms.hard.permit_unseal
     , permitCCall:         cap.perms.hard.permit_ccall
     , permitSeal:          cap.perms.hard.permit_seal
     , permitStoreLocalCap: cap.perms.hard.permit_store_ephemeral_cap
     , permitStoreCap:      cap.perms.hard.permit_store_cap
+`endif
     , permitLoadCap:       cap.perms.hard.permit_load_cap
     , permitStore:         cap.perms.hard.permit_store
     , permitLoad:          cap.perms.hard.permit_load
     , permitExecute:       cap.perms.hard.permit_execute
-    , global:              cap.perms.hard.non_ephemeral };
+`ifndef CAP64
+    , global:              cap.perms.hard.non_ephemeral
+`endif
+    };
   endfunction
   function setHardPerms = error ("setHardPerms not implemented for CapMem");
   function getSoftPerms = error ("getSoftPerms not implemented for CapMem");
@@ -1215,32 +1232,46 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   // capability permissions
   //////////////////////////////////////////////////////////////////////////////
   function getHardPerms (cap) = HardPerms {
-      permitSetCID:        cap.perms.hard.permit_set_CID
-    , accessSysRegs:       cap.perms.hard.access_sys_regs
+`ifndef CAP64
+      permitSetCID:        cap.perms.hard.permit_set_CID ,
+`endif
+      accessSysRegs:       cap.perms.hard.access_sys_regs
+`ifndef CAP64
     , permitUnseal:        cap.perms.hard.permit_unseal
     , permitCCall:         cap.perms.hard.permit_ccall
     , permitSeal:          cap.perms.hard.permit_seal
     , permitStoreLocalCap: cap.perms.hard.permit_store_ephemeral_cap
     , permitStoreCap:      cap.perms.hard.permit_store_cap
+`endif
     , permitLoadCap:       cap.perms.hard.permit_load_cap
     , permitStore:         cap.perms.hard.permit_store
     , permitLoad:          cap.perms.hard.permit_load
     , permitExecute:       cap.perms.hard.permit_execute
-    , global:              cap.perms.hard.non_ephemeral };
+`ifndef CAP64
+    , global:              cap.perms.hard.non_ephemeral
+`endif
+  };
   function setHardPerms (cap, perms);
     cap.perms.hard = HPerms {
-      permit_set_CID:             perms.permitSetCID
-    , access_sys_regs:            perms.accessSysRegs
+`ifndef CAP64
+      permit_set_CID:             perms.permitSetCID ,
+`endif
+      access_sys_regs:            perms.accessSysRegs
+`ifndef CAP64
     , permit_unseal:              perms.permitUnseal
     , permit_ccall:               perms.permitCCall
     , permit_seal:                perms.permitSeal
     , permit_store_ephemeral_cap: perms.permitStoreLocalCap
     , permit_store_cap:           perms.permitStoreCap
+`endif
     , permit_load_cap:            perms.permitLoadCap
     , permit_store:               perms.permitStore
     , permit_load:                perms.permitLoad
     , permit_execute:             perms.permitExecute
-    , non_ephemeral:              perms.global };
+`ifndef CAP64
+    , non_ephemeral:              perms.global
+`endif
+    };
     return cap;
   endfunction
   function getSoftPerms (cap) = zeroExtend (cap.perms.soft);
@@ -1256,15 +1287,19 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   function getKind (cap) = case (cap.otype)
     otype_unsealed: UNSEALED;
     otype_sentry:   SENTRY;
+`ifndef CAP64
     otype_res0:     RES0;
     otype_res1:     RES1;
+`endif
     default:        SEALED_WITH_TYPE (cap.otype);
   endcase;
   function setKind (cap, kind) = case (kind) matches
     tagged UNSEALED:             unseal (cap, ?);
     tagged SENTRY:               seal (cap, ?, VnD {v: True, d:otype_sentry});
+`ifndef CAP64
     tagged RES0:                 seal (cap, ?, VnD {v: True, d:otype_res0});
     tagged RES1:                 seal (cap, ?, VnD {v: True, d:otype_res1});
+`endif
     tagged SEALED_WITH_TYPE .ot: seal (cap, ?, VnD {v: True, d:ot});
   endcase;
   function validAsType (dummy, checkType);
