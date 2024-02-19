@@ -81,9 +81,9 @@ typedef struct {
 
 `ifdef CAP64
 typedef 0  UPermW;
-typedef 8  MW;
+typedef 10  MW;
 typedef 6  ExpW;
-typedef 4  OTypeW;
+typedef 1  OTypeW;
 typedef `FLAGSW FlagsW;
 typedef 32 CapAddrW;
 typedef 64 CapW;
