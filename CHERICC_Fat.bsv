@@ -668,6 +668,9 @@ function SetBoundsReturn#(CapFat, CapAddrW) setBoundsFat(CapFat cap, Address len
 
   Bool resultInBounds = newBaseInBounds && newTopInBounds && !addressWrap;
 
+  // Nullify the capability if the result is not in bounds
+  if (!resultInBounds) ret.isCapability = False;
+
   // Return derived capability
   return SetBoundsReturn { cap:    ret
                          , exact:  exact
