@@ -127,75 +127,13 @@ function Tuple2#(Bool, Bit#(CapW)) `W(toMem) (`CAPTYPE cap) = toMem(cap);
 (* noinline *)
 function Bit#(TSub#(CapW, CapAddrW)) `W(getMeta) (`CAPTYPE cap) = getMeta(cap);
 (* noinline *)
+function CapMem `W(almightyCapMem) = almightyCap;
+(* noinline *)
+function CapMem `W(nullCapMem) = nullCap;
+(* noinline *)
 function BoundsInfo#(CapAddrW) `W(getBoundsInfo) (`CAPTYPE cap) =
   getBoundsInfo(cap);
 (* noinline *)
 function `CAPTYPE `W(setAddrUnsafe) (`CAPTYPE cap, Bit#(CapAddrW) addr) =
   setAddrUnsafe(cap, addr);
-
-(* noinline *)
-function CapMem `W(almightyCapMem);
-  CapFat fat = almightyCap;
-  return cast(fat);
-endfunction
-
-(* noinline *)
-function CapMem `W(nullCapMem);
-  CapFat fat = nullCap;
-  return cast(fat);
-endfunction
-
-(* noinline *)
-function Bool `W(isValidCapMem) (CapMem cap) = isValidCap(cap);
-
-(* noinline *)
-function CapMem `W(setValidCapMem) (CapMem cap, Bool valid) =
-  setValidCap(cap, valid);
-
-(* noinline *)
-function Bit#(OTypeW) `W(getTypeCapMem) (CapMem capMem) =
-  getTypeCapMem(capMem);
-
-(* noinline *)
-function CapMem `W(setTypeCapMem) (CapMem capMem, Bit#(OTypeW) t) =
-  setTypeCapMem(capMem, t);
-
-(* noinline *)
-function Bool `W(isSealedCapMem) (CapMem cap) = isSealedCapMem(cap);
-
-(* noinline *)
-function Bool `W(isSentryCapMem) (CapMem cap) = isSentryCapMem(cap);
-
-(* noinline *)
-function Bit#(FlagsW) `W(getFlagsCapMem) (CapMem capMem) =
-  getFlags(capMem);
-
-(* noinline *)
-function CapMem `W(setFlagsCapMem) (CapMem capMem, Bit#(FlagsW) f) =
-  setFlags(capMem, f);
-
-(* noinline *)
-function Bit#(31) `W(getPermsCapMem) (CapMem capMem);
-  CapFat fat = cast(capMem);
-  return getPerms(fat);
-endfunction
-
-(* noinline *)
-function CapMem `W(setPermsCapMem) (CapMem cap, Bit#(31) perms) =
-  setPermsCapMem(cap, perms);
-
-(* noinline *)
-function HardPerms `W(getHardPermsCapMem) (CapMem cap) = getHardPerms(cap);
-
-(* noinline *)
-function Bit#(CapAddrW) `W(getAddrCapMem) (CapMem cap) = getAddr(cap);
-
-(* noinline *)
-function CapMem `W(setAddrUnsafeCapMem) (CapMem cap, Bit#(CapAddrW) addr) =
-  setAddrUnsafe(cap, addr);
-
-(* noinline *)
-function Bit#(CBoundsW) `W(getBoundsBitsCapMem) (CapMem capMem) =
-  getBoundsBitsCapMem(capMem);
-
 endpackage

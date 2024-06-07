@@ -165,12 +165,9 @@ def genCapDefn(capValName):
     sys.exit()
   with open(files[0]) as f:
     for line in f:
-      m = re.match(".*" + capValName + " = [0-9]+'([hd])([0-9a-fA-F]+).*", line)
+      m = re.match(".*" + capValName + " = [0-9]+'h([0-9a-fA-F]+).*", line)
       if m:
-        if m.groups()[0] == 'h':
-          print(capValName + "Integer :: Integer = 0x" + m.groups()[1])
-        else:
-          print(capValName + "Integer :: Integer = " + m.groups()[1])
+        print(capValName + "Integer :: Integer = 0x" + m.groups()[0])
         return
 
 # Main
@@ -305,7 +302,6 @@ def genBlarneyTypeSyns():
   icapWidth = bluetcl.bitWidth("CapPipe")
   addrWidth = bluetcl.getTypeInfo("CapAddrW")[2]
   capWidth = bluetcl.getTypeInfo("CapW")[2]
-  boundsWidth = bluetcl.getTypeInfo("CBoundsW")[2]
   print("type CapPipeWidth =", icapWidth)
   print("type CapPipe = Bit CapPipeWidth")
   print()
@@ -321,10 +317,6 @@ def genBlarneyTypeSyns():
   print("type CapAddrWidth =", int(addrWidth))
   print("type CapAddr = Bit CapAddrWidth")
   print()
-  print("type CapCBoundsWidth =", int(boundsWidth))
-  print("type CapCBounds = Bit CapCBoundsWidth")
-  print()
-
 
 addrWidth = bluetcl.getTypeInfo("CapAddrW")[2]
 print("{-# LANGUAGE NoFieldSelectors #-}")
