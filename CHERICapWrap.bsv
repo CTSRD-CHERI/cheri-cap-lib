@@ -27,7 +27,6 @@
 
 package CHERICapWrap;
 
-import Vector :: *;
 import CHERICap :: *;
 import CHERICC_Fat :: *;
 
@@ -198,14 +197,5 @@ function CapMem `W(setAddrUnsafeCapMem) (CapMem cap, Bit#(CapAddrW) addr) =
 (* noinline *)
 function Bit#(CBoundsW) `W(getBoundsBitsCapMem) (CapMem capMem) =
   getBoundsBitsCapMem(capMem);
-
-(* noinline *)
-`define SIMTLanes 32
-function Vector#(`SIMTLanes, Tuple2#(Bit#(CapAddrW),
-                                     Bit#(TAdd#(CapAddrW, 1))))
-           `W(vectorBoundsDecompress) (
-             Bit#(CBoundsW) cboundsRaw,
-             Vector#(`SIMTLanes, Bit#(CapAddrW)) addrs) =
-  vectorBoundsDecompress(cboundsRaw, addrs);
 
 endpackage
