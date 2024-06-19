@@ -136,4 +136,9 @@ function BoundsInfo#(CapAddrW) `W(getBoundsInfo) (`CAPTYPE cap) =
 (* noinline *)
 function `CAPTYPE `W(setAddrUnsafe) (`CAPTYPE cap, Bit#(CapAddrW) addr) =
   setAddrUnsafe(cap, addr);
+(* noinline *)
+function CapMem `W(setAddrCapMemUnsafe) (CapMem cap, Bit#(CapAddrW) addr) =
+  setAddrUnsafe(cap, addr);
+(* noinline *)
+function CapMem `W(setValidCapMem) (CapMem cap, Bool valid) = setValidCap(cap, valid);
 endpackage
