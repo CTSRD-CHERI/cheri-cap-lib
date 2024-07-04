@@ -41,6 +41,7 @@ export CapFat;
 export MW;
 export OTypeW;
 export FlagsW;
+export CIDW;
 export Perms;
 export ResW;
 export Format;
@@ -89,7 +90,8 @@ typedef 64 CapW;
 typedef 4   UPermW;
 typedef 14  MW;
 typedef 6   ExpW;
-typedef 18  OTypeW;
+typedef 10  OTypeW;
+typedef 8   CIDW;
 typedef `FLAGSW FlagsW;
 typedef 64  CapAddrW;
 typedef 128 CapW;
@@ -137,14 +139,16 @@ typedef SizeOf#(Perms) PermsW;
 // The reserved bits
 typedef TSub#(CapW, TAdd#( CapAddrW
                          , TAdd#( OTypeW
-                                , TAdd#( CBoundsW
-                                       , TAdd#(PermsW, FlagsW))))) ResW;
+                                , TAdd#( CIDW
+                                       , TAdd#( CBoundsW
+                                              , TAdd#(PermsW, FlagsW)))))) ResW;
 // The full capability structure, including the "tag" bit.
 typedef struct {
   Bool         isCapability;
   Perms        perms;
   Bit#(ResW)   reserved;
   Bit#(FlagsW) flags;
+  Bit#(CIDW)   cid;
   Bit#(OTypeW) otype;
   CBounds      bounds;
   CapAddr      address;
@@ -179,6 +183,7 @@ typedef struct {
   Bit#(MW)       addrBits;
   Perms          perms;
   Bit#(FlagsW)   flags;
+  Bit#(CIDW)     cid;
   Bit#(ResW)     reserved;
   Bit#(OTypeW)   otype;
   Format         format;
@@ -190,6 +195,7 @@ function Fmt showArchitectural(CapFat cap) =
   $format("valid:%b", cap.isCapability)
   + $format(" perms:0x%x", getPerms(cap))
   //+ $format(" flags:0x%x", getFlags(cap))
+  + $format(" cid:", fshow(getCID(cap)))
   + $format(" kind:", fshow(getKind(cap)))
   + $format(" offset:0x%x", getOffsetFat(cap, getTempFields(cap)))
   + $format(" base:0x%x", getBotFat(cap, getTempFields(cap)))
@@ -225,6 +231,7 @@ function CapFat unpackCap(Capability thin);
   fat.isCapability = memCap.isCapability;
   fat.perms        = memCap.perms;
   fat.flags        = memCap.flags;
+  fat.cid          = memCap.cid;
   fat.reserved     = memCap.reserved;
   fat.otype        = memCap.otype;
   match {.f, .b}   = decBounds(memCap.bounds);
@@ -248,6 +255,7 @@ function Capability packCap(CapFat fat);
       isCapability: fat.isCapability
     , perms:        fat.perms
     , flags:        fat.flags
+    , cid:          fat.cid
     , reserved:     fat.reserved
     , otype:        fat.otype
     , bounds:       encBounds(fat.format,fat.bounds)
@@ -863,6 +871,7 @@ instance DefaultValue #(CapFat);
       isCapability: True
     , perms       : unpack(~0)
     , flags       : 0
+    , cid         : 0
     , reserved    : 0
     , otype       : otype_unsealed
     , format      : EmbeddedExp
@@ -875,6 +884,7 @@ CapFat null_cap = CapFat {
     isCapability: False
   , perms       : unpack(0)
   , flags       : 0
+  , cid         : 0
   , reserved    : 0
   , otype       : otype_unsealed
   , format      : EmbeddedExp
@@ -1033,7 +1043,7 @@ typedef struct {
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
+instance CHERICap #(CapMem, OTypeW, FlagsW, CIDW, CapAddrW, CapW, TSub #(MW, 3));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1056,6 +1066,18 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   function setFlags (capMem, f);
     CapabilityInMemory cap = unpack (capMem);
     cap.flags = f;
+    return pack (cap);
+  endfunction
+
+  // capability CID
+  //////////////////////////////////////////////////////////////////////////////
+  function getCID (capMem);
+    CapabilityInMemory cap = unpack (capMem);
+    return cap.cid;
+  endfunction
+  function setCID (capMem, cid);
+    CapabilityInMemory cap = unpack (capMem);
+    cap.cid = cid;
     return pack (cap);
   endfunction
 
@@ -1100,6 +1122,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
     return { pack (cap.perms)
            , pack (cap.reserved)
            , pack (cap.flags)
+           , pack (cap.cid)
            , pack (cap.otype)
            , pack (cap.bounds) };
   endfunction
@@ -1174,7 +1197,8 @@ instance FShow #(CapPipe);
                         " sp: ", fshow(pack(getSoftPerms(cap))),
                         " hp: ", fshow(pack(getHardPerms(cap))),
                         " ot: ", fshow(cap.capFat.otype),
-                        " f: ", fshow(getFlags(cap)));
+                        " f: ", fshow(getFlags(cap)),
+                        " cid: ", fshow(getCID(cap)));
 endinstance
 
 instance Eq #(CapPipe);
@@ -1191,7 +1215,7 @@ endinstance
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
+instance CHERICap #(CapReg, OTypeW, FlagsW, CIDW, CapAddrW, CapW, TSub #(MW, 3));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1206,6 +1230,14 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   function getFlags (cap) = cap.flags;
   function setFlags (cap, flags);
     cap.flags = flags;
+    return cap;
+  endfunction
+
+  // capability CID
+  //////////////////////////////////////////////////////////////////////////////
+  function getCID (cap) = cap.cid;
+  function setCID (cap, cid);
+    cap.cid = cid;
     return cap;
   endfunction
 
@@ -1339,7 +1371,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
 endinstance
 
-instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
+instance CHERICap #(CapPipe, OTypeW, FlagsW, CIDW, CapAddrW, CapW, TSub#(MW, 3));
 
   //Functions supported by CapReg are just passed through
 
@@ -1350,6 +1382,10 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
   function getFlags (cap) = getFlags(cap.capFat);
   function setFlags (cap, flags) =
     CapPipe { capFat: setFlags(cap.capFat, flags)
+            , tempFields: cap.tempFields };
+  function getCID (cap) = getCID(cap.capFat);
+  function setCID (cap, cid) =
+    CapPipe { capFat: setCID(cap.capFat, cid)
             , tempFields: cap.tempFields };
   function getHardPerms (cap) = getHardPerms(cap.capFat);
   function setHardPerms (cap, perms) =
@@ -1532,6 +1568,7 @@ function CapMem untrimCap(CapTrim ct);
                 perms: ct.perms,
                 reserved: 0,
                 flags: ct.flags,
+                cid: 0,
                 otype: otype_unsealed,
                 bounds: ct.bounds,
                 address: signExtend({addressMsb,ct.address})

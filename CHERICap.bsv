@@ -119,7 +119,7 @@ endfunction
 
 // XXX TODO augment with all architectural bounds/ repbounds ?
 function Fmt showCHERICap (capT cap)
-  provisos (CHERICap #(capT , otypeW, flgW, addrW, inMemW, maskableW));
+  provisos (CHERICap #(capT , otypeW, flgW, cidW, addrW, inMemW, maskableW));
   return $format( "Valid: 0x%0x", isValidCap(cap)) +
          $format(" Perms: 0x%0x", getPerms(cap)) +
          $format(" Kind: ", fshow(getKind(cap))) +
@@ -150,11 +150,12 @@ endinstance
 typeclass CHERICap #( type capT              // type of the CHERICap capability
                     , numeric type otypeW    // width of the object type
                     , numeric type flgW      // width of the flags field
+                    , numeric type cidW      // width of the cid field
                     , numeric type addrW     // width of the address
                     , numeric type inMemW    // width of the capability in mem
                     , numeric type maskableW // width of maskable bits
                     )
-  dependencies (capT determines (otypeW, flgW, addrW, inMemW, maskableW));
+  dependencies (capT determines (otypeW, flgW, cidW, addrW, inMemW, maskableW));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -171,6 +172,14 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function Bit #(flgW) getFlags (capT cap);
   // Set the flags field
   function capT setFlags (capT cap, Bit #(flgW) flags);
+
+  // capability CID
+  //////////////////////////////////////////////////////////////////////////////
+
+  // Get the flags field
+  function Bit #(cidW) getCID (capT cap);
+  // Set the flags field
+  function capT setCID (capT cap, Bit #(cidW) cid);
 
   // capability permissions
   //////////////////////////////////////////////////////////////////////////////
