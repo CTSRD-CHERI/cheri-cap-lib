@@ -32,6 +32,7 @@ package CHERICC_Fat;
 
 import DefaultValue :: *;
 import CHERICap     :: *;
+import Vector       :: *;
 
 export CapMem;
 export CapReg;
@@ -64,6 +65,7 @@ export isSealedCapMem;
 export isSentryCapMem;
 export setPermsCapMem;
 export getBoundsBitsCapMem;
+export isAccessInBounds;
 
 // ===============================================================================
 
@@ -463,6 +465,75 @@ function Bool capInBounds(CapFat cap, TempFields tf, Bool inclusive);
                                          : tf.addrHi;
   return topOk && baseOk;
 endfunction
+
+// To support capability arithmetic, a pipeline will typically contain an
+// instance of the setAddr function. This is sufficient to implement both
+// CSetAddr and CIncOffset:
+//
+//   CIncOffset(cap, incr) = CSetAddr(cap, cap.addr + incr)
+//
+// To implement loads and stores, we want to check that cap.addr + incr is in
+// bounds. It is almost sufficient to feed the output of setAddr into
+// isInBounds (defined above), resulting in a very small amount of logic
+// to check bounds. The problem is that this only guarantees that
+// the first byte of the access is in bounds, not the remaining bytes.
+// Below, we introduce a variant called isAccessInBounds which takes an
+// additional argument: the width of the access.
+//
+// One way to define isAccessInBounds would be to essentially call isInBounds
+// twice, once with a capability pointing to the first byte of the access
+// (capFirst), and once with a capability pointing to the final byte of the
+// access (capFinal). But to compute capFinal we need to add the access width
+// to the address of capFirst and then recompute the addrBits field of the
+// resulting capability, which is an expensive operation (a right-shift
+// by 5-bit number). 
+//
+// Instead, we exploit the assumption that the address being accessed is
+// aligned to the access width (a common requirement in low-area
+// implementations?), and exploit the following property:
+//
+//            isInBounds(cap) 
+//        and cap.addr is 2^n-byte aligned
+//        and cap.bounds.exp >= n
+//    implies cap.addr + (2^n-1) is in bounds
+//
+// Assuming a max access width of 2^3=8, we only need to recompute
+// addrBits when n < 3 (a three-input mux).
+//
+// Another assumption made is that if a capability is in bounds then
+// incrementing it by the max access width (8) will result in a
+// capability that is in representable bounds. I believe this to be a 
+// valid assumption.
+//
+function Bool isAccessInBounds(CapPipe capPipe, Bit#(2) logAccessWidth);
+  CapFat cap = capPipe.capFat;
+  TempFields tf = capPipe.tempFields;
+  // Top is ok if the pointer and top are in the same alignment region
+  // and the pointer is less than the top.  If they are not in the same
+  // alignment region, it's ok if the top is in Hi and the bottom in Low.
+  Bool topOk  = (tf.topHi  == tf.addrHi) ? cap.addrBits <  cap.bounds.topBits
+                                         : tf.topHi;
+  Bool baseOk = (tf.baseHi == tf.addrHi) ? cap.addrBits >= cap.bounds.baseBits
+                                         : tf.addrHi;
+
+  // Determine capability pointing one byte past the last byte of the access,
+  // under assumption the exponent is <= 2
+  Bit#(ExpW) exp = pack(cap.bounds.exp);
+  cap.address = cap.address + (1 << logAccessWidth);
+  //cap.addrBits = truncate(cap.address >> exp[1:0]);
+  Vector#(4, Bit#(MW)) addrBits = newVector;
+  addrBits[0] = cap.address[valueOf(MW)-1 : 0];
+  addrBits[1] = cap.address[valueOf(MW) : 1];
+  addrBits[2] = cap.address[valueOf(MW)+1 : 2];
+  addrBits[3] = ?;
+  cap.addrBits = addrBits[exp[1:0]];
+  tf = getTempFields(cap);
+  Bool plusOk = (tf.topHi  == tf.addrHi) ? cap.addrBits <= cap.bounds.topBits
+                                         : tf.topHi;
+  return capPipe.capFat.isCapability && topOk && baseOk &&
+           (cap.bounds.exp >= 3 || plusOk);
+endfunction
+
 function CapFat setCapPointer(CapFat cap, CapAddr pointer);
   // Function to "cheat" and just set the pointer when we know that
   // it will be in representable bounds by some other means.

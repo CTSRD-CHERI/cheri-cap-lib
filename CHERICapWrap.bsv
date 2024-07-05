@@ -198,4 +198,8 @@ function CapMem `W(setAddrUnsafeCapMem) (CapMem cap, Bit#(CapAddrW) addr) =
 function Bit#(CBoundsW) `W(getBoundsBitsCapMem) (CapMem capMem) =
   getBoundsBitsCapMem(capMem);
 
+(* noinline *)
+function Bool `W(isAccessInBounds) (CapPipe capPipe, Bit#(2) logAccessWidth) =
+  isAccessInBounds(capPipe, logAccessWidth);
+
 endpackage
