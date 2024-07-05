@@ -486,7 +486,7 @@ endfunction
 // access (capFinal). But to compute capFinal we need to add the access width
 // to the address of capFirst and then recompute the addrBits field of the
 // resulting capability, which is an expensive operation (a right-shift
-// by 5-bit number). 
+// by the 5-bit exponent). 
 //
 // Instead, we exploit the assumption that the address being accessed is
 // aligned to the access width (a common requirement in low-area
@@ -498,7 +498,7 @@ endfunction
 //    implies cap.addr + (2^n-1) is in bounds
 //
 // Assuming a max access width of 2^3=8, we only need to recompute
-// addrBits when n < 3 (a three-input mux).
+// addrBits when the exponent is less than 3 (a three-input mux).
 //
 // Another assumption made is that if a capability is in bounds then
 // incrementing it by the max access width (8) will result in a
