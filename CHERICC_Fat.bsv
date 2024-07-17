@@ -61,6 +61,8 @@ export SetBoundsReturn;
 export CapTrim;
 export trimCap;
 export untrimCap;
+export CapAddr;
+export CapAddrPlus1;
 
 // ===============================================================================
 
