@@ -74,4 +74,15 @@ by running
 within the OpenTitan GitHub repository as of commit
 https://github.com/lowRISC/opentitan/commit/2438b17afe4fef0d815be2e890763c288c449918
 
+== Formal Verification
 
+A small number of properties have been specified in `CHERICapProp.bsv`.
+These can be verfied using SymbiYosys, e.g.
+
+```
+wget https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2024-07-17/oss-cad-suite-linux-x64-20240717.tgz
+tar xzf oss-cad-suite-linux-x64-20240717.tgz
+export PATH=`pwd`/oss-cad-suite/bin:$PATH
+make verilog-props
+sby -f check.sby
+```
