@@ -101,5 +101,9 @@ function Bit#(CapAddrW) `W(getRepresentableAlignmentMask) (`CAPTYPE dummy, Bit#(
 function Bit#(CapAddrW) `W(getRepresentableLength) (`CAPTYPE dummy, Bit#(CapAddrW) length) = roundLength (dummy, length);
 (* noinline *)
 function Bit#(2) `W(getBaseAlignment) (`CAPTYPE cap) = getBaseAlignment(cap);
+(* noinline *) 
+function Bool `W(isDerivable) (`CAPTYPE cap) = isDerivable(cap);
+
+
 
 endpackage
