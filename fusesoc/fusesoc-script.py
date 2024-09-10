@@ -58,6 +58,10 @@ print(bscargs)
 subprocess.call(bscargs, cwd=bsv_src_root)
 
 
+for vfile in os.listdir(workdir):
+  if vfile[-2:] == ".v":
+    subprocess.call(["sed", "-i", "/^module/i\/* verilator lint_off UNUSED */", vfile])
+    subprocess.call(["sed", "-i", "/^endmodule/a\/* verilator lint_on UNUSED */", vfile])
 
 
 print("CCL AUTOGEN NAME:")
