@@ -70,7 +70,7 @@ and
 
 These fusesoc cores and instructions work using fusesoc 0.3 as installed
 by running
-``pip3 install -r python_requirements.txt``
+``pip3 install -r python-requirements.txt``
 within the OpenTitan GitHub repository as of commit
 https://github.com/lowRISC/opentitan/commit/2438b17afe4fef0d815be2e890763c288c449918
 
