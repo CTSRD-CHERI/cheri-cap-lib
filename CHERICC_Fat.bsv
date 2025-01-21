@@ -39,8 +39,6 @@ export CapPipe;
 
 export CapFat;
 export MW;
-export OTypeW;
-export FlagsW;
 export Perms;
 export ResW;
 export Format;
@@ -74,20 +72,20 @@ typedef struct {
 // ===============================================================================
 
 `ifdef CAP64
-typedef 0  UPermW;
+typedef 2  UPermW;
 typedef 10  MW;
-typedef 5  ExpW;
 typedef TMul#(MW,2) CBoundsW;
+typedef 5  ExpW;
 typedef 3 HalfExpW;
 typedef 0 ResHiW;
 typedef 3 ResLoW;
 typedef 32 CapAddrW;
 typedef 64 CapW;
 `else // CAP128 is default
-typedef 2   UPermW;
+typedef 4   UPermW;
 typedef 14  MW;
-typedef 6   ExpW;
 typedef TSub#(TMul#(MW,2),1) CBoundsW;
+typedef 6   ExpW;
 typedef 2 HalfExpW;
 typedef 7 ResHiW;
 typedef 15 ResLoW;
@@ -120,9 +118,13 @@ typedef struct {
   Bool permit_load;
   Bool permit_store;
   Bool permit_cap;
-} HPerms deriving(Bits, Eq, FShow); // 8 bits
+  Bool capability_level;
+} HPerms deriving(Bits, Eq, FShow); // 9 bits
 
-typedef Bit#(5) CompressedHPerms;
+typedef struct {
+  Bit#(5) code;
+  Bool capability_level;
+} CompressedHPerms deriving(Bits, Eq, FShow); // 6 bits
 
 function HPerms compressedHPermsToHPerms(CompressedHPerms cPerms);
   let p = HPerms {
@@ -133,43 +135,44 @@ function HPerms compressedHPermsToHPerms(CompressedHPerms cPerms);
     permit_execute: False,
     permit_load: False,
     permit_store: False,
-    permit_cap: False};
-  case (cPerms)
+    permit_cap: False,
+    capability_level: cPerms.capability_level};
+  case (cPerms.code)
     {2'd0,3'd1}, {2'd0,3'd5},
     {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd2}, {2'd1,3'd3}, {2'd1,3'd4}, {2'd1,3'd5}, {2'd1,3'd6}, {2'd1,3'd7},
     {2'd2,3'd3},
     {2'd3,3'd3}, {2'd3,3'd7}
-    : p.permission_load = True;
+    : p.permit_load = True;
   endcase
-  case (cPerms)
+  case (cPerms.code)
     {2'd0,3'd4}, {2'd0,3'd5},
     {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd4}, {2'd1,3'd5}, {2'd1,3'd6}, {2'd1,3'd7},
 
     {2'd3,3'd7}
-    : p.permission_store = True;
+    : p.permit_store = True;
   endcase
-  case (cPerms)
+  case (cPerms.code)
 
     {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd2}, {2'd1,3'd3}, {2'd1,3'd4}, {2'd1,3'd5},
     {2'd2,3'd3},
     {2'd3,3'd3}, {2'd3,3'd7}
-    : p.permission_cap = True;
+    : p.permit_cap = True;
   endcase
-  case (cPerms)
+  case (cPerms.code)
 
     {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd2}, {2'd1,3'd3}, {2'd1,3'd4}, {2'd1,3'd5},
 
     {2'd3,3'd3}, {2'd3,3'd7}
     : p.permit_load_mutable = True;
   endcase
-  case (cPerms)
+  case (cPerms.code)
 
     {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd2}, {2'd1,3'd3}, {2'd1,3'd4}, {2'd1,3'd5}, {2'd1,3'd6}, {2'd1,3'd7}
 
 
     : p.permit_execute = True;
   endcase
-  case (cPerms)
+  case (cPerms.code)
 
     {2'd1,3'd0}, {2'd1,3'd1}
 
@@ -180,7 +183,7 @@ function HPerms compressedHPermsToHPerms(CompressedHPerms cPerms);
 endfunction
 
 function Bool compressedHPermsToIntMode(CompressedHPerms cPerms);
-  return (case (cPerms)
+  return (case (cPerms.code)
 
       {2'd1,3'd0}, {2'd1,3'd2}, {2'd1,3'd4}, {2'd1,3'd6}
 
@@ -202,21 +205,24 @@ typedef struct {
   CompressedHPerms chperms;
 } CPerms deriving(Bits, Eq, FShow);
 
-function Perms compressedHPermsToPerms(CPerms cPerms);
+function Perms getPermsField(CapabilityInMemory memcap);
+`ifdef CAP64
   return Perms{
-    soft: cPerms.soft,
-    intMode: compressedHPermsToIntMode(cPerms.chperms),
-    hard: compressedHPermsToHPerms(cPerms.chperms)
+    soft: memcap.perms.soft,
+    intMode: compressedHPermsToIntMode(memcap.perms.chperms),
+    hard: compressedHPermsToHPerms(capmmemcapem.perms.chperms)
   };
+`else
+  return memcap.perms;
+`endif
 endfunction
 
 // The full capability structure, including the "tag" bit.
 `ifdef CAP64
 typedef struct {
   Bool         isCapability;
-  Bit#(RewHiW) reserved_hi; // 0-bits in this case
+  Bit#(ResHiW) reserved_hi; // 0-bits in this case
   CPerms       perms;
-  Bool         non_ephemeral; // "Capability Level (CL)"
   Bit#(ResLoW) reserved_lo;
   Bool         sealed;
   CBounds      bounds;
@@ -224,14 +230,13 @@ typedef struct {
 } CapabilityInMemory deriving (Bits, Eq, FShow); // CapW + 1 (tag bit)
 `else
 typedef struct {
-  Bool         isCapability;
-  Bit#(RewHiW) reserved_hi;
-  Perms        perms;
-  Bool         non_ephemeral; // "Capability Level (CL)"
-  Bit#(ResLoW) reserved_lo;
-  Bool         sealed;
-  CBounds      bounds;
-  CapAddr      address;
+  Bool         isCapability; // 1
+  Bit#(ResHiW) reserved_hi;  // 7
+  Perms        perms;        // 4 + 1 + 9
+  Bit#(ResLoW) reserved_lo;  // 15
+  Bool         sealed;       // 1
+  CBounds      bounds;       // 27
+  CapAddr      address;      // 64
 } CapabilityInMemory deriving (Bits, Eq, FShow); // CapW + 1 (tag bit)
 `endif
 
@@ -250,17 +255,6 @@ typedef Bit#(CapW) DebugCap;
 typedef enum {Exp0, EmbeddedExp} Format deriving (Bits, Eq, FShow);
 // Exponent type
 typedef UInt#(ExpW) Exp;
-// Type for capability otype field
-typedef VnD#(Bit#(OTypeW)) CType;
-Bit#(OTypeW) otype_unsealed = -1;
-Bit#(OTypeW) otype_sentry   = -2;
-`ifdef CAP64
-Bit#(OTypeW) otype_max      = 0;
-`else
-Bit#(OTypeW) otype_max      = -5;
-Bit#(OTypeW) otype_res0     = -3;
-Bit#(OTypeW) otype_res1     = -4;
-`endif
 
 // unpacked capability format
 typedef struct {
@@ -268,10 +262,9 @@ typedef struct {
   Bit#(CapAddrW) address;
   Bit#(MW)       addrBits;
   Perms          perms;
-  Bit#(FlagsW)   flags;
-  Bit#(7)        reserved_hi;
-  Bit#(15)       reserved_lo;
-  Bit#(OTypeW)   otype;
+  Bit#(ResHiW)   reserved_hi;
+  Bit#(ResLoW)   reserved_lo;
+  Bool           sealed;
   Format         format;
   Bounds         bounds;
 } CapFat deriving (Bits);
@@ -280,7 +273,6 @@ typedef struct {
 function Fmt showArchitectural(CapFat cap) =
   $format("valid:%b", cap.isCapability)
   + $format(" perms:0x%x", getPerms(cap))
-  //+ $format(" flags:0x%x", getFlags(cap))
   + $format(" kind:", fshow(getKind(cap)))
   + $format(" offset:0x%x", getOffsetFat(cap, getTempFields(cap)))
   + $format(" base:0x%x", getBotFat(cap, getTempFields(cap)))
@@ -291,8 +283,8 @@ instance FShow#(CapFat);
   function Fmt fshow(CapFat cap) =
     $format("valid:%b", cap.isCapability)
     + $format(" perms:0x%x", getPerms(cap))
-    //+ $format(" flags:0x%x", getFlags(cap))
-    + $format(" reserved:0x%x", cap.reserved)
+    + $format(" reserved hi:0x%x", cap.reserved_hi)
+    + $format(" reserved hi:0x%x", cap.reserved_lo)
     + $format(" format:", fshow(cap.format))
     + $format(" bounds:", fshow(cap.bounds))
     + $format(" address:0x%x", cap.address)
@@ -314,10 +306,10 @@ function CapFat unpackCap(Capability thin);
   // extract the fields from the memory capability
   CapFat fat = defaultValue;
   fat.isCapability = memCap.isCapability;
-  fat.perms        = memCap.perms;
-  fat.flags        = memCap.flags;
-  fat.reserved     = memCap.reserved;
-  fat.otype        = memCap.otype;
+  fat.perms        = getPermsField(memCap);
+  fat.reserved_hi  = memCap.reserved_hi;
+  fat.reserved_lo  = memCap.reserved_lo;
+  fat.sealed       = memCap.sealed;
   match {.f, .b}   = decBounds(memCap.bounds);
   fat.format       = f;
   fat.bounds       = b;
@@ -338,9 +330,9 @@ function Capability packCap(CapFat fat);
   CapabilityInMemory thin = CapabilityInMemory{
       isCapability: fat.isCapability
     , perms:        fat.perms
-    , flags:        fat.flags
-    , reserved:     fat.reserved
-    , otype:        fat.otype
+    , reserved_hi:  fat.reserved_hi
+    , reserved_lo:  fat.reserved_lo
+    , sealed:       fat.sealed
     , bounds:       encBounds(fat.format,fat.bounds)
     , address:      fat.address };
   return pack(thin);
@@ -769,15 +761,14 @@ function SetBoundsReturn#(CapFat, CapAddrW) setBoundsFat(CapFat cap, Address len
                          , mask:   truncate(baseMask)
                          , inBounds: resultInBounds };
 endfunction
-function CapFat seal(CapFat cap, TempFields tf, CType otype);
+function CapFat seal(CapFat cap, TempFields tf);
   CapFat ret = cap;
-  // Update the fields of the new sealed capability (otype)
-  ret.otype = otype.d;
+  ret.sealed = True;
   return ret;
 endfunction
 function CapFat unseal(CapFat cap, x _);
   CapFat ret = cap;
-  ret.otype = otype_unsealed;
+  ret.sealed = False;
   return ret;
 endfunction
 function VnD#(CapFat) incOffsetFat( CapFat cap
@@ -956,9 +947,9 @@ instance DefaultValue #(CapFat);
   defaultValue = CapFat {
       isCapability: True
     , perms       : unpack(~0)
-    , flags       : 0
-    , reserved    : 0
-    , otype       : otype_unsealed
+    , reserved_hi : 0
+    , reserved_lo : 0
+    , sealed      : False
     , format      : EmbeddedExp
     , bounds      : defaultValue
     , address     : 0
@@ -968,9 +959,9 @@ endinstance
 CapFat null_cap = CapFat {
     isCapability: False
   , perms       : unpack(0)
-  , flags       : 0
-  , reserved    : 0
-  , otype       : otype_unsealed
+  , reserved_hi : 0
+  , reserved_lo : 0
+  , sealed      : False
   , format      : EmbeddedExp
   , bounds      : defaultValue
   , address     : 0
@@ -1124,7 +1115,7 @@ typedef struct {
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, 0);
+instance CHERICap #(CapMem, CapAddrW, CapW, 0);
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1140,13 +1131,13 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, 0);
 
   // capability flags
   //////////////////////////////////////////////////////////////////////////////
-  function getFlags (capMem);
+  function getIntMode (capMem);
     CapabilityInMemory cap = unpack (capMem);
-    return cap.flags;
+    return getPerms(cap).intMode;
   endfunction
-  function setFlags (capMem, f);
+  function setIntMode (capMem, im);
     CapabilityInMemory cap = unpack (capMem);
-    cap.flags = f;
+    cap.perms.intMode = im; // XXX Only works for CAP128 currently...
     return pack (cap);
   endfunction
 
@@ -1154,25 +1145,20 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, 0);
   //////////////////////////////////////////////////////////////////////////////
   function getHardPerms (capMem);
     CapabilityInMemory cap = unpack (capMem);
+`ifdef CAP64
+    HPerms hperms = compressedHPermsToHPerms(cap.perms);
+`else
+    HPerms hperms = cap.perms.hard;
+`endif
     return HardPerms {
-`ifndef CAP64
-      permitSetCID:        cap.perms.hard.permit_set_CID ,
-`endif
-      accessSysRegs:       cap.perms.hard.access_sys_regs
-`ifndef CAP64
-    , permitUnseal:        cap.perms.hard.permit_unseal
-    , permitCCall:         cap.perms.hard.permit_ccall
-    , permitSeal:          cap.perms.hard.permit_seal
-    , permitStoreLocalCap: cap.perms.hard.permit_store_ephemeral_cap
-    , permitStoreCap:      cap.perms.hard.permit_store_cap
-`endif
-    , permitLoadCap:       cap.perms.hard.permit_load_cap
-    , permitStore:         cap.perms.hard.permit_store
-    , permitLoad:          cap.perms.hard.permit_load
-    , permitExecute:       cap.perms.hard.permit_execute
-`ifndef CAP64
-    , global:              cap.perms.hard.non_ephemeral
-`endif
+        accessSysRegs:        hperms.access_sys_regs
+      , permitLoadMutable:    hperms.permit_load_mutable
+      , permitLoadEphemeral:  hperms.permit_load_ephemeral
+      , permitCap:            hperms.permit_cap
+      , permitStore:          hperms.permit_store
+      , permitLoad:           hperms.permit_load
+      , permitExecute:        hperms.permit_execute
+      , permissionStoreLevel: hperms.permission_store_level
     };
   endfunction
   function setHardPerms = error ("setHardPerms not implemented for CapMem");
@@ -1185,11 +1171,7 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, 0);
   //////////////////////////////////////////////////////////////////////////////
   function getKind = error ("getKind not implemented for CapMem");
   function setKind = error ("setKind not implemented for CapMem");
-  function validAsType (dummy, checkType);
-    UInt #(CapAddrW) checkTypeUnsigned = unpack (checkType);
-    UInt #(CapAddrW) otypeMaxUnsigned = unpack (zeroExtend (otype_max));
-    return checkTypeUnsigned <= otypeMaxUnsigned;
-  endfunction
+  function validAsType (dummy, checkType) = True; // No otypes, so dummy function.
 
   // capability in-memory architectural representation
   //////////////////////////////////////////////////////////////////////////////
@@ -1271,8 +1253,8 @@ instance FShow #(CapPipe);
                         " t: ", fshow(getTop(cap)),
                         " sp: ", fshow(pack(getSoftPerms(cap))),
                         " hp: ", fshow(pack(getHardPerms(cap))),
-                        " ot: ", fshow(cap.capFat.otype),
-                        " f: ", fshow(getFlags(cap)));
+                        " s: ", fshow(cap.capFat.sealed),
+                        " m: ", fshow(getIntMode(cap)));
 endinstance
 
 instance Eq #(CapPipe);
@@ -1289,7 +1271,7 @@ endinstance
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, 0);
+instance CHERICap #(CapReg, CapAddrW, CapW, 0);
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1301,54 +1283,44 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, 0);
 
   // capability flags
   //////////////////////////////////////////////////////////////////////////////
-  function getFlags (cap) = cap.flags;
-  function setFlags (cap, flags);
-    cap.flags = flags;
+  function getIntMode (cap) =
+`ifdef CAP64
+    compressedHPermsToIntMode(cap.perms);
+`else
+    cap.perms.intMode;
+`endif
+
+  function setIntMode (cap, im);
+`ifdef CAP64
+    error("cap64 not complete yet"); // XXX not implemented yet.  Needs legalisation.
+`else
+    cap.perms.intMode = im;
+`endif
     return cap;
   endfunction
 
   // capability permissions
   //////////////////////////////////////////////////////////////////////////////
   function getHardPerms (cap) = HardPerms {
-`ifndef CAP64
-      permitSetCID:        cap.perms.hard.permit_set_CID ,
-`endif
-      accessSysRegs:       cap.perms.hard.access_sys_regs
-`ifndef CAP64
-    , permitUnseal:        cap.perms.hard.permit_unseal
-    , permitCCall:         cap.perms.hard.permit_ccall
-    , permitSeal:          cap.perms.hard.permit_seal
-    , permitStoreLocalCap: cap.perms.hard.permit_store_ephemeral_cap
-    , permitStoreCap:      cap.perms.hard.permit_store_cap
-`endif
-    , permitLoadCap:       cap.perms.hard.permit_load_cap
-    , permitStore:         cap.perms.hard.permit_store
-    , permitLoad:          cap.perms.hard.permit_load
-    , permitExecute:       cap.perms.hard.permit_execute
-`ifndef CAP64
-    , global:              cap.perms.hard.non_ephemeral
-`endif
+      accessSysRegs:        cap.perms.hard.access_sys_regs
+    , permitLoadMutable:    cap.perms.hard.permit_load_mutable
+    , permitLoadEphemeral:  cap.perms.hard.permit_load_ephemeral
+    , permitCap:            cap.perms.hard.permit_cap
+    , permitStore:          cap.perms.hard.permit_store
+    , permitLoad:           cap.perms.hard.permit_load
+    , permitExecute:        cap.perms.hard.permit_execute
+    , permissionStoreLevel: cap.perms.hard.permission_store_level
   };
   function setHardPerms (cap, perms);
     cap.perms.hard = HPerms {
-`ifndef CAP64
-      permit_set_CID:             perms.permitSetCID ,
-`endif
-      access_sys_regs:            perms.accessSysRegs
-`ifndef CAP64
-    , permit_unseal:              perms.permitUnseal
-    , permit_ccall:               perms.permitCCall
-    , permit_seal:                perms.permitSeal
-    , permit_store_ephemeral_cap: perms.permitStoreLocalCap
-    , permit_store_cap:           perms.permitStoreCap
-`endif
-    , permit_load_cap:            perms.permitLoadCap
-    , permit_store:               perms.permitStore
-    , permit_load:                perms.permitLoad
-    , permit_execute:             perms.permitExecute
-`ifndef CAP64
-    , non_ephemeral:              perms.global
-`endif
+        access_sys_regs:            perms.accessSysRegs
+      , permit_load_mutable:        perms.permitLoadMutable
+      , permit_load_ephemeral:      perms.permitLoadEphemeral
+      , permit_cap:                 perms.permitCap
+      , permit_store:               perms.permitStore
+      , permit_load:                perms.permitLoad
+      , permit_execute:             perms.permitExecute
+      , permission_store_level:     perms.permissionStoreLevel
     };
     return cap;
   endfunction
@@ -1362,23 +1334,11 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, 0);
 
   // capability kind
   //////////////////////////////////////////////////////////////////////////////
-  function getKind (cap) = case (cap.otype)
-    otype_unsealed: UNSEALED;
-    otype_sentry:   SENTRY;
-`ifndef CAP64
-    otype_res0:     RES0;
-    otype_res1:     RES1;
-`endif
-    default:        SEALED_WITH_TYPE (cap.otype);
-  endcase;
-  function setKind (cap, kind) = case (kind) matches
-    tagged UNSEALED:             unseal (cap, ?);
-    tagged SENTRY:               seal (cap, ?, VnD {v: True, d:otype_sentry});
-`ifndef CAP64
-    tagged RES0:                 seal (cap, ?, VnD {v: True, d:otype_res0});
-    tagged RES1:                 seal (cap, ?, VnD {v: True, d:otype_res1});
-`endif
-    tagged SEALED_WITH_TYPE .ot: seal (cap, ?, VnD {v: True, d:ot});
+  function getKind (cap) = (cap.sealed) ? SENTRY:UNSEALED;
+
+  function setKind (cap, kind) = case (kind)
+    UNSEALED: unseal (cap);
+    SENTRY:   seal (cap);
   endcase;
   function validAsType (dummy, checkType);
     CapMem nullC = nullCap;
@@ -1455,7 +1415,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, 0);
 
 endinstance
 
-instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, 0);
+instance CHERICap #(CapPipe, CapAddrW, CapW, 0);
 
   //Functions supported by CapReg are just passed through
 
@@ -1463,9 +1423,9 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, 0);
   function setValidCap (cap, tag) =
     CapPipe { capFat: setValidCap(cap.capFat, tag)
             , tempFields: cap.tempFields };
-  function getFlags (cap) = getFlags(cap.capFat);
-  function setFlags (cap, flags) =
-    CapPipe { capFat: setFlags(cap.capFat, flags)
+  function getIntMode (cap) = getIntMode(cap.capFat);
+  function setIntMode (cap, flags) =
+    CapPipe { capFat: setIntMode(cap.capFat, flags)
             , tempFields: cap.tempFields };
   function getHardPerms (cap) = getHardPerms(cap.capFat);
   function setHardPerms (cap, perms) =
@@ -1628,7 +1588,6 @@ typedef 48 VA_Width;
 // be unsealed with the tag set (e.g. PCC)
 typedef struct {
   Perms        perms;
-  Bit#(FlagsW) flags;
   CBounds      bounds;
   Bit#(VA_Width)     address;
   Bool         validAddress;

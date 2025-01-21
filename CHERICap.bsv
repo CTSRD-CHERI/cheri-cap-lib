@@ -34,22 +34,22 @@ package CHERICap;
 
 // Permission bits
 
-typedef Bit #(16) SoftPerms;
+typedef Bit #(2) SoftPerms;
 
 typedef struct {
-  Bool permitSetCID;
-  Bool accessSysRegs;
-  Bool permitUnseal;
-  Bool permitCCall;
-  Bool permitSeal;
-  Bool permitStoreLocalCap;
-  Bool permitStoreCap;
-  Bool permitLoadCap;
-  Bool permitStore;
   Bool permitLoad;
   Bool permitExecute;
-  Bool global;
+  Bool accessSysRegs;
+//  Bit#(8) reserverd;
+//  SoftPerms softPerms;
+  Bool permitCap;
+  Bool capabilityLevel;
+  Bool permissionStoreLevel;
+  Bool permitLoadEphemeral;
+  Bool permitLoadMutable;
+  Bool permitStore;
 } HardPerms deriving(Bits, Eq, FShow);
+
 
 instance Bitwise #(HardPerms);
   function \& (x1, x2) = unpack(pack(x1) & pack(x2));
@@ -67,13 +67,10 @@ endinstance
 // Kind of a capability, that is whether it is "sealed with a given otype", or
 // if it is a "sentry" or simply "unsealed".
 
-typedef union tagged {
-  void UNSEALED;
-  void SENTRY;
-  void RES0;
-  void RES1;
-  Bit #(otypeW) SEALED_WITH_TYPE;
-} Kind #(numeric type otypeW) deriving (Bits, Eq, FShow);
+typedef enum {
+  UNSEALED,
+  SENTRY
+} Kind deriving (Bits, Eq, FShow);
 
 // helper type for gathering bounds information on a capability
 
@@ -119,7 +116,7 @@ endfunction
 
 // XXX TODO augment with all architectural bounds/ repbounds ?
 function Fmt showCHERICap (capT cap)
-  provisos (CHERICap #(capT , otypeW, flgW, addrW, inMemW, maskableW));
+  provisos (CHERICap #(capT , addrW, inMemW, maskableW));
   return $format( "Valid: 0x%0x", isValidCap(cap)) +
          $format(" Perms: 0x%0x", getPerms(cap)) +
          $format(" Kind: ", fshow(getKind(cap))) +
@@ -148,13 +145,11 @@ endinstance
 //       lines of haskell's "@type" type application mechanism)
 
 typeclass CHERICap #( type capT              // type of the CHERICap capability
-                    , numeric type otypeW    // width of the object type
-                    , numeric type flgW      // width of the flags field
                     , numeric type addrW     // width of the address
                     , numeric type inMemW    // width of the capability in mem
                     , numeric type maskableW // width of maskable bits
                     )
-  dependencies (capT determines (otypeW, flgW, addrW, inMemW, maskableW));
+  dependencies (capT determines (addrW, inMemW, maskableW));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -168,9 +163,9 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   //////////////////////////////////////////////////////////////////////////////
 
   // Get the flags field
-  function Bit #(flgW) getFlags (capT cap);
+  function Bool getIntMode (capT cap);
   // Set the flags field
-  function capT setFlags (capT cap, Bit #(flgW) flags);
+  function capT setIntMode (capT cap, Bool im);
 
   // capability permissions
   //////////////////////////////////////////////////////////////////////////////
@@ -184,22 +179,25 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // Set the software permissions
   function capT setSoftPerms (capT cap, SoftPerms softperms);
   // Get the architectural permissions
-  function Bit #(31) getPerms (capT cap) =
-    zeroExtend ({pack (getSoftPerms (cap)), 3'h0, pack (getHardPerms (cap))});
+  function Bit #(31) getPerms (capT cap);
+    let hp = pack(getHardPerms(cap));
+    return zeroExtend ({hp[8:6], 8'b0, getSoftPerms (cap), hp[5:0]});
+  endfunction
   // Set the architectural permissions
-  function capT setPerms (capT cap, Bit #(31) perms) =
-    setSoftPerms ( setHardPerms (cap, unpack (perms[11:0]))
-                 , unpack (truncate (perms[30:15])) );
+  function capT setPerms (capT cap, Bit #(31) perms);
+    cap = setHardPerms (cap, unpack({perms[18:16],perms[5:0]}));
+    cap = setSoftPerms(cap, truncate(perms[15:6]));
+    return cap;
+  endfunction
 
   // capability kind
   //////////////////////////////////////////////////////////////////////////////
-  // Manipulate the kind of the capability, i.e. whether it is sealed, sentry,
-  // unsealed, ...
+  // Manipulate the kind of the capability, i.e. whether it is a sentry, or unsealed
 
   // get the kind of a capability
-  function Kind #(otypeW) getKind (capT cap);
+  function Kind getKind (capT cap);
   // set the kind of a capability
-  function capT setKind (capT cap, Kind #(otypeW) kind);
+  function capT setKind (capT cap, Kind kind);
   // Check if a type is valid (requires a dummy proxy)
   function Bool validAsType (capT dummy, Bit #(addrW) checkType);
 
