@@ -73,26 +73,24 @@ typedef struct {
 
 // ===============================================================================
 
-`ifdef RISCV
-`define FLAGSW 1
-`else // MIPS format with 0-width flags width XXX
-`define FLAGSW 0
-`endif
-
 `ifdef CAP64
 typedef 0  UPermW;
 typedef 10  MW;
-typedef 6  ExpW;
-typedef 2  OTypeW;
-typedef `FLAGSW FlagsW;
+typedef 5  ExpW;
+typedef TMul#(MW,2) CBoundsW;
+typedef 3 HalfExpW;
+typedef 0 ResHiW;
+typedef 3 ResLoW;
 typedef 32 CapAddrW;
 typedef 64 CapW;
 `else // CAP128 is default
-typedef 4   UPermW;
+typedef 2   UPermW;
 typedef 14  MW;
 typedef 6   ExpW;
-typedef 18  OTypeW;
-typedef `FLAGSW FlagsW;
+typedef TSub#(TMul#(MW,2),1) CBoundsW;
+typedef 2 HalfExpW;
+typedef 7 ResHiW;
+typedef 15 ResLoW;
 typedef 64  CapAddrW;
 typedef 128 CapW;
 `endif
@@ -105,11 +103,8 @@ typedef 128 CapW;
 // SizeOf#(Address) should be greater or equal to CapAddrW
 typedef CapAddrW AddressW;
 typedef Bit#(AddressW)     Address;
-typedef TDiv#(ExpW,2)      HalfExpW;
-typedef TSub#(MW,HalfExpW) UpperMW;
 
 // The compressed bounds field type
-typedef TSub#(TMul#(MW,2),1) CBoundsW;
 typedef Bit#(CBoundsW) CBounds;
 // The CapAddr types
 typedef Bit#(CapAddrW)          CapAddr;
@@ -117,46 +112,129 @@ typedef Bit#(TAdd#(CapAddrW,1)) CapAddrPlus1;
 typedef Bit#(TAdd#(CapAddrW,2)) CapAddrPlus2;
 // The Hardware permissions type
 typedef struct {
-`ifndef CAP64
-  Bool permit_set_CID;
-`endif
+  Bool permission_store_level;
+  Bool permit_load_ephemeral;
+  Bool permit_load_mutable;
   Bool access_sys_regs;
-`ifndef CAP64
-  Bool permit_unseal;
-  Bool permit_ccall;
-  Bool permit_seal;
-  Bool permit_store_ephemeral_cap;
-  Bool permit_store_cap;
-`endif
-  Bool permit_load_cap;
-  Bool permit_store;
-  Bool permit_load;
   Bool permit_execute;
-`ifndef CAP64
-  Bool non_ephemeral;
-`endif
-} HPerms deriving(Bits, Eq, FShow); // 12 bits
+  Bool permit_load;
+  Bool permit_store;
+  Bool permit_cap;
+} HPerms deriving(Bits, Eq, FShow); // 8 bits
+
+typedef Bit#(5) CompressedHPerms;
+
+function HPerms compressedHPermsToHPerms(CompressedHPerms cPerms);
+  let p = HPerms {
+    permission_store_level: False,
+    permit_load_ephemeral: False,
+    permit_load_mutable: False,
+    access_sys_regs: False,
+    permit_execute: False,
+    permit_load: False,
+    permit_store: False,
+    permit_cap: False};
+  case (cPerms)
+    {2'd0,3'd1}, {2'd0,3'd5},
+    {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd2}, {2'd1,3'd3}, {2'd1,3'd4}, {2'd1,3'd5}, {2'd1,3'd6}, {2'd1,3'd7},
+    {2'd2,3'd3},
+    {2'd3,3'd3}, {2'd3,3'd7}
+    : p.permission_load = True;
+  endcase
+  case (cPerms)
+    {2'd0,3'd4}, {2'd0,3'd5},
+    {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd4}, {2'd1,3'd5}, {2'd1,3'd6}, {2'd1,3'd7},
+
+    {2'd3,3'd7}
+    : p.permission_store = True;
+  endcase
+  case (cPerms)
+
+    {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd2}, {2'd1,3'd3}, {2'd1,3'd4}, {2'd1,3'd5},
+    {2'd2,3'd3},
+    {2'd3,3'd3}, {2'd3,3'd7}
+    : p.permission_cap = True;
+  endcase
+  case (cPerms)
+
+    {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd2}, {2'd1,3'd3}, {2'd1,3'd4}, {2'd1,3'd5},
+
+    {2'd3,3'd3}, {2'd3,3'd7}
+    : p.permit_load_mutable = True;
+  endcase
+  case (cPerms)
+
+    {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd2}, {2'd1,3'd3}, {2'd1,3'd4}, {2'd1,3'd5}, {2'd1,3'd6}, {2'd1,3'd7}
+
+
+    : p.permit_execute = True;
+  endcase
+  case (cPerms)
+
+    {2'd1,3'd0}, {2'd1,3'd1}
+
+
+    : p.access_sys_regs = True;
+  endcase
+  return p;
+endfunction
+
+function Bool compressedHPermsToIntMode(CompressedHPerms cPerms);
+  return (case (cPerms)
+
+      {2'd1,3'd0}, {2'd1,3'd2}, {2'd1,3'd4}, {2'd1,3'd6}
+
+
+      : return False;
+      default: return True;
+    endcase);
+endfunction
+
 // The permissions field, including both "soft" and "hard" permission bits.
 typedef struct {
   Bit#(UPermW) soft;
+  Bool         intMode;
   HPerms       hard;
 } Perms deriving(Bits, Eq, FShow);
-typedef SizeOf#(Perms) PermsW;
-// The reserved bits
-typedef TSub#(CapW, TAdd#( CapAddrW
-                         , TAdd#( OTypeW
-                                , TAdd#( CBoundsW
-                                       , TAdd#(PermsW, FlagsW))))) ResW;
+
+typedef struct {
+  Bit#(UPermW) soft;
+  CompressedHPerms chperms;
+} CPerms deriving(Bits, Eq, FShow);
+
+function Perms compressedHPermsToPerms(CPerms cPerms);
+  return Perms{
+    soft: cPerms.soft,
+    intMode: compressedHPermsToIntMode(cPerms.chperms),
+    hard: compressedHPermsToHPerms(cPerms.chperms)
+  };
+endfunction
+
 // The full capability structure, including the "tag" bit.
+`ifdef CAP64
 typedef struct {
   Bool         isCapability;
-  Perms        perms;
-  Bit#(ResW)   reserved;
-  Bit#(FlagsW) flags;
-  Bit#(OTypeW) otype;
+  Bit#(RewHiW) reserved_hi; // 0-bits in this case
+  CPerms       perms;
+  Bool         non_ephemeral; // "Capability Level (CL)"
+  Bit#(ResLoW) reserved_lo;
+  Bool         sealed;
   CBounds      bounds;
   CapAddr      address;
 } CapabilityInMemory deriving (Bits, Eq, FShow); // CapW + 1 (tag bit)
+`else
+typedef struct {
+  Bool         isCapability;
+  Bit#(RewHiW) reserved_hi;
+  Perms        perms;
+  Bool         non_ephemeral; // "Capability Level (CL)"
+  Bit#(ResLoW) reserved_lo;
+  Bool         sealed;
+  CBounds      bounds;
+  CapAddr      address;
+} CapabilityInMemory deriving (Bits, Eq, FShow); // CapW + 1 (tag bit)
+`endif
+
 // The full capability structure as Bits, including the "tag" bit.
 typedef Bit#(TAdd#(CapW,1)) Capability;
 // not including the tag bit
@@ -191,7 +269,8 @@ typedef struct {
   Bit#(MW)       addrBits;
   Perms          perms;
   Bit#(FlagsW)   flags;
-  Bit#(ResW)     reserved;
+  Bit#(7)        reserved_hi;
+  Bit#(15)       reserved_lo;
   Bit#(OTypeW)   otype;
   Format         format;
   Bounds         bounds;
