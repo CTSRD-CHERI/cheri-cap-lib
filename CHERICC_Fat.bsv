@@ -40,7 +40,8 @@ export CapPipe;
 export CapFat;
 export MW;
 export Perms;
-export ResW;
+export ResHiW;
+export ResLoW;
 export Format;
 export TempFields;
 export Bounds;
@@ -52,7 +53,6 @@ export CBoundsW;
 export CBounds;
 export VA_Width;
 export HPerms;
-export PermsW;
 export Exp;
 export MetaInfo;
 export SetBoundsReturn;
@@ -76,7 +76,7 @@ typedef 2  UPermW;
 typedef 10  MW;
 typedef TMul#(MW,2) CBoundsW;
 typedef 5  ExpW;
-typedef 3 HalfExpW;
+typedef 2 HalfExpW;
 typedef 0 ResHiW;
 typedef 3 ResLoW;
 typedef 32 CapAddrW;
@@ -86,7 +86,7 @@ typedef 4   UPermW;
 typedef 14  MW;
 typedef TSub#(TMul#(MW,2),1) CBoundsW;
 typedef 6   ExpW;
-typedef 2 HalfExpW;
+typedef 3 HalfExpW;
 typedef 7 ResHiW;
 typedef 15 ResLoW;
 typedef 64  CapAddrW;
@@ -1133,7 +1133,7 @@ instance CHERICap #(CapMem, CapAddrW, CapW, 0);
   //////////////////////////////////////////////////////////////////////////////
   function getIntMode (capMem);
     CapabilityInMemory cap = unpack (capMem);
-    return getPerms(cap).intMode;
+    return getPermsField(cap).intMode;
   endfunction
   function setIntMode (capMem, im);
     CapabilityInMemory cap = unpack (capMem);
@@ -1159,6 +1159,7 @@ instance CHERICap #(CapMem, CapAddrW, CapW, 0);
       , permitLoad:           hperms.permit_load
       , permitExecute:        hperms.permit_execute
       , permissionStoreLevel: hperms.permission_store_level
+      , capabilityLevel:      hperms.capability_level
     };
   endfunction
   function setHardPerms = error ("setHardPerms not implemented for CapMem");
@@ -1177,10 +1178,10 @@ instance CHERICap #(CapMem, CapAddrW, CapW, 0);
   //////////////////////////////////////////////////////////////////////////////
   function getMeta (capMem);
     CapabilityInMemory cap = unpack (capMem);
-    return { pack (cap.perms)
-           , pack (cap.reserved)
-           , pack (cap.flags)
-           , pack (cap.otype)
+    return { pack (cap.reserved_hi)
+           , pack (cap.perms)
+           , pack (cap.reserved_lo)
+           , pack (cap.sealed)
            , pack (cap.bounds) };
   endfunction
   function getAddr (capMem);
@@ -1310,6 +1311,7 @@ instance CHERICap #(CapReg, CapAddrW, CapW, 0);
     , permitLoad:           cap.perms.hard.permit_load
     , permitExecute:        cap.perms.hard.permit_execute
     , permissionStoreLevel: cap.perms.hard.permission_store_level
+    , capabilityLevel:      cap.perms.hard.capability_level
   };
   function setHardPerms (cap, perms);
     cap.perms.hard = HPerms {
@@ -1321,6 +1323,7 @@ instance CHERICap #(CapReg, CapAddrW, CapW, 0);
       , permit_load:                perms.permitLoad
       , permit_execute:             perms.permitExecute
       , permission_store_level:     perms.permissionStoreLevel
+      , capability_level:           perms.capabilityLevel
     };
     return cap;
   endfunction
@@ -1337,8 +1340,8 @@ instance CHERICap #(CapReg, CapAddrW, CapW, 0);
   function getKind (cap) = (cap.sealed) ? SENTRY:UNSEALED;
 
   function setKind (cap, kind) = case (kind)
-    UNSEALED: unseal (cap);
-    SENTRY:   seal (cap);
+    UNSEALED: unseal (cap, ?);
+    SENTRY:   seal (cap, ?);
   endcase;
   function validAsType (dummy, checkType);
     CapMem nullC = nullCap;
@@ -1411,7 +1414,8 @@ instance CHERICap #(CapReg, CapAddrW, CapW, 0);
              || (truncateLSB (cap.bounds.baseBits) != 2'b0) ))
     && !(   (cap.bounds.exp == resetExp-1)
          && (truncateLSB (cap.bounds.baseBits) != 1'b0))
-    &&  (cap.reserved == 0);
+    &&  (cap.reserved_hi == 0)
+    &&  (cap.reserved_lo == 0);
 
 endinstance
 
@@ -1596,7 +1600,6 @@ function CapTrim  trimCap(CapMem cm);
   CapabilityInMemory cap = unpack(cm);
   Bit#(TSub#(CapAddrW,VA_Width)) addr_upper = truncateLSB(cap.address);
   return CapTrim{perms: cap.perms,
-                 flags: cap.flags,
                  bounds: cap.bounds,
                  address: truncate(cap.address),
                  validAddress: (addr_upper==signExtend(cap.address[valueOf(VA_Width)-1]))
@@ -1609,9 +1612,9 @@ function CapMem untrimCap(CapTrim ct);
   return pack(CapabilityInMemory{
                 isCapability: True,
                 perms: ct.perms,
-                reserved: 0,
-                flags: ct.flags,
-                otype: otype_unsealed,
+                reserved_hi: 0,
+                reserved_lo: 0,
+                sealed: False,
                 bounds: ct.bounds,
                 address: signExtend({addressMsb,ct.address})
   });

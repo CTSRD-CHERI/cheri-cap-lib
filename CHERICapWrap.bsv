@@ -50,9 +50,9 @@ function Bool `W(isValidCap) (`CAPTYPE cap) = isValidCap(cap);
 (* noinline *)
 function `CAPTYPE `W(setValidCap) (`CAPTYPE cap, Bool valid) = setValidCap(cap, valid);
 (* noinline *)
-function Bit#(FlagsW) `W(getFlags) (`CAPTYPE cap) = getFlags(cap);
+function Bool `W(getIntMode) (`CAPTYPE cap) = getIntMode(cap);
 (* noinline *)
-function `CAPTYPE `W(setFlags) (`CAPTYPE cap, Bit#(FlagsW) flags) = setFlags(cap,flags);
+function `CAPTYPE `W(setIntMode) (`CAPTYPE cap, Bool im) = setIntMode(cap,im);
 (* noinline *)
 function HardPerms `W(getHardPerms) (`CAPTYPE cap) = getHardPerms(cap);
 (* noinline *)
@@ -66,9 +66,9 @@ function Bit#(31) `W(getPerms) (`CAPTYPE cap) = getPerms(capArg(cap));
 (* noinline *)
 function `CAPTYPE `W(setPerms) (`CAPTYPE cap, Bit#(31) perms) = capRet(setPerms(capArg(cap), perms));
 (* noinline *)
-function Kind#(OTypeW) `W(getKind) (`CAPTYPE cap) = getKind(capArg(cap));
+function Kind `W(getKind) (`CAPTYPE cap) = getKind(capArg(cap));
 (* noinline *)
-function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind#(OTypeW) kind) = capRet(setKind(capArg(cap), kind));
+function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind kind) = capRet(setKind(capArg(cap), kind));
 (* noinline *)
 function Bit#(CapAddrW) `W(getAddr) (`CAPTYPE cap) = getAddr(cap);
 (* noinline *)
