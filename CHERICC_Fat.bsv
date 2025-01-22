@@ -182,6 +182,28 @@ function HPerms compressedHPermsToHPerms(CompressedHPerms cPerms);
   return p;
 endfunction
 
+function CompressedHPerms hPermsToCompressedHPerms(HPerms perms, Bool intMode);
+  Bit#(6) permVec;
+  permVec[0] = pack(perms.access_sys_regs);
+  permVec[1] = pack(perms.permit_execute);
+  permVec[2] = pack(perms.permit_load_mutable);
+  permVec[3] = pack(perms.permit_cap);
+  permVec[4] = pack(perms.permit_store);
+  permVec[5] = pack(perms.permit_load);
+  Bit#(1) t = 1;
+  Bit#(1) _ = 0;
+  return CompressedHPerms {
+    code: (case (permVec)
+        {_,_,_,_,_,_}: return {2'd0, 3'd0};
+        {t,_,_,_,_,_}: return {2'd0, 3'd1};
+        {_,t,_,_,_,_}: return {2'd0, 3'd4};
+        {t,t,_,_,_,_}: return {2'd0, 3'd5};
+        default: return {2'd0, 3'd0};
+      endcase ),
+    capability_level: perms.capability_level
+  };
+endfunction
+
 function Bool compressedHPermsToIntMode(CompressedHPerms cPerms);
   return (case (cPerms.code)
 
@@ -210,7 +232,7 @@ function Perms getPermsField(CapabilityInMemory memcap);
   return Perms{
     soft: memcap.perms.soft,
     intMode: compressedHPermsToIntMode(memcap.perms.chperms),
-    hard: compressedHPermsToHPerms(capmmemcapem.perms.chperms)
+    hard: compressedHPermsToHPerms(memcap.perms.chperms)
   };
 `else
   return memcap.perms;
@@ -318,7 +340,11 @@ function CapFat unpackCap(Capability thin);
   // The value of Exp can now be 0 or come from token, so assume they come from the token,
   // then select the lower bits at the end if they didn't after all.
   BoundsEmbeddedExp tmp = unpack(memCap.bounds);
+`ifdef CAP64
+  Exp potentialExp = unpack({tmp.expTopBit,tmp.expTopHalf,tmp.expBotHalf});
+`else
   Exp potentialExp = unpack({tmp.expTopHalf,tmp.expBotHalf});
+`endif
   Bit#(MW) potentialAddrBits = truncate(memCap.address >> potentialExp);
   fat.addrBits = tmp.embeddedExp ? potentialAddrBits
                                  : truncate(memCap.address);
@@ -329,7 +355,11 @@ endfunction
 function Capability packCap(CapFat fat);
   CapabilityInMemory thin = CapabilityInMemory{
       isCapability: fat.isCapability
+`ifdef CAP64
+    , perms:        CPerms { soft: fat.perms.soft, chperms: hPermsToCompressedHPerms(fat.perms.hard, fat.perms.intMode) }
+`else
     , perms:        fat.perms
+`endif
     , reserved_hi:  fat.reserved_hi
     , reserved_lo:  fat.reserved_lo
     , sealed:       fat.sealed
@@ -1000,12 +1030,18 @@ top<20:19> = base<20:19> + carry_out + len_correction
 // These three bounds formats help with the decBounds function.
 typedef struct {
   Bool              embeddedExp;
+`ifdef CAP64
+  Bit#(1)           lengthUpperBit;
+`endif
   Bit#(TSub#(MW,2)) top;
   Bit#(MW)          base;
 } BoundsExp0 deriving(Bits, Eq, FShow);
 
 typedef struct {
   Bool                              embeddedExp;
+`ifdef CAP64
+  Bit#(1)                           expTopBit;
+`endif
   Bit#(TSub#(MW,TAdd#(HalfExpW,2))) topUpperBits;
   Bit#(HalfExpW)                    expTopHalf;
   Bit#(TSub#(MW,HalfExpW))          baseUpperBits;
@@ -1024,7 +1060,11 @@ function Tuple2#(Format, Bounds) decBounds (CBounds raw);
   case (format)
     EmbeddedExp: begin
       BoundsEmbeddedExp b = unpack(raw);
+`ifdef CAP64
+      bounds.exp          = unpack({b.expTopBit,b.expTopHalf,b.expBotHalf});
+`else
       bounds.exp          = unpack({b.expTopHalf,b.expBotHalf});
+`endif
       bounds.topBits      = {?,b.topUpperBits,halfExp0}; // will supply the top
                                                          // two bits later.
       bounds.baseBits     = {b.baseUpperBits,halfExp0};
@@ -1044,8 +1084,13 @@ function Tuple2#(Format, Bounds) decBounds (CBounds raw);
   Bit#(TSub#(MW,2)) topBits  = truncate(bounds.topBits);
   Bit#(TSub#(MW,2)) baseBits = truncate(bounds.baseBits);
   Bit#(2) carry_out = (topBits < baseBits) ? 2'b01 : 2'b00;
+  BoundsExp0 raw_exp0 = unpack(raw);
   Bit#(2) len_correction = case (format)
+`ifdef CAP64
+                             Exp0: {0,raw_exp0.lengthUpperBit};
+`else
                              Exp0: 2'b00;
+`endif
                              default: 2'b01;
                            endcase;
   Bit#(2) impliedTopBits = truncateLSB(bounds.baseBits) + carry_out + len_correction;
@@ -1293,7 +1338,8 @@ instance CHERICap #(CapReg, CapAddrW, CapW, 0);
 
   function setIntMode (cap, im);
 `ifdef CAP64
-    error("cap64 not complete yet"); // XXX not implemented yet.  Needs legalisation.
+    if (cap.perms.chperms[4:3] == 2'b01)
+      cap.perms.chperms[0] = pack(im);
 `else
     cap.perms.intMode = im;
 `endif
