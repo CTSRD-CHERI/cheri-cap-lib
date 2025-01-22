@@ -198,6 +198,16 @@ function CompressedHPerms hPermsToCompressedHPerms(HPerms perms, Bool intMode);
         {t,_,_,_,_,_}: return {2'd0, 3'd1};
         {_,t,_,_,_,_}: return {2'd0, 3'd4};
         {t,t,_,_,_,_}: return {2'd0, 3'd5};
+
+        {t,t,t,t,t,t}: return {2'd1, 2'd0, pack(intMode)};
+        {t,_,t,t,t,_}: return {2'd1, 2'd1, pack(intMode)};
+        {t,t,t,t,t,_}: return {2'd1, 2'd2, pack(intMode)};
+        {t,t,_,_,t,_}: return {2'd1, 2'd3, pack(intMode)};
+
+        {t,_,t,_,_,_}: return {2'd2, 3'd3};
+
+        {t,_,t,t,_,_}: return {2'd3, 3'd3};
+        {t,t,t,t,_,_}: return {2'd3, 3'd7};
         default: return {2'd0, 3'd0};
       endcase ),
     capability_level: perms.capability_level
