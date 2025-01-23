@@ -1170,7 +1170,7 @@ typedef struct {
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapMem, CapAddrW, CapW, 0);
+instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, 0);
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1327,7 +1327,7 @@ endinstance
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapReg, CapAddrW, CapW, 0);
+instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, 0);
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1475,7 +1475,7 @@ instance CHERICap #(CapReg, CapAddrW, CapW, 0);
 
 endinstance
 
-instance CHERICap #(CapPipe, CapAddrW, CapW, 0);
+instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, 0);
 
   //Functions supported by CapReg are just passed through
 
