@@ -18,6 +18,9 @@ verilog-wrappers: CHERICapWrap.bsv CHERICap.bsv CHERICC_Fat.bsv
 verilog-props: CHERICapProps.bsv CHERICap.bsv CHERICC_Fat.bsv
 	bsc $(BSCFLAGS) -verilog -u $<
 
+check-prop: assertions.sv verilog-wrappers verilog-props
+	sby -f check.sby
+
 blarney-wrappers: CHERICapWrap.py verilog-wrappers
 	./CHERICapWrap.py -o CHERIBlarneyWrappers *.v
 
