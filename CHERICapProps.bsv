@@ -91,6 +91,7 @@ function Bool prop_unique(CapAddr base, CapAddr len,
   return baseCap.exact && expectedBaseCap.exact && implies
     ( boundedCap.exact && newBaseCap.exact &&
       finalCap.exact && expectedCap.exact &&
+      isValidCap(finalCap.value) &&
       newBase >= base && {1'b0, newBase} + {1'b0, newLen} <=
                          {1'b0, base}    + {1'b0, len}
     , toMem(expectedCap.value) == toMem(finalCap.value)
