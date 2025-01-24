@@ -43,8 +43,8 @@ typedef struct {
 //  Bit#(8) reserverd;
 //  SoftPerms softPerms;
   Bool permitCap;
-  Bool capabilityLevel;
-  Bool permissionStoreLevel;
+  UInt#(1) capabilityLevel;
+  UInt#(1) permissionStoreLevel;
   Bool permitLoadEphemeral;
   Bool permitLoadMutable;
   Bool permitStore;
