@@ -110,7 +110,7 @@ typedef Bit#(TAdd#(CapAddrW,1)) CapAddrPlus1;
 typedef Bit#(TAdd#(CapAddrW,2)) CapAddrPlus2;
 // The Hardware permissions type
 typedef struct {
-  Bool permission_store_level;
+  UInt#(1) permission_store_level;
   Bool permit_load_ephemeral;
   Bool permit_load_mutable;
   Bool access_sys_regs;
@@ -118,17 +118,17 @@ typedef struct {
   Bool permit_load;
   Bool permit_store;
   Bool permit_cap;
-  Bool capability_level;
+  UInt#(1) capability_level;
 } HPerms deriving(Bits, Eq, FShow); // 9 bits
 
 typedef struct {
   Bit#(5) code;
-  Bool capability_level;
+  UInt#(1) capability_level;
 } CompressedHPerms deriving(Bits, Eq, FShow); // 6 bits
 
 function HPerms compressedHPermsToHPerms(CompressedHPerms cPerms);
   let p = HPerms {
-    permission_store_level: False,
+    permission_store_level: 0,
     permit_load_ephemeral: False,
     permit_load_mutable: False,
     access_sys_regs: False,
