@@ -72,6 +72,8 @@ function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind#(OTypeW) kind) = capRet(setKin
 (* noinline *)
 function Bit#(CapAddrW) `W(getAddr) (`CAPTYPE cap) = getAddr(cap);
 (* noinline *)
+function `CAPTYPE `W(setAddrUnsafe) (`CAPTYPE cap, Bit#(CapAddrW) addr) = capRet(setAddrUnsafe(capArg(cap), addr));
+(* noinline *)
 function Exact#(`CAPTYPE) `W(setAddr) (`CAPTYPE cap, Bit#(CapAddrW) addr) = capExactRet(setAddr(capArg(cap), addr));
 (* noinline *)
 function Bit#(CapAddrW) `W(getOffset) (`CAPTYPE cap) = getOffset(capArg(cap));
