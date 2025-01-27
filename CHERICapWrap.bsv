@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Alexandre Joannou
+ * Copyright (c) 2019-2025 Alexandre Joannou
  * All rights reserved.
  *
  * This software was developed by SRI International and the University of
@@ -30,7 +30,10 @@ package CHERICapWrap;
 import CHERICap :: *;
 import CHERICC_Fat :: *;
 
+`ifndef CAPTYPE
 `define CAPTYPE CapPipe
+`endif
+
 `ifndef CAP64
 `define W(name) wrap128_``name
 `else

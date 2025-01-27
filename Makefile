@@ -5,6 +5,9 @@ else
 BSCFLAGS = -D CAP64
 endif
 
+CAPTYPE ?= CapPipe
+BSCFLAGS += -D CAPTYPE=$(CAPTYPE)
+
 ARCH ?= RISCV
 ifeq ($(ARCH), RISCV)
 BSCFLAGS += -D RISCV
