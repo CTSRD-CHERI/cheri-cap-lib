@@ -34,6 +34,11 @@ import CHERICC_Fat :: *;
 `define CAPTYPE CapPipe
 `endif
 
+function CapPipe capArg(`CAPTYPE cap) = cast(cap);
+function `CAPTYPE capRet(CapPipe cap) = cast(cap);
+function Exact#(`CAPTYPE) capExactRet(Exact#(CapPipe) e_cap) =
+  Exact { exact: e_cap.exact, value: cast(e_cap.value) };
+
 `ifndef CAP64
 `define W(name) wrap128_``name
 `else
@@ -51,41 +56,41 @@ function `CAPTYPE `W(setFlags) (`CAPTYPE cap, Bit#(FlagsW) flags) = setFlags(cap
 (* noinline *)
 function HardPerms `W(getHardPerms) (`CAPTYPE cap) = getHardPerms(cap);
 (* noinline *)
-function `CAPTYPE `W(setHardPerms) (`CAPTYPE cap, HardPerms hardperms) = setHardPerms(cap, hardperms);
+function `CAPTYPE `W(setHardPerms) (`CAPTYPE cap, HardPerms hardperms) = capRet(setHardPerms(capArg(cap), hardperms));
 (* noinline *)
-function SoftPerms `W(getSoftPerms) (`CAPTYPE cap) = getSoftPerms(cap);
+function SoftPerms `W(getSoftPerms) (`CAPTYPE cap) = getSoftPerms(capArg(cap));
 (* noinline *)
-function `CAPTYPE `W(setSoftPerms) (`CAPTYPE cap, SoftPerms softperms) = setSoftPerms(cap, softperms);
+function `CAPTYPE `W(setSoftPerms) (`CAPTYPE cap, SoftPerms softperms) = capRet(setSoftPerms(capArg(cap), softperms));
 (* noinline *)
-function Bit#(31) `W(getPerms) (`CAPTYPE cap) = getPerms(cap);
+function Bit#(31) `W(getPerms) (`CAPTYPE cap) = getPerms(capArg(cap));
 (* noinline *)
-function `CAPTYPE `W(setPerms) (`CAPTYPE cap, Bit#(31) perms) = setPerms(cap, perms);
+function `CAPTYPE `W(setPerms) (`CAPTYPE cap, Bit#(31) perms) = capRet(setPerms(capArg(cap), perms));
 (* noinline *)
-function Kind#(OTypeW) `W(getKind) (`CAPTYPE cap) = getKind(cap);
+function Kind#(OTypeW) `W(getKind) (`CAPTYPE cap) = getKind(capArg(cap));
 (* noinline *)
-function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind#(OTypeW) kind) = setKind(cap, kind);
+function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind#(OTypeW) kind) = capRet(setKind(capArg(cap), kind));
 (* noinline *)
 function Bit#(CapAddrW) `W(getAddr) (`CAPTYPE cap) = getAddr(cap);
 (* noinline *)
-function Exact#(`CAPTYPE) `W(setAddr) (`CAPTYPE cap, Bit#(CapAddrW) addr) = setAddr(cap, addr);
+function Exact#(`CAPTYPE) `W(setAddr) (`CAPTYPE cap, Bit#(CapAddrW) addr) = capExactRet(setAddr(capArg(cap), addr));
 (* noinline *)
-function Bit#(CapAddrW) `W(getOffset) (`CAPTYPE cap) = getOffset(cap);
+function Bit#(CapAddrW) `W(getOffset) (`CAPTYPE cap) = getOffset(capArg(cap));
 (* noinline *)
-function Exact#(`CAPTYPE) `W(modifyOffset) (`CAPTYPE cap, Bit#(CapAddrW) offset, Bool doInc) = modifyOffset (cap, offset, doInc);
+function Exact#(`CAPTYPE) `W(modifyOffset) (`CAPTYPE cap, Bit#(CapAddrW) offset, Bool doInc) = capExactRet(modifyOffset (capArg(cap), offset, doInc));
 (* noinline *)
-function Exact#(`CAPTYPE) `W(setOffset) (`CAPTYPE cap, Bit#(CapAddrW) offset) = setOffset (cap, offset);
+function Exact#(`CAPTYPE) `W(setOffset) (`CAPTYPE cap, Bit#(CapAddrW) offset) = capExactRet(setOffset (capArg(cap), offset));
 (* noinline *)
-function Exact#(`CAPTYPE) `W(incOffset) (`CAPTYPE cap, Bit#(CapAddrW) inc) = incOffset (cap, inc);
+function Exact#(`CAPTYPE) `W(incOffset) (`CAPTYPE cap, Bit#(CapAddrW) inc) = capExactRet(incOffset (capArg(cap), inc));
 (* noinline *)
-function Bit#(CapAddrW) `W(getBase) (`CAPTYPE cap) = getBase(cap);
+function Bit#(CapAddrW) `W(getBase) (`CAPTYPE cap) = getBase(capArg(cap));
 (* noinline *)
-function Bit#(TAdd#(CapAddrW, 1)) `W(getTop) (`CAPTYPE cap) = getTop(cap);
+function Bit#(TAdd#(CapAddrW, 1)) `W(getTop) (`CAPTYPE cap) = getTop(capArg(cap));
 (* noinline *)
-function Bit#(TAdd#(CapAddrW, 1)) `W(getLength) (`CAPTYPE cap) = getLength(cap);
+function Bit#(TAdd#(CapAddrW, 1)) `W(getLength) (`CAPTYPE cap) = getLength(capArg(cap));
 (* noinline *)
-function Bool `W(isInBounds) (`CAPTYPE cap, Bool isTopIncluded) = isInBounds(cap, isTopIncluded);
+function Bool `W(isInBounds) (`CAPTYPE cap, Bool isTopIncluded) = isInBounds(capArg(cap), isTopIncluded);
 (* noinline *)
-function Exact#(`CAPTYPE) `W(setBounds) (`CAPTYPE cap, Bit#(CapAddrW) length) = setBounds(cap, length);
+function Exact#(`CAPTYPE) `W(setBounds) (`CAPTYPE cap, Bit#(CapAddrW) length) = capExactRet(setBounds(capArg(cap), length));
 (* noinline *)
 function `CAPTYPE `W(nullWithAddr) (Bit#(CapAddrW) addr) = nullWithAddr(addr);
 (* noinline *)
@@ -99,13 +104,13 @@ function `CAPTYPE `W(fromMem) (Tuple2#(Bool, Bit#(CapW)) mem_cap) = fromMem(mem_
 (* noinline *)
 function Tuple2#(Bool, Bit#(CapW)) `W(toMem) (`CAPTYPE cap) = toMem(cap);
 (* noinline *)
-function Bit#(CapAddrW) `W(getRepresentableAlignmentMask) (`CAPTYPE dummy, Bit#(CapAddrW) length) = alignmentMask (dummy, length);
+function Bit#(CapAddrW) `W(getRepresentableAlignmentMask) (`CAPTYPE dummy, Bit#(CapAddrW) length) = alignmentMask (capArg(dummy), length);
 (* noinline *)
-function Bit#(CapAddrW) `W(getRepresentableLength) (`CAPTYPE dummy, Bit#(CapAddrW) length) = roundLength (dummy, length);
+function Bit#(CapAddrW) `W(getRepresentableLength) (`CAPTYPE dummy, Bit#(CapAddrW) length) = roundLength (capArg(dummy), length);
 (* noinline *)
-function Bit#(2) `W(getBaseAlignment) (`CAPTYPE cap) = getBaseAlignment(cap);
-(* noinline *) 
-function Bool `W(isDerivable) (`CAPTYPE cap) = isDerivable(cap);
+function Bit#(2) `W(getBaseAlignment) (`CAPTYPE cap) = getBaseAlignment(capArg(cap));
+(* noinline *)
+function Bool `W(isDerivable) (`CAPTYPE cap) = isDerivable(capArg(cap));
 
 
 

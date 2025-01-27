@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2019 Jonathan Woodruff
- * Copyright (c) 2017-2021 Alexandre Joannou
+ * Copyright (c) 2017-2025 Alexandre Joannou
  * Copyright (c) 2019 Peter Rugg
  * Copyright (c) 2021 Dapeng Gao
  * All rights reserved.
@@ -1112,8 +1112,8 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
     CapabilityInMemory cap = unpack (capMem);
     return pack (cap.address);
   endfunction
-  function fromMem = error ("fromMem not implemented for CapMem");
-  function toMem = error ("toMem not implemented for CapMem");
+  function fromMem(x) = unpack(pack(x));
+  function toMem(x) = unpack(pack(x));
 
   // capability address/offset manipulation
   //////////////////////////////////////////////////////////////////////////////
