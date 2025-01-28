@@ -43,9 +43,9 @@ typedef struct {
 //  Bit#(8) reserverd;
 //  SoftPerms softPerms;
   Bool permitCap;
-  UInt#(1) capabilityLevel;
-  UInt#(1) permissionStoreLevel;
-  Bool permitLoadEphemeral;
+//  UInt#(1) capabilityLevel;
+//  UInt#(1) permissionStoreLevel;
+//  Bool permitLoadEphemeral;
   Bool permitLoadMutable;
   Bool permitStore;
 } HardPerms deriving(Bits, Eq, FShow);
@@ -185,11 +185,11 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // Get the architectural permissions
   function Bit #(31) getPerms (capT cap);
     let hp = pack(getHardPerms(cap));
-    return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
+    return zeroExtend ({hp[5:3], 6'b0, getSoftPerms (cap), hp[2], 3'b0, hp[1:0]});
   endfunction
   // Set the architectural permissions
   function capT setPerms (capT cap, Bit #(31) perms) =
-    setSoftPerms ( setHardPerms (cap, unpack ({perms[18:16],perms[5:0]})), perms[9:6]);
+    setSoftPerms ( setHardPerms (cap, unpack ({perms[18:16],perms[5],perms[1:0]})), perms[9:6]);
 
   // capability kind
   //////////////////////////////////////////////////////////////////////////////

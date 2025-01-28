@@ -88,7 +88,7 @@ typedef TSub#(TMul#(MW,2),1) CBoundsW;
 typedef 6   ExpW;
 typedef 3 HalfExpW;
 typedef 7 ResHiW;
-typedef 15 ResLoW;
+typedef 18 ResLoW;
 typedef 64  CapAddrW;
 typedef 128 CapW;
 `endif
@@ -110,33 +110,34 @@ typedef Bit#(TAdd#(CapAddrW,1)) CapAddrPlus1;
 typedef Bit#(TAdd#(CapAddrW,2)) CapAddrPlus2;
 // The Hardware permissions type
 typedef struct {
-  UInt#(1) permission_store_level;
-  Bool permit_load_ephemeral;
+//  UInt#(1) permission_store_level;
+//  Bool permit_load_ephemeral;
   Bool permit_load_mutable;
   Bool access_sys_regs;
   Bool permit_execute;
   Bool permit_load;
   Bool permit_store;
   Bool permit_cap;
-  UInt#(1) capability_level;
+//  UInt#(1) capability_level;
 } HPerms deriving(Bits, Eq, FShow); // 9 bits
 
 typedef struct {
   Bit#(5) code;
-  UInt#(1) capability_level;
+//  UInt#(1) capability_level;
 } CompressedHPerms deriving(Bits, Eq, FShow); // 6 bits
 
 function HPerms compressedHPermsToHPerms(CompressedHPerms cPerms);
   let p = HPerms {
-    permission_store_level: 0,
-    permit_load_ephemeral: False,
-    permit_load_mutable: False,
-    access_sys_regs: False,
-    permit_execute: False,
-    permit_load: False,
-    permit_store: False,
-    permit_cap: False,
-    capability_level: cPerms.capability_level};
+//    permission_store_level: 0,
+//    permit_load_ephemeral: False,
+    permit_load_mutable: False
+    , access_sys_regs: False
+    , permit_execute: False
+    , permit_load: False
+    , permit_store: False
+    , permit_cap: False
+//   , capability_level: cPerms.capability_level
+  };
   case (cPerms.code)
     {2'd0,3'd1}, {2'd0,3'd5},
     {2'd1,3'd0}, {2'd1,3'd1}, {2'd1,3'd2}, {2'd1,3'd3}, {2'd1,3'd4}, {2'd1,3'd5}, {2'd1,3'd6}, {2'd1,3'd7},
@@ -209,8 +210,8 @@ function CompressedHPerms hPermsToCompressedHPerms(HPerms perms, Bool intMode);
         {t,_,t,t,_,_}: return {2'd3, 3'd3};
         {t,t,t,t,_,_}: return {2'd3, 3'd7};
         default: return {2'd0, 3'd0};
-      endcase ),
-    capability_level: perms.capability_level
+      endcase )
+//    , capability_level: perms.capability_level
   };
 endfunction
 
@@ -1233,13 +1234,13 @@ instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
     return HardPerms {
         accessSysRegs:        hperms.access_sys_regs
       , permitLoadMutable:    hperms.permit_load_mutable
-      , permitLoadEphemeral:  hperms.permit_load_ephemeral
+//      , permitLoadEphemeral:  hperms.permit_load_ephemeral
       , permitCap:            hperms.permit_cap
       , permitStore:          hperms.permit_store
       , permitLoad:           hperms.permit_load
       , permitExecute:        hperms.permit_execute
-      , permissionStoreLevel: hperms.permission_store_level
-      , capabilityLevel:      hperms.capability_level
+//      , permissionStoreLevel: hperms.permission_store_level
+//      , capabilityLevel:      hperms.capability_level
     };
   endfunction
   function setHardPerms = error ("setHardPerms not implemented for CapMem");
@@ -1390,25 +1391,25 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
   function getHardPerms (cap) = HardPerms {
       accessSysRegs:        cap.perms.hard.access_sys_regs
     , permitLoadMutable:    cap.perms.hard.permit_load_mutable
-    , permitLoadEphemeral:  cap.perms.hard.permit_load_ephemeral
+//    , permitLoadEphemeral:  cap.perms.hard.permit_load_ephemeral
     , permitCap:            cap.perms.hard.permit_cap
     , permitStore:          cap.perms.hard.permit_store
     , permitLoad:           cap.perms.hard.permit_load
     , permitExecute:        cap.perms.hard.permit_execute
-    , permissionStoreLevel: cap.perms.hard.permission_store_level
-    , capabilityLevel:      cap.perms.hard.capability_level
+//    , permissionStoreLevel: cap.perms.hard.permission_store_level
+//    , capabilityLevel:      cap.perms.hard.capability_level
   };
   function setHardPerms (cap, perms);
     cap.perms.hard = HPerms {
         access_sys_regs:            perms.accessSysRegs
       , permit_load_mutable:        perms.permitLoadMutable
-      , permit_load_ephemeral:      perms.permitLoadEphemeral
+//      , permit_load_ephemeral:      perms.permitLoadEphemeral
       , permit_cap:                 perms.permitCap
       , permit_store:               perms.permitStore
       , permit_load:                perms.permitLoad
       , permit_execute:             perms.permitExecute
-      , permission_store_level:     perms.permissionStoreLevel
-      , capability_level:           perms.capabilityLevel
+//      , permission_store_level:     perms.permissionStoreLevel
+//      , capability_level:           perms.capabilityLevel
     };
     return cap;
   endfunction
