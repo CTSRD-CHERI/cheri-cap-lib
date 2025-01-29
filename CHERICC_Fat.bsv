@@ -351,11 +351,16 @@ function CapFat unpackCap(Capability thin);
   // then select the lower bits at the end if they didn't after all.
   BoundsEmbeddedExp tmp = unpack(memCap.bounds);
 `ifdef CAP64
-  Exp potentialExp = unpack({tmp.expTopBit,tmp.expTopHalf,tmp.expBotHalf});
+  Exp potentialExpRaw = unpack({tmp.expTopBit,tmp.expTopHalf,tmp.expBotHalf});
 `else
-  Exp potentialExp = unpack({tmp.expTopHalf,tmp.expBotHalf});
+  Exp potentialExpRaw = unpack({tmp.expTopHalf,tmp.expBotHalf});
 `endif
+  Exp potentialExp = resetExp - potentialExpRaw;
+  fat.bounds.exp = tmp.embeddedExp ? potentialExp : 0;
+  // TODO: Using the subtracted value undermines the timing optimisation here.
+  // Could left-shift and truncateLSB without the subtract? -pdr32
   Bit#(MW) potentialAddrBits = truncate(memCap.address >> potentialExp);
+  // Bit#(MW) potentialAddrBits = truncateLSB({2'b0, memCap.address} << potentialExpRaw);
   fat.addrBits = tmp.embeddedExp ? potentialAddrBits
                                  : truncate(memCap.address);
   return fat;
@@ -1037,7 +1042,7 @@ top<20:19> = base<20:19> + carry_out + len_correction
                               1 otherwise
 */
 
-// These three bounds formats help with the decBounds function.
+// These two bounds formats help with the decBounds function.
 typedef struct {
   Bool              embeddedExp;
 `ifdef CAP64
@@ -1059,7 +1064,7 @@ typedef struct {
 } BoundsEmbeddedExp deriving(Bits, Eq, FShow);
 
 function Tuple2#(Format, Bounds) decBounds (CBounds raw);
-  Bool embeddedExp = (truncateLSB(raw)==1'b1);
+  Bool embeddedExp = (truncateLSB(raw)==1'b0);
   Format format    = (embeddedExp) ? EmbeddedExp : Exp0;
   Bounds bounds    = defaultValue;
   //bounds.exp      = 0;
@@ -1071,16 +1076,16 @@ function Tuple2#(Format, Bounds) decBounds (CBounds raw);
     EmbeddedExp: begin
       BoundsEmbeddedExp b = unpack(raw);
 `ifdef CAP64
-      bounds.exp          = unpack({b.expTopBit,b.expTopHalf,b.expBotHalf});
+      bounds.exp          = resetExp - unpack({b.expTopBit,b.expTopHalf,b.expBotHalf});
 `else
-      bounds.exp          = unpack({b.expTopHalf,b.expBotHalf});
+      bounds.exp          = resetExp - unpack({b.expTopHalf,b.expBotHalf});
 `endif
       bounds.topBits      = {?,b.topUpperBits,halfExp0}; // will supply the top
                                                          // two bits later.
       bounds.baseBits     = {b.baseUpperBits,halfExp0};
     end
     default: begin // and Exp0
-      bounds.exp      = 0;
+      bounds.exp      = resetExp;
       BoundsExp0 b    = unpack(raw);
       bounds.topBits  = {?,b.top}; // will supply the top two bits later.
       bounds.baseBits = b.base;
@@ -1109,15 +1114,16 @@ function Tuple2#(Format, Bounds) decBounds (CBounds raw);
 endfunction
 
 function CBounds encBounds (Format format, Bounds bounds);
-  Bit#(HalfExpW) hiExpBits = truncateLSB(pack(bounds.exp));
-  Bit#(HalfExpW) loExpBits = truncate(pack(bounds.exp));
+  Exp expRaw = resetExp - bounds.exp;
+  Bit#(HalfExpW) hiExpBits = truncateLSB(pack(expRaw));
+  Bit#(HalfExpW) loExpBits = truncate(pack(expRaw));
 
   Bit#(TSub#(MW,TAdd#(HalfExpW,2))) eExpTop = truncate(bounds.topBits >> valueOf(HalfExpW));
   Bit#(TSub#(MW,HalfExpW))         eExpBase = truncateLSB(bounds.baseBits);
 
   return case (format)
-           Exp0: {1'b0, truncate(bounds.topBits), bounds.baseBits};
-           EmbeddedExp: {1'b1, eExpTop, hiExpBits, eExpBase, loExpBits};
+           Exp0: {1'b1, truncate(bounds.topBits), bounds.baseBits};
+           EmbeddedExp: {1'b0, eExpTop, hiExpBits, eExpBase, loExpBits};
          endcase;
 endfunction
 
@@ -1590,11 +1596,11 @@ instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, 0);
 endinstance
 
 instance Cast#(CapMem, CapReg);
-  function CapReg cast (CapMem thin) = unpackCap(thin ^ packCap(null_cap));
+  function CapReg cast (CapMem thin) = unpackCap(thin);
 endinstance
 
 instance Cast#(CapReg, CapMem);
-  function CapMem cast (CapReg fat) = packCap(fat) ^ packCap(null_cap);
+  function CapMem cast (CapReg fat) = packCap(fat);
 endinstance
 
 instance Cast#(CapReg, CapPipe);
