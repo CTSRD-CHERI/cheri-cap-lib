@@ -284,7 +284,7 @@ staticAssert(valueOf(SizeOf#(CapabilityInMemory))==valueOf(SizeOf#(Capability)),
 // Bit type of the debug capability
 typedef Bit#(CapW) DebugCap;
 // Format of the cheri concentrate capability
-typedef enum {Exp0, EmbeddedExp} Format deriving (Bits, Eq, FShow);
+typedef enum {EmbeddedExp, Exp0} Format deriving (Bits, Eq, FShow);
 // Exponent type
 typedef UInt#(ExpW) Exp;
 
@@ -356,13 +356,13 @@ function CapFat unpackCap(Capability thin);
   Exp potentialExpRaw = unpack({tmp.expTopHalf,tmp.expBotHalf});
 `endif
   Exp potentialExp = resetExp - potentialExpRaw;
-  fat.bounds.exp = tmp.embeddedExp ? potentialExp : 0;
+  fat.bounds.exp = tmp.impliedExp ? 0 : potentialExp;
   // TODO: Using the subtracted value undermines the timing optimisation here.
   // Could left-shift and truncateLSB without the subtract? -pdr32
   Bit#(MW) potentialAddrBits = truncate(memCap.address >> potentialExp);
   // Bit#(MW) potentialAddrBits = truncateLSB({2'b0, memCap.address} << potentialExpRaw);
-  fat.addrBits = tmp.embeddedExp ? potentialAddrBits
-                                 : truncate(memCap.address);
+  fat.addrBits = tmp.impliedExp ? truncate(memCap.address)
+                                 : potentialAddrBits;
   return fat;
 endfunction
 
@@ -1044,7 +1044,7 @@ top<20:19> = base<20:19> + carry_out + len_correction
 
 // These two bounds formats help with the decBounds function.
 typedef struct {
-  Bool              embeddedExp;
+  Bool              impliedExp;
 `ifdef CAP64
   Bit#(1)           lengthUpperBit;
 `endif
@@ -1053,7 +1053,7 @@ typedef struct {
 } BoundsExp0 deriving(Bits, Eq, FShow);
 
 typedef struct {
-  Bool                              embeddedExp;
+  Bool                              impliedExp;
 `ifdef CAP64
   Bit#(1)                           expTopBit;
 `endif
