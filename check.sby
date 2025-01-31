@@ -7,6 +7,7 @@ prop_getTop
 prop_getLength
 prop_isInBounds
 prop_setAddr
+prop_fromToMem
 
 [options]
 depth 1
@@ -25,6 +26,7 @@ read -formal module_prop_getTop.v
 read -formal module_prop_getLength.v
 read -formal module_prop_isInBounds.v
 read -formal module_prop_setAddr.v
+read -formal module_prop_fromToMem.v
 prop_getBase: prep -top assert_prop_getBase
 prop_getTop: prep -top assert_prop_getTop
 prop_getLength: prep -top assert_prop_getLength
@@ -33,6 +35,7 @@ prop_unique: prep -top assert_prop_unique
 prop_exact: prep -top assert_prop_exact
 prop_exactConditions: prep -top assert_prop_exactConditions
 prop_setAddr: prep -top assert_prop_setAddr
+prop_fromToMem: prep -top assert_prop_fromToMem
 
 [files]
 assertions.sv
@@ -44,3 +47,4 @@ module_prop_getTop.v
 module_prop_getLength.v
 module_prop_isInBounds.v
 module_prop_setAddr.v
+module_prop_fromToMem.v

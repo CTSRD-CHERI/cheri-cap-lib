@@ -178,4 +178,11 @@ function Bool prop_isInBounds(CapAddr base, CapAddr len, CapAddr addr);
   return forallCap(base, len, addr, prop);
 endfunction
 
+(* noinline *)
+function Bool prop_fromToMem(CapMem in);
+  CapPipe cp = fromMem(unpack(in));
+  CapMem cm = pack(toMem(cp));
+  return (cm == in);
+endfunction
+
 endpackage

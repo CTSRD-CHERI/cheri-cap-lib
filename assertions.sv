@@ -145,3 +145,18 @@ module assert_prop_setAddr(
     assert(prop_ok);
   end
 endmodule
+
+module assert_prop_fromToMem(
+         input wire [128 : 0] prop_in,
+       );
+  wire prop_ok;
+
+  module_prop_fromToMem module_fromToMem(
+    .prop_fromToMem_in(prop_in),
+    .prop_fromToMem(prop_ok)
+  );
+
+  always @(*) begin
+    assert(prop_ok);
+  end
+endmodule
