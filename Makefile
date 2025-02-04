@@ -13,6 +13,9 @@ ifeq ($(ARCH), RISCV)
 BSCFLAGS += -D RISCV
 endif
 
+BSV_VERILOG_WRAPPERS_DIR ?= $(CURDIR)
+BSCFLAGS += -vdir $(BSV_VERILOG_WRAPPERS_DIR)
+
 all: verilog-wrappers blarney-wrappers
 
 verilog-wrappers: CHERICapWrap.bsv CHERICap.bsv CHERICC_Fat.bsv
