@@ -88,7 +88,7 @@ function Bit#(CapAddrW) `W(getBase) (`CAPTYPE cap) = getBase(capArg(cap));
 (* noinline *)
 function Bit#(TAdd#(CapAddrW, 1)) `W(getTop) (`CAPTYPE cap) = getTop(capArg(cap));
 (* noinline *)
-function Bit#(TAdd#(CapAddrW, 1)) `W(getLength) (`CAPTYPE cap) = getLength(capArg(cap));
+function Bit#(CapAddrW) `W(getLength) (`CAPTYPE cap) = getLength(capArg(cap));
 (* noinline *)
 function Bool `W(isInBounds) (`CAPTYPE cap, Bool isTopIncluded) = isInBounds(capArg(cap), isTopIncluded);
 (* noinline *)

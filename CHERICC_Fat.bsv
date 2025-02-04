@@ -346,7 +346,7 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   Bit #(TAdd #(MW, 2)) correctTop  = {pack (tf.topCorrection), topBits};
   // Get the length by subtracting base from top and shifting appropriately, and
   // saturate in case of big exponent
-  CapAddrPlus1 length =
+  CapAddr length =
     (exp >= resetExp) ? ~0 : zeroExtend (correctTop - correctBase) << exp;
 
   // compute repBase
@@ -437,12 +437,12 @@ function CapAddrPlus1 getTopFat(CapFat cap, TempFields tf);
     ret[valueOf(CapAddrW)] = ~ret[valueOf(CapAddrW)];
   return ret;
 endfunction
-function CapAddrPlus1 getLengthFat(CapFat cap, TempFields tf);
+function CapAddr getLengthFat(CapFat cap, TempFields tf);
   // Get the top and base bits with the 2 correction bits prepended
   Bit#(TAdd#(MW,2)) top  = {pack(tf.topCorrection),cap.bounds.topBits};
   Bit#(TAdd#(MW,2)) base = {pack(tf.baseCorrection),cap.bounds.baseBits};
   // Get the length by substracting base from top and shifting appropriately
-  CapAddrPlus1 length = zeroExtend(top - base) << cap.bounds.exp;
+  CapAddr length = zeroExtend(top - base) << cap.bounds.exp;
   // Return a saturated length in case of big exponent
   // TODO: The saturation behaviour here is short of being correct
   return (cap.bounds.exp >= resetExp) ? ~0 : length;
