@@ -1459,11 +1459,11 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
 endinstance
 
 instance Cast#(CapMem, CapReg);
-  function CapReg cast (CapMem thin) = unpackCap(thin ^ packCap(null_cap));
+  function CapReg cast (CapMem thin) = unpackCap(thin);
 endinstance
 
 instance Cast#(CapReg, CapMem);
-  function CapMem cast (CapReg fat) = packCap(fat) ^ packCap(null_cap);
+  function CapMem cast (CapReg fat) = packCap(fat);
 endinstance
 
 instance Cast#(CapReg, CapPipe);
