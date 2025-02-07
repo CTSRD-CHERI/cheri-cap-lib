@@ -1464,7 +1464,7 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, 0);
   //////////////////////////////////////////////////////////////////////////////
   //function nullCap = error ("nullCap not implemented for CapReg");
   function nullWithAddr (addr) = setAddrUnsafe (null_cap, addr);
-  function almightyCap = defaultCapFat;
+  function almightyCap = setIntMode(defaultCapFat,True);
   function nullCapFromDummy (x) = null_cap;
 
   // Assert that the encoding is valid
