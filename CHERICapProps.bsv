@@ -52,7 +52,7 @@ function Bool forallBaseAndLen(CapAddr base, CapAddr len,
   Exact#(CapPipe) baseCap = setAddr(almightyCap, base);
   Exact#(CapPipe) boundedCap = setBounds(baseCap.value, len);
   return baseCap.exact && implies
-    ( boundedCap.exact 
+    ( boundedCap.exact
     , prop(boundedCap.value)
     );
 endfunction
@@ -107,10 +107,10 @@ function Bool prop_exact(CapAddr base, CapAddr len);
   Exact#(CapPipe) baseCap = setAddr(almightyCap, base);
   Exact#(CapPipe) boundedCap = setBounds(baseCap.value, len);
   Exact#(CapPipe) baseCap2 = setAddr(almightyCap, getBase(boundedCap.value));
-  CapAddrPlus1 length = getLength(boundedCap.value);
-  Exact#(CapPipe) boundedCap2 = setBounds(baseCap2.value, truncate(length));
+  CapAddr length = getLength(boundedCap.value);
+  Exact#(CapPipe) boundedCap2 = setBounds(baseCap2.value, length);
   return baseCap.exact && baseCap2.exact && implies
-           ( truncateLSB(length) == 1'b0
+           ( ~length != 0
            , boundedCap2.exact
            );
 endfunction
