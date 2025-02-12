@@ -116,7 +116,7 @@ endfunction
 
 // XXX TODO augment with all architectural bounds/ repbounds ?
 function Fmt showCHERICap (capT cap)
-  provisos (CHERICap #(capT , 0, 0, addrW, inMemW, maskableW));
+  provisos (CHERICap #(capT , 0, 0, addrW, inMemW, safeOffsetW));
   return $format( "Valid: 0x%0x", isValidCap(cap)) +
          $format(" Perms: 0x%0x", getPerms(cap)) +
          $format(" Kind: ", fshow(getKind(cap))) +
@@ -149,9 +149,9 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
                     , numeric type flgW      // width of the flags field
                     , numeric type addrW     // width of the address
                     , numeric type inMemW    // width of the capability in mem
-                    , numeric type maskableW // width of maskable bits
+                    , numeric type safeOffsetW // width of safe offset from in bounds cap
                     )
-  dependencies (capT determines (otypeW, flgW, addrW, inMemW, maskableW));
+  dependencies (capT determines (otypeW, flgW, addrW, inMemW, safeOffsetW));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -223,11 +223,7 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // Set the address of the capability. Result assumed to be representable
   function capT setAddrUnsafe (capT cap, Bit #(addrW) addr);
   // Add to the address of the capability. Result assumed to be representable
-  function capT addAddrUnsafe (capT cap, Bit #(maskableW) inc);
-  // Mask the least significant bits of capability address with a mask
-  // maskable_width should be small enough to make this
-  // safe with respect to representability
-  function capT maskAddr (capT cap, Bit #(maskableW) mask);
+  function capT addAddrUnsafe (capT cap, Bit #(safeOffsetW) inc);
   // Get the offset of the capability
   function Bit #(addrW) getOffset (capT cap) = getAddr(cap) - getBase(cap);
   // Modify the offset of the capability. Result invalid if unrepresentable

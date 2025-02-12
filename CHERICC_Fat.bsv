@@ -1176,7 +1176,7 @@ typedef struct {
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, 0);
+instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1262,7 +1262,6 @@ instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, 0);
   endfunction
   function addAddrUnsafe (capMem, inc) =
     setAddrUnsafe (capMem, getAddr (capMem) + signExtend (inc));
-  function maskAddr = error ("maskAddr not implemented for CapMem");
   //function getOffset = error ("getOffset not implemented for CapMem");
   function modifyOffset = error ("modifyOffset not implemented for CapMem");
   //function setOffset = error ("setOffset not implemented for CapMem");
@@ -1333,7 +1332,7 @@ endinstance
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, 0);
+instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1429,7 +1428,6 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, 0);
   function setAddrUnsafe (cap, address) = setCapPointer (cap, address);
   function addAddrUnsafe (cap, inc) =
     setAddrUnsafe (cap, getAddr (cap) + signExtend (inc));
-  function maskAddr (cap, mask) = setCapPointer (cap, cap.address & {~0, mask});
   function getOffset = error ("getOffset not implemented for CapReg");
   function modifyOffset = error ("modifyOffset not implemented for CapReg");
   //function setOffset = error ("setOffset not implemented for CapReg");
@@ -1481,7 +1479,7 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, 0);
 
 endinstance
 
-instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, 0);
+instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   //Functions supported by CapReg are just passed through
 
@@ -1508,9 +1506,6 @@ instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, 0);
 
   function getMeta (cap) = getMeta (cap.capFat);
   function getAddr (cap) = getAddr (cap.capFat);
-  function maskAddr (cap, mask) =
-    CapPipe { capFat: maskAddr(cap.capFat, mask)
-            , tempFields: cap.tempFields };
   function validAsType (dummy, checkType) =
     validAsType(dummy.capFat, checkType);
   function toMem (cap) = toMem(cap.capFat);
