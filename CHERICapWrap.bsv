@@ -48,6 +48,8 @@ function Exact#(`CAPTYPE) capExactRet(Exact#(CapPipe) e_cap) =
 (* noinline *)
 function Bool `W(isValidCap) (`CAPTYPE cap) = isValidCap(cap);
 (* noinline *)
+function Bool `W(areCapBoundsValid) (`CAPTYPE cap) = areCapBoundsValid(capArg(cap));
+(* noinline *)
 function `CAPTYPE `W(setValidCap) (`CAPTYPE cap, Bool valid) = setValidCap(cap, valid);
 (* noinline *)
 function Bool `W(getIntMode) (`CAPTYPE cap) = getIntMode(cap);

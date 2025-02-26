@@ -82,6 +82,7 @@ typedef struct {
   Bit #(TAdd #(addrW, 1)) repTop;
   Bit #(TAdd #(addrW, 1)) repLength;
   Bool repSplit;
+  Bool malformed;
 } BoundsInfo #(numeric type addrW) deriving (Bits, Eq, FShow);
 
 // helper types and functions
@@ -244,6 +245,8 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // getRepBase (cap) + getRepLength (cap) == getRepTop (cap)
   // isInBounds (cap) ==> isInRepBounds (cap)
 
+  // Return whether the Capability's bounds are valid or malformed
+  function Bool areCapBoundsValid (capT cap);
   // Get all architectural bound information for a capability
   function BoundsInfo #(addrW) getBoundsInfo (capT cap);
   // Get the base
