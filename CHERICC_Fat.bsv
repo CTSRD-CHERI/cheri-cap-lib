@@ -507,6 +507,17 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
 
   Bool repSplit = alwaysRep ? False : ! unpack (reduceOr (addrUpperHi));
 
+  // compute valid / malformed bounds
+  //////////////////////////////////////////////////////////////////////////////
+
+  Bool malformedMSB =    ((exp == resetExp) && (baseBits != 0))
+                      || ((exp == resetExp - 1) && (msb(baseBits) != 0));
+  Bool malformedLSB = (exp > resetExp);
+  `ifdef CAP64
+  malformedLSB = malformedLSB || (exp == 0);
+  `endif
+  Bool malformed = (cap.format != Exp0) && (malformedMSB || malformedLSB);
+
   // return populated BoundsInfo structure
   //////////////////////////////////////////////////////////////////////////////
 
@@ -516,7 +527,8 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
                     , repBase: repBase
                     , repTop: repTop
                     , repLength: repLength
-                    , repSplit: repSplit };
+                    , repSplit: repSplit
+		    , malformed: malformed };
 endfunction
 
 function CapAddr getBotFat(CapFat cap, TempFields tf);
@@ -1269,6 +1281,7 @@ instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   // capability architectural bounds queries
   //////////////////////////////////////////////////////////////////////////////
+  function areCapBoundsValid = error ("areCapBoundsValid not implemented for CapMem");
   function getBoundsInfo = error ("getBoundsInfo not implemented for CapMem");
   //function getBase = error ("getBase not implemented for CapMem");
   //function getTop = error ("getTop not implemented for CapMem");
@@ -1435,6 +1448,7 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   // capability architectural bounds queries
   //////////////////////////////////////////////////////////////////////////////
+  function areCapBoundsValid = error ("areCapBoundsValid not implemented for CapReg");
   function getBoundsInfo = error ("getBoundsInfo not implemented for CapReg");
   //function getBase = error ("getBase not implemented for CapReg");
   //function getTop = error ("getTop not implemented for CapReg");
@@ -1574,6 +1588,8 @@ instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
     cap.tempFields = getTempFields(cap.capFat);
     return Exact { exact: result.v, value: cap };
   endfunction
+
+  function areCapBoundsValid (cap) = !getBoundsInfoFat(cap.capFat, cap.tempFields).malformed;
 
   function getBoundsInfo (cap) = getBoundsInfoFat (cap.capFat, cap.tempFields);
 
