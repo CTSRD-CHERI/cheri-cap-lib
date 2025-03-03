@@ -52,7 +52,7 @@ function Bool `W(areCapBoundsValid) (`CAPTYPE cap) = areCapBoundsValid(capArg(ca
 (* noinline *)
 function `CAPTYPE `W(setValidCap) (`CAPTYPE cap, Bool valid) = setValidCap(cap, valid);
 (* noinline *)
-function Bool `W(getIntMode) (`CAPTYPE cap) = getIntMode(cap);
+function Exact#(Bool) `W(getIntMode) (`CAPTYPE cap) = getIntMode(cap);
 (* noinline *)
 function `CAPTYPE `W(setIntMode) (`CAPTYPE cap, Bool im) = setIntMode(cap,im);
 (* noinline *)

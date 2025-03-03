@@ -1206,7 +1206,8 @@ instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
   //////////////////////////////////////////////////////////////////////////////
   function getIntMode (capMem);
     CapabilityInMemory cap = unpack (capMem);
-    return getPermsField(cap).intMode;
+    // XXX This needs to address more "inexact" cases where the perms field doesn't decode
+    return Exact { exact: cap.perms.hard.permit_execute, value: getPermsField(cap).intMode };
   endfunction
   function setIntMode (capMem, im);
     CapabilityInMemory cap = unpack (capMem);
@@ -1357,12 +1358,16 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   // capability flags
   //////////////////////////////////////////////////////////////////////////////
-  function getIntMode (cap) =
+  function getIntMode (cap) = Exact {
+      // XXX This needs to address more "inexact" cases where the perms field doesn't decode
+      exact: cap.perms.hard.permit_execute
+    , value:
 `ifdef CAP64
-    compressedHPermsToIntMode(cap.perms);
+    compressedHPermsToIntMode(cap.perms)
 `else
-    cap.perms.intMode;
+    cap.perms.intMode
 `endif
+  };
 
   function setIntMode (cap, im);
 `ifdef CAP64

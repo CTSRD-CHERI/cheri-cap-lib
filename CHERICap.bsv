@@ -95,7 +95,7 @@ typedef struct {
 typedef struct {
   Bool exact;
   t    value;
-} Exact #(type t) deriving (Bits);
+} Exact #(type t) deriving (Bits, FShow);
 
 // Helper type for the return value of the 'setBoundsCombined' method
 
@@ -166,7 +166,7 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   //////////////////////////////////////////////////////////////////////////////
 
   // Get the flags field
-  function Bool getIntMode (capT cap);
+  function Exact#(Bool) getIntMode (capT cap);
   // Set the flags field
   function capT setIntMode (capT cap, Bool im);
 
