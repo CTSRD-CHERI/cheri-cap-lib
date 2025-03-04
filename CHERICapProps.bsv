@@ -186,6 +186,12 @@ function Bool prop_isInBounds(CapAddr base, CapAddr len, CapAddr addr);
 endfunction
 
 (* noinline *)
+function Bool prop_hasAlmightyBounds(CapAddr base, CapAddr len, CapAddr addr);
+  function prop(cap) = hasAlmightyBounds(cap) == (getBase(cap) == 0 && getTop(cap) >= {1'b1, 0});
+  return forallCap(base, len, addr, prop);
+endfunction
+
+(* noinline *)
 function Bool prop_fromToMem(CapMem in);
   CapPipe cp = fromMem(unpack(in));
   CapMem cm = pack(toMem(cp));

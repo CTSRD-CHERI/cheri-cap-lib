@@ -475,6 +475,11 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   CapAddr length =
     (exp >= resetExp) ? ~0 : zeroExtend (correctTop - correctBase) << exp;
 
+  // check if cap has almighty bounds
+  //////////////////////////////////////////////////////////////////////////////
+
+  Bool isAlmighty = exp == resetExp;
+
   // compute repBase
   //////////////////////////////////////////////////////////////////////////////
 
@@ -524,6 +529,7 @@ function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   return BoundsInfo { base: base
                     , top: top
                     , length: length
+                    , isAlmighty: isAlmighty
                     , repBase: repBase
                     , repTop: repTop
                     , repLength: repLength

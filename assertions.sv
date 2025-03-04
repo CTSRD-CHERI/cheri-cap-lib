@@ -127,6 +127,25 @@ module assert_prop_isInBounds(
   end
 endmodule
 
+module assert_prop_hasAlmightyBounds(
+         input wire [63 : 0] prop_base,
+         input wire [63 : 0] prop_len,
+         input wire [63 : 0] prop_addr
+       );
+  wire prop_ok;
+
+  module_prop_hasAlmightyBounds module_prop_hasAlmightyBounds_inst(
+    .prop_hasAlmightyBounds_base(prop_base),
+    .prop_hasAlmightyBounds_len(prop_len),
+    .prop_hasAlmightyBounds_addr(prop_addr),
+    .prop_hasAlmightyBounds(prop_ok)
+  );
+
+  always @(*) begin
+    assert(prop_ok);
+  end
+endmodule
+
 module assert_prop_setAddr(
          input wire [63 : 0] prop_base,
          input wire [63 : 0] prop_len,

@@ -78,6 +78,7 @@ typedef struct {
   Bit #(addrW) base;
   Bit #(TAdd #(addrW, 1)) top;
   Bit #(addrW) length;
+  Bool isAlmighty;
   Bit #(addrW) repBase;
   Bit #(TAdd #(addrW, 1)) repTop;
   Bit #(TAdd #(addrW, 1)) repLength;
@@ -262,6 +263,9 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
                    , zeroExtend (getBase (cap))
                    , getTop (cap)
                    , isTopIncluded );
+  // Check if the capability has almighty bounds, meaning all bounds checks should pass
+  function Bool hasAlmightyBounds (capT cap) =
+    getBoundsInfo(cap).isAlmighty;
   // Get the representable base
   function Bit #(addrW) getRepBase (capT cap) = getBoundsInfo(cap).repBase;
   // Get the representable top
