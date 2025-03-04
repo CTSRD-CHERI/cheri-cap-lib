@@ -13,30 +13,37 @@ ifeq ($(ARCH), RISCV)
 BSCFLAGS += -D RISCV
 endif
 
-BSV_VERILOG_WRAPPERS_DIR ?= $(CURDIR)
-BSCFLAGS += -vdir $(BSV_VERILOG_WRAPPERS_DIR)
+BSV_VERILOG_WRAPPERS_DIR ?= $(CURDIR)/build/
+BUILD_DIR = $(BSV_VERILOG_WRAPPERS_DIR)
+COUNTEREXAMPLE_DIR = $(CURDIR)/counterexamples/
+BSCFLAGS += -bdir $(BUILD_DIR)
 
 all: verilog-wrappers blarney-wrappers
 
-verilog-wrappers: CHERICapWrap.bsv CHERICap.bsv CHERICC_Fat.bsv
-	bsc $(BSCFLAGS) -verilog -u $<
+$(BUILD_DIR):
+	mkdir -p $@
 
-verilog-props: CHERICapProps.bsv CHERICap.bsv CHERICC_Fat.bsv
-	bsc $(BSCFLAGS) -verilog -u $<
+$(COUNTEREXAMPLE_DIR):
+	mkdir -p $@
 
-check-prop: assertions.sv verilog-wrappers verilog-props
-	sby -f check.sby
+verilog-wrappers: CHERICapWrap.bsv CHERICap.bsv CHERICC_Fat.bsv $(BUILD_DIR)
+	bsc $(BSCFLAGS) -vdir $(BSV_VERILOG_WRAPPERS_DIR) -verilog -u $<
 
-blarney-wrappers: CHERICapWrap.py verilog-wrappers
-	./CHERICapWrap.py -o CHERIBlarneyWrappers *.v
+verilog-props: CHERICapProps.bsv CHERICap.bsv CHERICC_Fat.bsv $(BUILD_DIR) $(COUNTEREXAMPLE_DIR)
+	bsc $(BSCFLAGS) -vdir $(COUNTEREXAMPLE_DIR) -verilog -u $<
 
-.PHONY: clean clean-verilog-wrappers
+check-prop: assertions.sv verilog-props $(COUNTEREXAMPLE_DIR)
+	sby --prefix $(COUNTEREXAMPLE_DIR) -f check.sby
 
-clean-verilog-wrappers: clean
-	rm -f *.v
+blarney-wrappers: CHERICapWrap.py verilog-wrappers $(BUILD_DIR)
+	./CHERICapWrap.py -o $(BUILD_DIR)/CHERIBlarneyWrappers $(BUILD_DIR)/*.v
 
-clean-blarney-wrappers: clean
-	rm -f *.hs
+.PHONY: clean clean-counterexamples full-clean
+
+clean-counterexamples:
+	rm -rf $(COUNTEREXAMPLE_DIR)
 
 clean:
-	rm -f *.bo
+	rm -rf $(BUILD_DIR)
+
+full-clean: clean clean-counterexamples

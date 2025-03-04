@@ -39,12 +39,12 @@ prop_fromToMem: prep -top assert_prop_fromToMem
 
 [files]
 assertions.sv
-module_prop_unique.v
-module_prop_exact.v
-module_prop_exactConditions.v
-module_prop_getBase.v
-module_prop_getTop.v
-module_prop_getLength.v
-module_prop_isInBounds.v
-module_prop_setAddr.v
-module_prop_fromToMem.v
+counterexamples/module_prop_unique.v
+counterexamples/module_prop_exact.v
+counterexamples/module_prop_exactConditions.v
+counterexamples/module_prop_getBase.v
+counterexamples/module_prop_getTop.v
+counterexamples/module_prop_getLength.v
+counterexamples/module_prop_isInBounds.v
+counterexamples/module_prop_setAddr.v
+counterexamples/module_prop_fromToMem.v
