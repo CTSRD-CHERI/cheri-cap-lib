@@ -1,8 +1,8 @@
 module assert_prop_unique(
-         input wire [31 : 0] prop_base,
-         input wire [31 : 0] prop_len,
-         input wire [31 : 0] prop_newBase,
-         input wire [31 : 0] prop_newLen
+         input wire [63 : 0] prop_base,
+         input wire [63 : 0] prop_len,
+         input wire [63 : 0] prop_newBase,
+         input wire [63 : 0] prop_newLen
        );
   wire prop_ok;
 
@@ -20,8 +20,8 @@ module assert_prop_unique(
 endmodule
 
 module assert_prop_exact(
-         input wire [31 : 0] prop_base,
-         input wire [31 : 0] prop_len
+         input wire [63 : 0] prop_base,
+         input wire [63 : 0] prop_len
        );
   wire prop_ok;
 
@@ -37,8 +37,8 @@ module assert_prop_exact(
 endmodule
 
 module assert_prop_exactConditions(
-         input wire [31 : 0] prop_base,
-         input wire [31 : 0] prop_len
+         input wire [63 : 0] prop_base,
+         input wire [63 : 0] prop_len
        );
   wire prop_ok;
 
@@ -54,8 +54,8 @@ module assert_prop_exactConditions(
 endmodule
 
 module assert_prop_getBase(
-         input wire [31 : 0] prop_base,
-         input wire [31 : 0] prop_len
+         input wire [63 : 0] prop_base,
+         input wire [63 : 0] prop_len
        );
   wire prop_ok;
 
@@ -71,9 +71,9 @@ module assert_prop_getBase(
 endmodule
 
 module assert_prop_getTop(
-         input wire [31 : 0] prop_base,
-         input wire [31 : 0] prop_len,
-         input wire [31 : 0] prop_addr
+         input wire [63 : 0] prop_base,
+         input wire [63 : 0] prop_len,
+         input wire [63 : 0] prop_addr
        );
   wire prop_ok;
 
@@ -90,9 +90,9 @@ module assert_prop_getTop(
 endmodule
 
 module assert_prop_getLength(
-         input wire [31 : 0] prop_base,
-         input wire [31 : 0] prop_addr,
-         input wire [31 : 0] prop_len
+         input wire [63 : 0] prop_base,
+         input wire [63 : 0] prop_addr,
+         input wire [63 : 0] prop_len
        );
   wire prop_ok;
 
@@ -109,9 +109,9 @@ module assert_prop_getLength(
 endmodule
 
 module assert_prop_isInBounds(
-         input wire [31 : 0] prop_base,
-         input wire [31 : 0] prop_len,
-         input wire [31 : 0] prop_addr
+         input wire [63 : 0] prop_base,
+         input wire [63 : 0] prop_len,
+         input wire [63 : 0] prop_addr
        );
   wire prop_ok;
 
@@ -128,9 +128,9 @@ module assert_prop_isInBounds(
 endmodule
 
 module assert_prop_setAddr(
-         input wire [31 : 0] prop_base,
-         input wire [31 : 0] prop_len,
-         input wire [31 : 0] prop_addr
+         input wire [63 : 0] prop_base,
+         input wire [63 : 0] prop_len,
+         input wire [63 : 0] prop_addr
        );
   wire prop_ok;
 
