@@ -1,4 +1,4 @@
-CAP ?= 64
+CAP ?= 128
 ifeq ($(CAP), 128)
 BSCFLAGS = -D CAP128
 else
