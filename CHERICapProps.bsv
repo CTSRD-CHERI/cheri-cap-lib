@@ -49,12 +49,18 @@ function Bool implies(Bool x, Bool y) = !x || y;
 
 function Bool forallBaseAndLen(CapAddr base, CapAddr len,
                                  function Bool prop(CapPipe cap));
-  Exact#(CapPipe) baseCap = setAddr(almightyCap, base);
-  Exact#(CapPipe) boundedCap = setBounds(baseCap.value, len);
-  return baseCap.exact && implies
-    ( boundedCap.exact
-    , prop(boundedCap.value)
-    );
+  Bool ret = ?;
+  if (base == 0 && ~len == 0) begin
+    ret = prop(almightyCap);
+  end else begin
+    Exact#(CapPipe) baseCap = setAddr(almightyCap, base);
+    Exact#(CapPipe) boundedCap = setBounds(baseCap.value, len);
+    ret = baseCap.exact && implies
+      ( boundedCap.exact
+      , prop(boundedCap.value)
+      );
+  end
+  return ret;
 endfunction
 
 // Furthermore, every valid capability can be reached by calling setAddr on
@@ -137,7 +143,8 @@ endfunction
 
 (* noinline *)
 function Bool prop_getTop(CapAddr base, CapAddr len, CapAddr addr);
-  function prop(cap) = getTop(cap) == zeroExtend(base) + zeroExtend(len);
+  Bool reqAlmighty = ~len == 0;
+  function prop(cap) = getTop(cap) == zeroExtend(base) + (reqAlmighty ? {1'b1, 0} : zeroExtend(len));
   return forallCap(base, len, addr, prop);
 endfunction
 
