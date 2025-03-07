@@ -160,3 +160,24 @@ module assert_prop_fromToMem(
     assert(prop_ok);
   end
 endmodule
+
+module assert_prop_setBounds(
+         input wire [63 : 0] prop_base,
+         input wire [63 : 0] prop_len,
+         input wire [63 : 0] prop_addr,
+         input wire [63 : 0] prop_new_len
+       );
+  wire prop_ok;
+
+  module_prop_setBounds module_prop_setBounds_inst(
+    .prop_setBounds_base(prop_base),
+    .prop_setBounds_len(prop_len),
+    .prop_setBounds_addr(prop_addr),
+    .prop_setBounds_new_len(prop_new_len),
+    .prop_setBounds(prop_ok)
+  );
+
+  always @(*) begin
+    assert(prop_ok);
+  end
+endmodule

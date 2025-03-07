@@ -192,4 +192,16 @@ function Bool prop_fromToMem(CapMem in);
   return (cm == in);
 endfunction
 
+(* noinline *)
+function Bool prop_setBounds(CapAddr base, CapAddr len, CapAddr addr, CapAddr new_len);
+  function prop(cap);
+    let new_cap = setBounds(cap,new_len).value;
+    return implies( isValidCap(new_cap),
+                    getBase(cap) <= getBase(new_cap)
+                    && getTop(cap) >= getTop(new_cap)
+                  );
+  endfunction
+  return forallCap(base, len, addr, prop);
+endfunction
+
 endpackage
