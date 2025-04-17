@@ -388,6 +388,31 @@ typedef MetaInfo TempFields;
 
 // Interface functions
 //------------------------------------------------------------------------------
+
+// Legalise the permissions on the cap, indicating if a change was made.
+// XXX 32-bit perm legalisation needs to be handled differently as the intermediate
+// illegal values can't be encoded within the cap.
+`ifndef CAP64
+function Exact#(CapFat) legalisePermsFat (CapFat cap);
+  CapFat oldCap = cap;
+  if (!(cap.perms.hard.permit_load || cap.perms.hard.permit_store)) begin
+    cap.perms.hard.permit_cap = False;
+  end
+  if (!(cap.perms.hard.permit_cap || cap.perms.hard.permit_load)) begin
+    cap.perms.hard.permit_elevate_level = False;
+    cap.perms.hard.permit_load_mutable = False;
+  end
+  if (!(cap.perms.hard.permit_cap)) begin
+    cap.perms.hard.permission_store_level = 0;
+  end
+  if (!cap.perms.hard.permit_execute) begin
+    cap.perms.hard.access_sys_regs = False;
+    cap.perms.intMode = False;
+  end
+  return Exact {exact: cap == oldCap, value: cap};
+endfunction
+`endif
+
 function BoundsInfo#(CapAddrW) getBoundsInfoFat (CapFat cap, TempFields tf)
   provisos ( NumAlias #(fullW, TAdd #(CapAddrW, 1))
            , NumAlias #(upperW, TSub #(fullW, MW))
@@ -1410,7 +1435,8 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
       , permission_store_level:     perms.permissionStoreLevel
       , capability_level:           perms.capabilityLevel
     };
-    return cap;
+    cap = legalisePermsFat(cap);
+    return cap.value;
   endfunction
   function getSoftPerms (cap) = zeroExtend (cap.perms.soft);
   function setSoftPerms (cap, perms);
