@@ -111,7 +111,7 @@ typedef Bit#(TAdd#(CapAddrW,2)) CapAddrPlus2;
 // The Hardware permissions type
 typedef struct {
   UInt#(1) permission_store_level;
-  Bool permit_load_ephemeral;
+  Bool permit_elevate_level;
   Bool permit_load_mutable;
   Bool access_sys_regs;
   Bool permit_execute;
@@ -129,7 +129,7 @@ typedef struct {
 function HPerms compressedHPermsToHPerms(CompressedHPerms cPerms);
   let p = HPerms {
     permission_store_level: 0,
-    permit_load_ephemeral: False,
+    permit_elevate_level: False,
     permit_load_mutable: False,
     access_sys_regs: False,
     permit_execute: False,
@@ -1233,7 +1233,7 @@ instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
     return HardPerms {
         accessSysRegs:        hperms.access_sys_regs
       , permitLoadMutable:    hperms.permit_load_mutable
-      , permitLoadEphemeral:  hperms.permit_load_ephemeral
+      , permitElevateLevel:   hperms.permit_elevate_level
       , permitCap:            hperms.permit_cap
       , permitStore:          hperms.permit_store
       , permitLoad:           hperms.permit_load
@@ -1390,7 +1390,7 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
   function getHardPerms (cap) = HardPerms {
       accessSysRegs:        cap.perms.hard.access_sys_regs
     , permitLoadMutable:    cap.perms.hard.permit_load_mutable
-    , permitLoadEphemeral:  cap.perms.hard.permit_load_ephemeral
+    , permitElevateLevel:   cap.perms.hard.permit_elevate_level
     , permitCap:            cap.perms.hard.permit_cap
     , permitStore:          cap.perms.hard.permit_store
     , permitLoad:           cap.perms.hard.permit_load
@@ -1402,7 +1402,7 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
     cap.perms.hard = HPerms {
         access_sys_regs:            perms.accessSysRegs
       , permit_load_mutable:        perms.permitLoadMutable
-      , permit_load_ephemeral:      perms.permitLoadEphemeral
+      , permit_elevate_level:       perms.permitElevateLevel
       , permit_cap:                 perms.permitCap
       , permit_store:               perms.permitStore
       , permit_load:                perms.permitLoad

@@ -45,7 +45,7 @@ typedef struct {
   Bool permitCap;
   UInt#(1) capabilityLevel;
   UInt#(1) permissionStoreLevel;
-  Bool permitLoadEphemeral;
+  Bool permitElevateLevel;
   Bool permitLoadMutable;
   Bool permitStore;
 } HardPerms deriving(Bits, Eq, FShow);
