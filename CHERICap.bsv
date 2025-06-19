@@ -170,6 +170,13 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function Exact#(Bool) getIntMode (capT cap);
   // Set the flags field
   function capT setIntMode (capT cap, Bool im);
+  // Set legalised flags field
+  function capT setLegalisedIntMode (capT cap, Bool im);
+    let hp = getHardPerms(cap);
+    let b = im;
+    if(!hp.permitExecute) b = False;
+    return setIntMode(cap, b);
+  endfunction
 
   // capability permissions
   //////////////////////////////////////////////////////////////////////////////
