@@ -182,9 +182,41 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function SoftPerms getSoftPerms (capT cap);
   // Set the software permissions
   function capT setSoftPerms (capT cap, SoftPerms softperms);
+
+  // Legalise hardware permissions
+  function Exact#(capT) legaliseHardPerms(capT cap);
+    let hp = getHardPerms(cap);
+    let oldCap = cap;
+    if (!(hp.permitLoad || hp.permitStore)) begin
+      hp.permitCap = False;
+    end
+
+    if (!(hp.permitCap || hp.permitLoad)) begin
+      hp.permitElevateLevel = False;
+      hp.permitLoadMutable = False;
+    end
+
+    if (!(hp.permitCap)) begin
+      hp.permissionStoreLevel = 0;
+    end
+
+    if (!hp.permitExecute) begin
+      hp.accessSysRegs = False;
+    end
+
+    let some = setHardPerms(cap, hp);
+
+    return Exact {exact: pack(getHardPerms(oldCap)) == pack(getHardPerms(some)), value: some};
+  endfunction
+
+  // Get whether the perms are legal
+  function Bool areLegalHardPerms(capT cap) = legaliseHardPerms(cap).exact;
+
   // Get the architectural permissions
   function Bit #(31) getPerms (capT cap);
     let hp = pack(getHardPerms(cap));
+    let legalHardPerms = areLegalHardPerms(cap);
+    if(!legalHardPerms) hp = 0;
     return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
   endfunction
   // Set the architectural permissions
