@@ -198,7 +198,7 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
       hp.permitCap = False;
     end
 
-    if (!(hp.permitCap || hp.permitLoad)) begin
+    if (!(hp.permitCap && hp.permitLoad)) begin
       hp.permitElevateLevel = False;
       hp.permitLoadMutable = False;
     end
@@ -227,8 +227,13 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
     return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
   endfunction
   // Set the architectural permissions
-  function capT setPerms (capT cap, Bit #(31) perms) =
-    setSoftPerms ( setHardPerms (cap, unpack ({perms[18:16],perms[5:0]})), perms[9:6]);
+  function capT setPerms (capT cap, Bit #(31) perms);
+    HardPerms hp = unpack ({perms[18:16],perms[5:0]});
+    let hp_cap = setHardPerms(cap, hp);
+    let l_hp_perm = legaliseHardPerms(hp_cap);
+    let l_m_hp_perm = setLegalisedIntMode(l_hp_perm.value, getIntMode(l_hp_perm.value).value);
+    return setSoftPerms ( l_m_hp_perm, perms[9:6]);
+  endfunction
 
   // capability kind
   //////////////////////////////////////////////////////////////////////////////
