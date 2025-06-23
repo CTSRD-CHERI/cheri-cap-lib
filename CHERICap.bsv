@@ -223,7 +223,11 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function Bit #(31) getPerms (capT cap);
     let hp = pack(getHardPerms(cap));
     let legalHardPerms = areLegalHardPerms(cap);
-    if(!legalHardPerms) hp = 0;
+    if(!legalHardPerms) begin
+      HardPerms temp_hp = unpack(0);
+      temp_hp.capabilityLevel = getHardPerms(cap).capabilityLevel;
+      hp = pack(temp_hp);
+    end
     return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
   endfunction
   // Set the architectural permissions
