@@ -223,7 +223,8 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function Bit #(31) getPerms (capT cap);
     let hp = pack(getHardPerms(cap));
     let legalHardPerms = areLegalHardPerms(cap);
-    if(!legalHardPerms) begin
+    let mExact = getIntMode(cap).exact;
+    if(!legalHardPerms || !mExact) begin
       HardPerms temp_hp = unpack(0);
       temp_hp.capabilityLevel = getHardPerms(cap).capabilityLevel;
       hp = pack(temp_hp);
