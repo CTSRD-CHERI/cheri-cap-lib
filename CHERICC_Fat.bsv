@@ -1631,7 +1631,7 @@ instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   function getTop (cap) = getTopFat(cap.capFat, cap.tempFields);
 
-  function getLength (cap) = getLengthFat(cap.capFat, cap.tempFields);
+  //function getLength (cap) = getLengthFat(cap.capFat, cap.tempFields);
 
   function isInBounds (cap, inclusive) =
     capInBounds(cap.capFat, cap.tempFields, inclusive);

@@ -304,8 +304,10 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // Get the top
   function Bit #(TAdd #(addrW, 1)) getTop (capT cap) = getBoundsInfo(cap).top;
   // Get the length
-  function Bit #(addrW) getLength (capT cap) =
-    getBoundsInfo(cap).length;
+  function Bit #(addrW) getLength (capT cap);
+    let gbi = getBoundsInfo(cap);
+    return gbi.malformed ? 0 : gbi.length;
+  endfunction
   // Assertion that the capability's address is between its base and top
   function Bool isInBounds (capT cap, Bool isTopIncluded) =
     belongsToRange ( zeroExtend (getAddr (cap))
