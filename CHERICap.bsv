@@ -300,7 +300,10 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // Get all architectural bound information for a capability
   function BoundsInfo #(addrW) getBoundsInfo (capT cap);
   // Get the base
-  function Bit #(addrW) getBase (capT cap) = getBoundsInfo(cap).base;
+  function Bit #(addrW) getBase (capT cap);
+    let gbi = getBoundsInfo(cap);
+    return gbi.malformed ? 0 : gbi.base;
+  endfunction
   // Get the top
   function Bit #(TAdd #(addrW, 1)) getTop (capT cap) = getBoundsInfo(cap).top;
   // Get the length

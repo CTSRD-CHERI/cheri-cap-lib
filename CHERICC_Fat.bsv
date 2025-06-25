@@ -1627,7 +1627,7 @@ instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   function getBoundsInfo (cap) = getBoundsInfoFat (cap.capFat, cap.tempFields);
 
-  function getBase (cap) = getBotFat(cap.capFat, cap.tempFields);
+  //function getBase (cap) = getBotFat(cap.capFat, cap.tempFields);
 
   function getTop (cap) = getTopFat(cap.capFat, cap.tempFields);
 
