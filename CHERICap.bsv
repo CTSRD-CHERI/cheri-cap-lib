@@ -234,8 +234,14 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // Get whether the perms are legal
   function Bool areLegalHardPerms(capT cap) = legaliseHardPerms(cap).exact;
 
-  // Get the architectural permissions
+  // Get all permissions
   function Bit #(31) getPerms (capT cap);
+    let hp = pack(getHardPerms(cap));
+    return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
+  endfunction
+
+  // Get all permissions in legalised form
+  function Bit #(31) getLegalisedPerms (capT cap);
     let hp = pack(getHardPerms(cap));
     let legalHardPerms = areLegalHardPerms(cap);
     let mExact = isLegalisedIntMode(cap);
@@ -247,7 +253,10 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
     return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
   endfunction
   // Set the architectural permissions
-  function capT setPerms (capT cap, Bit #(31) perms);
+  function capT setPerms (capT cap, Bit #(31) perms) =
+    setSoftPerms ( setHardPerms (cap, unpack ({perms[18:16],perms[5:0]})), perms[9:6]);
+  // Set the architectural permissions in legalised form
+  function capT setLegalisedPerms (capT cap, Bit #(31) perms);
     HardPerms hp = unpack ({perms[18:16],perms[5:0]});
     let hp_cap = setHardPerms(cap, hp);
     let l_hp_perm = legaliseHardPerms(hp_cap);
@@ -315,14 +324,18 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // Get all architectural bound information for a capability
   function BoundsInfo #(addrW) getBoundsInfo (capT cap);
   // Get the base
-  function Bit #(addrW) getBase (capT cap);
+  function Bit #(addrW) getBase (capT cap) = getBoundsInfo(cap).base;
+  // Get the base in legalised form
+  function Bit #(addrW) getLegalisedBase (capT cap);
     let gbi = getBoundsInfo(cap);
     return gbi.malformed ? 0 : gbi.base;
   endfunction
   // Get the top
   function Bit #(TAdd #(addrW, 1)) getTop (capT cap) = getBoundsInfo(cap).top;
   // Get the length
-  function Bit #(addrW) getLength (capT cap);
+  function Bit #(addrW) getLength (capT cap) = getBoundsInfo(cap).length;
+  // Get the length in legalised form
+  function Bit #(addrW) getLegalisedLength (capT cap);
     let gbi = getBoundsInfo(cap);
     return gbi.malformed ? 0 : gbi.length;
   endfunction
