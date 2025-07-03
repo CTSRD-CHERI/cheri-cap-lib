@@ -3,6 +3,7 @@
  * Copyright (c) 2017-2025 Alexandre Joannou
  * Copyright (c) 2019 Peter Rugg
  * Copyright (c) 2021 Dapeng Gao
+ * Copyright (c) 2025 Franz Fuchs
  * All rights reserved.
  *
  * This software was developed by SRI International and the University of
@@ -629,7 +630,7 @@ function Address getOffsetFat(CapFat cap, TempFields tf);
   // with the low address bits appended
   return (signExtend(offset) << e) | addrLSB;
 endfunction
-function Bit#(31) getPerms(CapFat cap);
+function Bit#(31) getUnlegalisedPerms(CapFat cap);
   Bit#(SizeOf#(HPerms)) hardPerms = zeroExtend(pack(cap.perms.hard));
   Bit#(UPermW) softPerms = zeroExtend(pack(cap.perms.soft));
   return zeroExtend({softPerms,hardPerms});
@@ -1235,11 +1236,11 @@ instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   // capability flags
   //////////////////////////////////////////////////////////////////////////////
-  function getIntMode (capMem);
+  function getUnlegalisedIntMode (capMem);
     CapabilityInMemory cap = unpack (capMem);
     return getPermsField(cap).intMode;
   endfunction
-  function setIntMode (capMem, im);
+  function setUnlegalisedIntMode (capMem, im);
     CapabilityInMemory cap = unpack (capMem);
     cap.perms.intMode = im; // XXX Only works for CAP128 currently...
     return pack (cap);
@@ -1388,14 +1389,14 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   // capability flags
   //////////////////////////////////////////////////////////////////////////////
-  function getIntMode (cap) =
+  function getUnlegalisedIntMode (cap) =
 `ifdef CAP64
     getPermsField(cap).intMode;
 `else
     cap.perms.intMode;
 `endif
 
-  function setIntMode (cap, im);
+  function setUnlegalisedIntMode (cap, im);
 `ifdef CAP64
     if (cap.perms.chperms[4:3] == 2'b01)
       cap.perms.chperms[0] = pack(im);
@@ -1533,9 +1534,9 @@ instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
   function setValidCap (cap, tag) =
     CapPipe { capFat: setValidCap(cap.capFat, tag)
             , tempFields: cap.tempFields };
-  function getIntMode (cap) = getIntMode(cap.capFat);
-  function setIntMode (cap, flags) =
-    CapPipe { capFat: setIntMode(cap.capFat, flags)
+  function getUnlegalisedIntMode (cap) = getUnlegalisedIntMode(cap.capFat);
+  function setUnlegalisedIntMode (cap, flags) =
+    CapPipe { capFat: setUnlegalisedIntMode(cap.capFat, flags)
             , tempFields: cap.tempFields };
   function getHardPerms (cap) = getHardPerms(cap.capFat);
   function setHardPerms (cap, perms) =
@@ -1625,11 +1626,11 @@ instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   function getBoundsInfo (cap) = getBoundsInfoFat (cap.capFat, cap.tempFields);
 
-  //function getBase (cap) = getBotFat(cap.capFat, cap.tempFields);
+  //function getBase (cap) = error("getBase not implemented for CapPipe");
 
   function getTop (cap) = getTopFat(cap.capFat, cap.tempFields);
 
-  //function getLength (cap) = getLengthFat(cap.capFat, cap.tempFields);
+  //function getLength (cap) = error("getLength not implemented for CapPipe");
 
   function isInBounds (cap, inclusive) =
     capInBounds(cap.capFat, cap.tempFields, inclusive);

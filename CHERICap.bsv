@@ -1,6 +1,7 @@
 /*-
  * Copyright (c) 2018-2021 Alexandre Joannou
  * Copyright (c) 2019 Peter Rugg
+ * Copyright (c) 2025 Franz Fuchs
  * All rights reserved.
  *
  * This software was developed by SRI International and the University of
@@ -166,29 +167,29 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // capability flags
   //////////////////////////////////////////////////////////////////////////////
 
-  // Get the flags field
+  // Get the flags field in unlegalised form
+  function Bool getUnlegalisedIntMode (capT cap);
+  // Get the flags field in legalised form
   function Bool getIntMode (capT cap);
-  // Set the flags field
-  // Get legalised flags field
-  function Bool getLegalisedIntMode (capT cap);
-    let m = getIntMode(cap);
+    let m = getUnlegalisedIntMode(cap);
     let hp = getHardPerms(cap);
     let m_legal = !(!hp.permitExecute && m);
     let ap_legal = areLegalHardPerms(cap);
     return (m_legal && ap_legal) ? m : False;
   endfunction
+  // Set the flags field in unlegalised form
+  function capT setUnlegalisedIntMode (capT cap, Bool im);
+  // Set the flags field in legalised form
   function capT setIntMode (capT cap, Bool im);
-  // Set legalised flags field
-  function capT setLegalisedIntMode (capT cap, Bool im);
     let hp = getHardPerms(cap);
     let b = im;
     if(!hp.permitExecute) b = False;
-    return setIntMode(cap, b);
+    return setUnlegalisedIntMode(cap, b);
   endfunction
   // test for legal flags field
   function Bool isLegalisedIntMode(capT cap);
     let hp = getHardPerms(cap);
-    let m = getIntMode(cap);
+    let m = getUnlegalisedIntMode(cap);
     if(!hp.permitExecute && m) return False;
     else return True;
   endfunction
@@ -234,14 +235,14 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // Get whether the perms are legal
   function Bool areLegalHardPerms(capT cap) = legaliseHardPerms(cap).exact;
 
-  // Get all permissions
-  function Bit #(31) getPerms (capT cap);
+  // Get all permissions in unlegalised form
+  function Bit #(31) getUnlegalisedPerms (capT cap);
     let hp = pack(getHardPerms(cap));
     return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
   endfunction
 
   // Get all permissions in legalised form
-  function Bit #(31) getLegalisedPerms (capT cap);
+  function Bit #(31) getPerms (capT cap);
     let hp = pack(getHardPerms(cap));
     let legalHardPerms = areLegalHardPerms(cap);
     let mExact = isLegalisedIntMode(cap);
@@ -253,14 +254,14 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
     return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
   endfunction
   // Set the architectural permissions
-  function capT setPerms (capT cap, Bit #(31) perms) =
+  function capT setUnlegalisedPerms (capT cap, Bit #(31) perms) =
     setSoftPerms ( setHardPerms (cap, unpack ({perms[18:16],perms[5:0]})), perms[9:6]);
   // Set the architectural permissions in legalised form
-  function capT setLegalisedPerms (capT cap, Bit #(31) perms);
+  function capT setPerms (capT cap, Bit #(31) perms);
     HardPerms hp = unpack ({perms[18:16],perms[5:0]});
     let hp_cap = setHardPerms(cap, hp);
     let l_hp_perm = legaliseHardPerms(hp_cap);
-    let l_m_hp_perm = setLegalisedIntMode(l_hp_perm.value, getIntMode(l_hp_perm.value));
+    let l_m_hp_perm = setIntMode(l_hp_perm.value, getUnlegalisedIntMode(l_hp_perm.value));
     return setSoftPerms ( l_m_hp_perm, perms[9:6]);
   endfunction
 
@@ -323,19 +324,19 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function Bool areCapBoundsValid (capT cap);
   // Get all architectural bound information for a capability
   function BoundsInfo #(addrW) getBoundsInfo (capT cap);
-  // Get the base
-  function Bit #(addrW) getBase (capT cap) = getBoundsInfo(cap).base;
+  // Get the base in unlegalised form
+  function Bit #(addrW) getUnlegalisedBase (capT cap) = getBoundsInfo(cap).base;
   // Get the base in legalised form
-  function Bit #(addrW) getLegalisedBase (capT cap);
+  function Bit #(addrW) getBase (capT cap);
     let gbi = getBoundsInfo(cap);
     return gbi.malformed ? 0 : gbi.base;
   endfunction
   // Get the top
   function Bit #(TAdd #(addrW, 1)) getTop (capT cap) = getBoundsInfo(cap).top;
-  // Get the length
-  function Bit #(addrW) getLength (capT cap) = getBoundsInfo(cap).length;
+  // Get the length in unlegalised form
+  function Bit #(addrW) getUnlegalisedLength (capT cap) = getBoundsInfo(cap).length;
   // Get the length in legalised form
-  function Bit #(addrW) getLegalisedLength (capT cap);
+  function Bit #(addrW) getLength (capT cap);
     let gbi = getBoundsInfo(cap);
     return gbi.malformed ? 0 : gbi.length;
   endfunction
