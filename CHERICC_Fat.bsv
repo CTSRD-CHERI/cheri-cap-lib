@@ -1391,7 +1391,7 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
   //////////////////////////////////////////////////////////////////////////////
   function getUnlegalisedIntMode (cap) =
 `ifdef CAP64
-    getPermsField(cap).intMode;
+    compressedHPermsToIntMode(cap.perms);
 `else
     cap.perms.intMode;
 `endif
