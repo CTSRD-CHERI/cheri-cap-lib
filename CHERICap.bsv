@@ -1,6 +1,7 @@
 /*-
  * Copyright (c) 2018-2021 Alexandre Joannou
  * Copyright (c) 2019 Peter Rugg
+ * Copyright (c) 2025 Franz Fuchs
  * All rights reserved.
  *
  * This software was developed by SRI International and the University of
@@ -166,10 +167,32 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // capability flags
   //////////////////////////////////////////////////////////////////////////////
 
-  // Get the flags field
-  function Exact#(Bool) getIntMode (capT cap);
-  // Set the flags field
+  // Get the flags field in unlegalised form
+  function Bool getUnlegalisedIntMode (capT cap);
+  // Get the flags field in legalised form
+  function Bool getIntMode (capT cap);
+    let m = getUnlegalisedIntMode(cap);
+    let hp = getHardPerms(cap);
+    let m_legal = !(!hp.permitExecute && m);
+    let ap_legal = hasLegalHardPerms(cap);
+    return (m_legal && ap_legal) ? m : False;
+  endfunction
+  // Set the flags field in unlegalised form
+  function capT setUnlegalisedIntMode (capT cap, Bool im);
+  // Set the flags field in legalised form
   function capT setIntMode (capT cap, Bool im);
+    let hp = getHardPerms(cap);
+    let b = im;
+    if(!hp.permitExecute) b = False;
+    return setUnlegalisedIntMode(cap, b);
+  endfunction
+  // test for legal flags field
+  function Bool hasLegalIntMode(capT cap);
+    let hp = getHardPerms(cap);
+    let m = getUnlegalisedIntMode(cap);
+    if(!hp.permitExecute && m) return False;
+    else return True;
+  endfunction
 
   // capability permissions
   //////////////////////////////////////////////////////////////////////////////
@@ -182,14 +205,65 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function SoftPerms getSoftPerms (capT cap);
   // Set the software permissions
   function capT setSoftPerms (capT cap, SoftPerms softperms);
-  // Get the architectural permissions
-  function Bit #(31) getPerms (capT cap);
+
+  // Legalise hardware permissions
+  function Exact#(capT) legaliseHardPerms(capT cap);
+    let hp = getHardPerms(cap);
+    let oldCap = cap;
+    if (!(hp.permitLoad || hp.permitStore)) begin
+      hp.permitCap = False;
+    end
+
+    if (!(hp.permitCap && hp.permitLoad)) begin
+      hp.permitElevateLevel = False;
+      hp.permitLoadMutable = False;
+    end
+
+    if (!(hp.permitCap)) begin
+      hp.permissionStoreLevel = 0;
+    end
+
+    if (!hp.permitExecute) begin
+      hp.accessSysRegs = False;
+    end
+
+    let newCap = setHardPerms(cap, hp);
+
+    return Exact {exact: pack(getHardPerms(oldCap)) == pack(getHardPerms(newCap)), value: newCap};
+  endfunction
+
+  // Get whether the perms are legal
+  function Bool hasLegalHardPerms(capT cap) = legaliseHardPerms(cap).exact;
+
+  // Get all permissions in unlegalised form
+  function Bit #(31) getUnlegalisedPerms (capT cap);
     let hp = pack(getHardPerms(cap));
     return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
   endfunction
-  // Set the architectural permissions
-  function capT setPerms (capT cap, Bit #(31) perms) =
+
+  // Get all permissions in legalised form
+  function Bit #(31) getPerms (capT cap);
+    let hp = pack(getHardPerms(cap));
+    let legalHardPerms = hasLegalHardPerms(cap);
+    let mExact = hasLegalIntMode(cap);
+    if(!legalHardPerms || !mExact) begin
+      HardPerms temp_hp = unpack(0);
+      temp_hp.capabilityLevel = getHardPerms(cap).capabilityLevel;
+      hp = pack(temp_hp);
+    end
+    return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
+  endfunction
+  // Set the architectural permissions without legalisation
+  function capT setUnlegalisedPerms (capT cap, Bit #(31) perms) =
     setSoftPerms ( setHardPerms (cap, unpack ({perms[18:16],perms[5:0]})), perms[9:6]);
+  // Set the architectural permissions in legalised form
+  function capT setPerms (capT cap, Bit #(31) perms);
+    HardPerms hp = unpack ({perms[18:16],perms[5:0]});
+    let hp_cap = setHardPerms(cap, hp);
+    let l_hp_perm = legaliseHardPerms(hp_cap);
+    let l_m_hp_perm = setIntMode(l_hp_perm.value, getUnlegalisedIntMode(l_hp_perm.value));
+    return setSoftPerms ( l_m_hp_perm, perms[9:6]);
+  endfunction
 
   // capability kind
   //////////////////////////////////////////////////////////////////////////////
@@ -250,13 +324,22 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function Bool areCapBoundsValid (capT cap);
   // Get all architectural bound information for a capability
   function BoundsInfo #(addrW) getBoundsInfo (capT cap);
-  // Get the base
-  function Bit #(addrW) getBase (capT cap) = getBoundsInfo(cap).base;
+  // Get the base in unlegalised form
+  function Bit #(addrW) getUnlegalisedBase (capT cap) = getBoundsInfo(cap).base;
+  // Get the base in legalised form
+  function Bit #(addrW) getBase (capT cap);
+    let gbi = getBoundsInfo(cap);
+    return gbi.malformed ? 0 : gbi.base;
+  endfunction
   // Get the top
   function Bit #(TAdd #(addrW, 1)) getTop (capT cap) = getBoundsInfo(cap).top;
-  // Get the length
-  function Bit #(addrW) getLength (capT cap) =
-    getBoundsInfo(cap).length;
+  // Get the length in unlegalised form
+  function Bit #(addrW) getUnlegalisedLength (capT cap) = getBoundsInfo(cap).length;
+  // Get the length in legalised form
+  function Bit #(addrW) getLength (capT cap);
+    let gbi = getBoundsInfo(cap);
+    return gbi.malformed ? 0 : gbi.length;
+  endfunction
   // Assertion that the capability's address is between its base and top
   function Bool isInBounds (capT cap, Bool isTopIncluded) =
     belongsToRange ( zeroExtend (getAddr (cap))
