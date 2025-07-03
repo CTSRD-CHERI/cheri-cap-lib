@@ -1626,11 +1626,11 @@ instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   function getBoundsInfo (cap) = getBoundsInfoFat (cap.capFat, cap.tempFields);
 
-  //function getBase (cap) = error("getBase not implemented for CapPipe");
+  //getBase is not implemented because the default implementation covers it
 
   function getTop (cap) = getTopFat(cap.capFat, cap.tempFields);
 
-  //function getLength (cap) = error("getLength not implemented for CapPipe");
+  //getLength is not implemented because the default implementation covers it
 
   function isInBounds (cap, inclusive) =
     capInBounds(cap.capFat, cap.tempFields, inclusive);
