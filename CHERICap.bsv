@@ -174,7 +174,7 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
     let m = getUnlegalisedIntMode(cap);
     let hp = getHardPerms(cap);
     let m_legal = !(!hp.permitExecute && m);
-    let ap_legal = areLegalHardPerms(cap);
+    let ap_legal = hasLegalHardPerms(cap);
     return (m_legal && ap_legal) ? m : False;
   endfunction
   // Set the flags field in unlegalised form
@@ -187,7 +187,7 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
     return setUnlegalisedIntMode(cap, b);
   endfunction
   // test for legal flags field
-  function Bool isLegalisedIntMode(capT cap);
+  function Bool hasLegalIntMode(capT cap);
     let hp = getHardPerms(cap);
     let m = getUnlegalisedIntMode(cap);
     if(!hp.permitExecute && m) return False;
@@ -227,13 +227,13 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
       hp.accessSysRegs = False;
     end
 
-    let some = setHardPerms(cap, hp);
+    let newCap = setHardPerms(cap, hp);
 
-    return Exact {exact: pack(getHardPerms(oldCap)) == pack(getHardPerms(some)), value: some};
+    return Exact {exact: pack(getHardPerms(oldCap)) == pack(getHardPerms(newCap)), value: newCap};
   endfunction
 
   // Get whether the perms are legal
-  function Bool areLegalHardPerms(capT cap) = legaliseHardPerms(cap).exact;
+  function Bool hasLegalHardPerms(capT cap) = legaliseHardPerms(cap).exact;
 
   // Get all permissions in unlegalised form
   function Bit #(31) getUnlegalisedPerms (capT cap);
@@ -244,8 +244,8 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // Get all permissions in legalised form
   function Bit #(31) getPerms (capT cap);
     let hp = pack(getHardPerms(cap));
-    let legalHardPerms = areLegalHardPerms(cap);
-    let mExact = isLegalisedIntMode(cap);
+    let legalHardPerms = hasLegalHardPerms(cap);
+    let mExact = hasLegalIntMode(cap);
     if(!legalHardPerms || !mExact) begin
       HardPerms temp_hp = unpack(0);
       temp_hp.capabilityLevel = getHardPerms(cap).capabilityLevel;
