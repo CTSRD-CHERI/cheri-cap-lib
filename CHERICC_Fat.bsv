@@ -1347,6 +1347,7 @@ instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
   // Assert that the encoding is valid
   //////////////////////////////////////////////////////////////////////////////
   function hasLegalBounds = error ("hasLegalBounds not implemented for CapMem");
+  function hasLegalReservedBits = error ("hasLegalReservedBits not implemented for CapMem");
 
 endinstance
 
@@ -1514,6 +1515,12 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   // Assert that the encoding is valid
   //////////////////////////////////////////////////////////////////////////////
+
+
+  function hasLegalReservedBits (cap) =
+        (cap.reserved_hi == 0)
+    &&  (cap.reserved_lo == 0);  
+  
   function hasLegalBounds (cap) =
         (cap.bounds.exp <= resetExp)
     && !(   (cap.bounds.exp == resetExp)
@@ -1521,8 +1528,7 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
              || (truncateLSB (cap.bounds.baseBits) != 2'b0) ))
     && !(   (cap.bounds.exp == resetExp-1)
          && (truncateLSB (cap.bounds.baseBits) != 1'b0))
-    &&  (cap.reserved_hi == 0)
-    &&  (cap.reserved_lo == 0);
+    &&  hasLegalReservedBits(cap);
 
 endinstance
 
@@ -1636,6 +1642,7 @@ instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
     capInBounds(cap.capFat, cap.tempFields, inclusive);
 
   function hasLegalBounds (cap) = hasLegalBounds(cap.capFat);
+  function hasLegalReservedBits (cap) = hasLegalReservedBits(cap.capFat);
 
 endinstance
 
