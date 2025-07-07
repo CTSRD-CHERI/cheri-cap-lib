@@ -116,7 +116,7 @@ function Bit#(CapAddrW) `W(getRepresentableLength) (`CAPTYPE dummy, Bit#(CapAddr
 (* noinline *)
 function Bit#(2) `W(getBaseAlignment) (`CAPTYPE cap) = getBaseAlignment(capArg(cap));
 (* noinline *)
-function Bool `W(isDerivable) (`CAPTYPE cap) = isDerivable(capArg(cap));
+function Bool `W(hasLegalBounds) (`CAPTYPE cap) = hasLegalBounds(capArg(cap));
 
 
 
