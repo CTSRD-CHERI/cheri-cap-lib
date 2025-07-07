@@ -1346,7 +1346,7 @@ instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   // Assert that the encoding is valid
   //////////////////////////////////////////////////////////////////////////////
-  function isDerivable = error ("isDerivable not implemented for CapMem");
+  function hasLegalBounds = error ("hasLegalBounds not implemented for CapMem");
 
 endinstance
 
@@ -1514,7 +1514,7 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
 
   // Assert that the encoding is valid
   //////////////////////////////////////////////////////////////////////////////
-  function isDerivable (cap) =
+  function hasLegalBounds (cap) =
         (cap.bounds.exp <= resetExp)
     && !(   (cap.bounds.exp == resetExp)
          && (   (truncateLSB (cap.bounds.topBits)  != 1'b0)
@@ -1635,7 +1635,7 @@ instance CHERICap #(CapPipe, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
   function isInBounds (cap, inclusive) =
     capInBounds(cap.capFat, cap.tempFields, inclusive);
 
-  function isDerivable (cap) = isDerivable(cap.capFat);
+  function hasLegalBounds (cap) = hasLegalBounds(cap.capFat);
 
 endinstance
 
