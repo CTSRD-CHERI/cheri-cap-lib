@@ -414,6 +414,7 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function Bool isLegal (capT cap) =
        hasLegalHardPerms(cap)
     && hasLegalBounds(cap)
+    && hasLegalReservedBits(cap)
     && hasLegalIntMode(cap);
 
 endtypeclass

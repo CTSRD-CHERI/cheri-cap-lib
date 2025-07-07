@@ -1527,8 +1527,7 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
          && (   (truncateLSB (cap.bounds.topBits)  != 1'b0)
              || (truncateLSB (cap.bounds.baseBits) != 2'b0) ))
     && !(   (cap.bounds.exp == resetExp-1)
-         && (truncateLSB (cap.bounds.baseBits) != 1'b0))
-    &&  hasLegalReservedBits(cap);
+         && (truncateLSB (cap.bounds.baseBits) != 1'b0));
 
 endinstance
 
