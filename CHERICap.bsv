@@ -408,6 +408,7 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
 
   function Bool hasLegalBounds (capT cap);
 
+  // return whether hard perms, bounds, and int mode are legal
   function Bool isLegal (capT cap) =
        hasLegalHardPerms(cap)
     && hasLegalBounds(cap)
