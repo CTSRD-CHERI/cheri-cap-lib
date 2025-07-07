@@ -403,10 +403,19 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // the null capability (requires a dummy proxy)
   function capT nullCapFromDummy (capT dummy);
 
-  // Assert that the encoding is valid
+  // Assert that the bounds encoding is valid
   //////////////////////////////////////////////////////////////////////////////
 
-  function Bool isDerivable (capT cap);
+  function Bool hasLegalBounds (capT cap);
+
+  function Bool hasLegalReservedBits (capT cap);
+  
+  // return whether hard perms, bounds, and int mode are legal
+  function Bool isLegal (capT cap) =
+       hasLegalHardPerms(cap)
+    && hasLegalBounds(cap)
+    && hasLegalReservedBits(cap)
+    && hasLegalIntMode(cap);
 
 endtypeclass
 
