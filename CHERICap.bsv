@@ -37,6 +37,7 @@ package CHERICap;
 typedef Bit #(16) SoftPerms;
 
 typedef struct {
+  Bool permitPoison;
   Bool permitSetCID;
   Bool accessSysRegs;
   Bool permitUnseal;
@@ -185,10 +186,10 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   function capT setSoftPerms (capT cap, SoftPerms softperms);
   // Get the architectural permissions
   function Bit #(31) getPerms (capT cap) =
-    zeroExtend ({pack (getSoftPerms (cap)), 3'h0, pack (getHardPerms (cap))});
+    zeroExtend ({pack (getSoftPerms (cap)), 2'h0, pack (getHardPerms (cap))});
   // Set the architectural permissions
   function capT setPerms (capT cap, Bit #(31) perms) =
-    setSoftPerms ( setHardPerms (cap, unpack (perms[11:0]))
+    setSoftPerms ( setHardPerms (cap, unpack (perms[12:0]))
                  , unpack (truncate (perms[30:15])) );
 
   // capability kind

@@ -117,6 +117,7 @@ typedef Bit#(TAdd#(CapAddrW,1)) CapAddrPlus1;
 typedef Bit#(TAdd#(CapAddrW,2)) CapAddrPlus2;
 // The Hardware permissions type
 typedef struct {
+  Bool permit_poison;
   Bool permit_set_CID;
   Bool access_sys_regs;
   Bool permit_unseal;
@@ -1069,7 +1070,8 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   function getHardPerms (capMem);
     CapabilityInMemory cap = unpack (capMem);
     return HardPerms {
-      permitSetCID:        cap.perms.hard.permit_set_CID
+      permitPoison :       cap.perms.hard.permit_poison
+    , permitSetCID:        cap.perms.hard.permit_set_CID
     , accessSysRegs:       cap.perms.hard.access_sys_regs
     , permitUnseal:        cap.perms.hard.permit_unseal
     , permitCCall:         cap.perms.hard.permit_ccall
@@ -1217,7 +1219,8 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   // capability permissions
   //////////////////////////////////////////////////////////////////////////////
   function getHardPerms (cap) = HardPerms {
-      permitSetCID:        cap.perms.hard.permit_set_CID
+      permitPoison:        cap.perms.hard.permit_poison
+    , permitSetCID:        cap.perms.hard.permit_set_CID
     , accessSysRegs:       cap.perms.hard.access_sys_regs
     , permitUnseal:        cap.perms.hard.permit_unseal
     , permitCCall:         cap.perms.hard.permit_ccall
@@ -1231,7 +1234,8 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
     , global:              cap.perms.hard.non_ephemeral };
   function setHardPerms (cap, perms);
     cap.perms.hard = HPerms {
-      permit_set_CID:             perms.permitSetCID
+      permit_poison:              perms.permitPoison
+    , permit_set_CID:             perms.permitSetCID
     , access_sys_regs:            perms.accessSysRegs
     , permit_unseal:              perms.permitUnseal
     , permit_ccall:               perms.permitCCall
