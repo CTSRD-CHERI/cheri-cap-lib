@@ -88,7 +88,7 @@ typedef 14  MW;
 typedef TSub#(TMul#(MW,2),1) CBoundsW;
 typedef 6   ExpW;
 typedef 3 HalfExpW;
-typedef 7 ResHiW;
+typedef 3 ResHiW;
 typedef 15 ResLoW;
 typedef 64  CapAddrW;
 typedef 128 CapW;
@@ -111,7 +111,9 @@ typedef Bit#(TAdd#(CapAddrW,1)) CapAddrPlus1;
 typedef Bit#(TAdd#(CapAddrW,2)) CapAddrPlus2;
 // The Hardware permissions type
 typedef struct {
-  UInt#(1) permission_store_level;
+  Bool permit_foreign_authorisation;
+  Bool permit_foreign;
+  UInt#(2) permission_store_level;
   Bool permit_elevate_level;
   Bool permit_load_mutable;
   Bool access_sys_regs;
@@ -119,16 +121,18 @@ typedef struct {
   Bool permit_load;
   Bool permit_store;
   Bool permit_cap;
-  UInt#(1) capability_level;
+  UInt#(2) capability_level;
 } HPerms deriving(Bits, Eq, FShow); // 9 bits
 
 typedef struct {
   Bit#(5) code;
-  UInt#(1) capability_level;
+  UInt#(2) capability_level;
 } CompressedHPerms deriving(Bits, Eq, FShow); // 6 bits
 
 function HPerms compressedHPermsToHPerms(CompressedHPerms cPerms);
   let p = HPerms {
+    permit_foreign_authorisation: False,
+    permit_foreign: False,
     permission_store_level: 0,
     permit_elevate_level: False,
     permit_load_mutable: False,
@@ -1256,15 +1260,17 @@ instance CHERICap #(CapMem, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
     HPerms hperms = cap.perms.hard;
 `endif
     return HardPerms {
-        accessSysRegs:        hperms.access_sys_regs
-      , permitLoadMutable:    hperms.permit_load_mutable
-      , permitElevateLevel:   hperms.permit_elevate_level
-      , permitCap:            hperms.permit_cap
-      , permitStore:          hperms.permit_store
-      , permitLoad:           hperms.permit_load
-      , permitExecute:        hperms.permit_execute
-      , permissionStoreLevel: hperms.permission_store_level
-      , capabilityLevel:      hperms.capability_level
+        accessSysRegs:              hperms.access_sys_regs
+      , permitLoadMutable:          hperms.permit_load_mutable
+      , permitElevateLevel:         hperms.permit_elevate_level
+      , permitCap:                  hperms.permit_cap
+      , permitStore:                hperms.permit_store
+      , permitLoad:                 hperms.permit_load
+      , permitExecute:              hperms.permit_execute
+      , permissionStoreLevel:       hperms.permission_store_level
+      , capabilityLevel:            hperms.capability_level
+      , permitForeign:              hperms.permit_foreign
+      , permitForeignAuthorisation: hperms.permit_foreign_authorisation
     };
   endfunction
   function setHardPerms = error ("setHardPerms not implemented for CapMem");
@@ -1410,27 +1416,31 @@ instance CHERICap #(CapReg, 0, 0, CapAddrW, CapW, TSub#(MW, 2));
   // capability permissions
   //////////////////////////////////////////////////////////////////////////////
   function getHardPerms (cap) = HardPerms {
-      accessSysRegs:        cap.perms.hard.access_sys_regs
-    , permitLoadMutable:    cap.perms.hard.permit_load_mutable
-    , permitElevateLevel:   cap.perms.hard.permit_elevate_level
-    , permitCap:            cap.perms.hard.permit_cap
-    , permitStore:          cap.perms.hard.permit_store
-    , permitLoad:           cap.perms.hard.permit_load
-    , permitExecute:        cap.perms.hard.permit_execute
-    , permissionStoreLevel: cap.perms.hard.permission_store_level
-    , capabilityLevel:      cap.perms.hard.capability_level
+      accessSysRegs:              cap.perms.hard.access_sys_regs
+    , permitLoadMutable:          cap.perms.hard.permit_load_mutable
+    , permitElevateLevel:         cap.perms.hard.permit_elevate_level
+    , permitCap:                  cap.perms.hard.permit_cap
+    , permitStore:                cap.perms.hard.permit_store
+    , permitLoad:                 cap.perms.hard.permit_load
+    , permitExecute:              cap.perms.hard.permit_execute
+    , permissionStoreLevel:       cap.perms.hard.permission_store_level
+    , capabilityLevel:            cap.perms.hard.capability_level
+    , permitForeign:              cap.perms.hard.permit_foreign
+    , permitForeignAuthorisation: cap.perms.hard.permit_foreign_authorisation
   };
   function setHardPerms (cap, perms);
     cap.perms.hard = HPerms {
-        access_sys_regs:            perms.accessSysRegs
-      , permit_load_mutable:        perms.permitLoadMutable
-      , permit_elevate_level:       perms.permitElevateLevel
-      , permit_cap:                 perms.permitCap
-      , permit_store:               perms.permitStore
-      , permit_load:                perms.permitLoad
-      , permit_execute:             perms.permitExecute
-      , permission_store_level:     perms.permissionStoreLevel
-      , capability_level:           perms.capabilityLevel
+        access_sys_regs:              perms.accessSysRegs
+      , permit_load_mutable:          perms.permitLoadMutable
+      , permit_elevate_level:         perms.permitElevateLevel
+      , permit_cap:                   perms.permitCap
+      , permit_store:                 perms.permitStore
+      , permit_load:                  perms.permitLoad
+      , permit_execute:               perms.permitExecute
+      , permission_store_level:       perms.permissionStoreLevel
+      , capability_level:             perms.capabilityLevel
+      , permit_foreign:               perms.permitForeign
+      , permit_foreign_authorisation: perms.permitForeignAuthorisation
     };
     cap = legalisePermsFat(cap);
     return cap.value;

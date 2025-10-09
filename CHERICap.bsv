@@ -44,8 +44,10 @@ typedef struct {
 //  Bit#(8) reserverd;
 //  SoftPerms softPerms;
   Bool permitCap;
-  UInt#(1) capabilityLevel;
-  UInt#(1) permissionStoreLevel;
+  Bool permitForeignAuthorisation;
+  Bool permitForeign;
+  UInt#(2) capabilityLevel;
+  UInt#(2) permissionStoreLevel;
   Bool permitElevateLevel;
   Bool permitLoadMutable;
   Bool permitStore;
@@ -251,14 +253,14 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
       temp_hp.capabilityLevel = getHardPerms(cap).capabilityLevel;
       hp = pack(temp_hp);
     end
-    return zeroExtend ({hp[8:6], 6'b0, getSoftPerms (cap), hp[5:0]});
+    return zeroExtend ({hp[12:10], 6'b0, getSoftPerms (cap), hp[9:0]});
   endfunction
   // Set the architectural permissions without legalisation
   function capT setUnlegalisedPerms (capT cap, Bit #(31) perms) =
-    setSoftPerms ( setHardPerms (cap, unpack ({perms[18:16],perms[5:0]})), perms[9:6]);
+    setSoftPerms ( setHardPerms (cap, unpack ({perms[22:20],perms[9:0]})), perms[13:10]);
   // Set the architectural permissions in legalised form
   function capT setPerms (capT cap, Bit #(31) perms);
-    HardPerms hp = unpack ({perms[18:16],perms[5:0]});
+    HardPerms hp = unpack ({perms[18:16],perms[9:0]});
     let hp_cap = setHardPerms(cap, hp);
     let l_hp_perm = legaliseHardPerms(hp_cap);
     let l_m_hp_perm = setIntMode(l_hp_perm.value, getUnlegalisedIntMode(l_hp_perm.value));
