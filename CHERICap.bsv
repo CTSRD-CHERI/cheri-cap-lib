@@ -260,7 +260,8 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
     setSoftPerms ( setHardPerms (cap, unpack ({perms[22:20],perms[9:0]})), perms[13:10]);
   // Set the architectural permissions in legalised form
   function capT setPerms (capT cap, Bit #(31) perms);
-    HardPerms hp = unpack ({perms[22:20],perms[9:0]});
+    // ignore the foreign bit - it can never be set by acperm
+    HardPerms hp = unpack ({perms[22:20],perms[9:8],1'b1,perms[6:0]});
     let hp_cap = setHardPerms(cap, hp);
     let l_hp_perm = legaliseHardPerms(hp_cap);
     let l_m_hp_perm = setIntMode(l_hp_perm.value, getUnlegalisedIntMode(l_hp_perm.value));
