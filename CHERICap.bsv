@@ -255,7 +255,7 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
     end
     return zeroExtend ({hp[12:10], 6'b0, getSoftPerms (cap), hp[9:0]});
   endfunction
-  // Set the architectural permissions without legalisation
+  // Set the permissions without legalisation
   function capT setUnlegalisedPerms (capT cap, Bit #(31) perms) =
     setSoftPerms ( setHardPerms (cap, unpack ({perms[22:20],perms[9:0]})), perms[13:10]);
   // Set the architectural permissions in legalised form
@@ -278,6 +278,17 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
     Bit#(2) cl = pack(getHardPerms(cap).capabilityLevel);
     Bit#(1) f  = pack(getHardPerms(cap).permitForeign);
     return {f,cl};
+  endfunction
+
+  function capT setF(capT cap) = manipulateF(cap, True);
+
+  function capT clearF(capT cap) = manipulateF(cap, False);
+
+  function capT manipulateF(capT cap, Bool b);
+    let perms = getHardPerms(cap);
+    perms.permitForeign = b;
+    let c = setHardPerms(cap, perms);
+    return c;
   endfunction
 
   // capability kind
