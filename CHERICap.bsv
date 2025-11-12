@@ -275,9 +275,9 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   endfunction
 
   function Bit #(3) getEffectiveStoreLevel(capT cap);
-    Bit#(2) cl = pack(getHardPerms(cap).capabilityLevel);
+    Bit#(2) sl = pack(getHardPerms(cap).permissionStoreLevel);
     Bit#(1) f  = pack(getHardPerms(cap).permitForeign);
-    return {f,cl};
+    return {f,sl};
   endfunction
 
   function capT setF(capT cap) = manipulateF(cap, True);
