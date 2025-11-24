@@ -290,6 +290,13 @@ instance CHERICap#(CHERICCCap#(addr_, bounds_, e_, t_), t_, addr_) provisos (
     return cap;
   endfunction
   //////////////////////////////////////////////////////////////////////////////
+  function getPVer(cap) = zeroExtend(cap.pver);
+  //////////////////////////////////////////////////////////////////////////////
+  function setPVer(cap, pver);
+    cap.pver = truncate(pver);
+    return cap;
+  endfunction
+  //////////////////////////////////////////////////////////////////////////////
   function getKind(cap) = case (cap.bounds) matches
     tagged Sealed ._: return SEALED_WITH_TYPE;
     default: return UNSEALED;
