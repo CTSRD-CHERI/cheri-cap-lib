@@ -66,7 +66,7 @@ function Bit#(31) `W(getPerms) (`CAPTYPE cap) = getPerms(capArg(cap));
 (* noinline *)
 function `CAPTYPE `W(setPerms) (`CAPTYPE cap, Bit#(31) perms) = capRet(setPerms(capArg(cap), perms));
 (* noinline *)
-function Kind#(PVerW) `W(getPVer) (`CAPTYPE cap) = getPVer(capArg(cap));
+function Bit#(PVerW) `W(getPVer) (`CAPTYPE cap) = getPVer(capArg(cap));
 (* noinline *)
 function `CAPTYPE `W(setPVer) (`CAPTYPE cap, Bit#(PVerW) kind) = capRet(setPVer(capArg(cap), kind));
 (* noinline *)
