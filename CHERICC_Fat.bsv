@@ -90,7 +90,7 @@ typedef `FLAGSW FlagsW;
 typedef 32 CapAddrW;
 typedef 64 CapW;
 `else // CAP128 is default
-typedef 4   UPermW;
+typedef 3   UPermW; // reduced by 1, using the top bit of the UPERM as permitPoison
 typedef 14  MW;
 typedef 6   ExpW;
 typedef 8   PVerW;
@@ -120,7 +120,6 @@ typedef Bit#(TAdd#(CapAddrW,1)) CapAddrPlus1;
 typedef Bit#(TAdd#(CapAddrW,2)) CapAddrPlus2;
 // The Hardware permissions type
 typedef struct {
-  Bool permit_poison;
   Bool permit_set_CID;
   Bool access_sys_regs;
   Bool permit_unseal;
@@ -136,6 +135,7 @@ typedef struct {
 } HPerms deriving(Bits, Eq, FShow); // 12 bits
 // The permissions field, including both "soft" and "hard" permission bits.
 typedef struct {
+  Bool permit_poison;
   Bit#(UPermW) soft;
   HPerms       hard;
 } Perms deriving(Bits, Eq, FShow);
@@ -1080,7 +1080,7 @@ instance CHERICap #(CapMem, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3)
   function getHardPerms (capMem);
     CapabilityInMemory cap = unpack (capMem);
     return HardPerms {
-      permitPoison :       cap.perms.hard.permit_poison
+      permitPoison :       cap.perms.permit_poison
     , permitSetCID:        cap.perms.hard.permit_set_CID
     , accessSysRegs:       cap.perms.hard.access_sys_regs
     , permitUnseal:        cap.perms.hard.permit_unseal
@@ -1233,7 +1233,7 @@ instance CHERICap #(CapReg, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3)
   // capability permissions
   //////////////////////////////////////////////////////////////////////////////
   function getHardPerms (cap) = HardPerms {
-      permitPoison:        cap.perms.hard.permit_poison
+      permitPoison:        cap.perms.permit_poison
     , permitSetCID:        cap.perms.hard.permit_set_CID
     , accessSysRegs:       cap.perms.hard.access_sys_regs
     , permitUnseal:        cap.perms.hard.permit_unseal
@@ -1248,8 +1248,7 @@ instance CHERICap #(CapReg, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3)
     , global:              cap.perms.hard.non_ephemeral };
   function setHardPerms (cap, perms);
     cap.perms.hard = HPerms {
-      permit_poison:              perms.permitPoison
-    , permit_set_CID:             perms.permitSetCID
+      permit_set_CID:             perms.permitSetCID
     , access_sys_regs:            perms.accessSysRegs
     , permit_unseal:              perms.permitUnseal
     , permit_ccall:               perms.permitCCall
@@ -1261,6 +1260,7 @@ instance CHERICap #(CapReg, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3)
     , permit_load:                perms.permitLoad
     , permit_execute:             perms.permitExecute
     , non_ephemeral:              perms.global };
+    cap.perms.permit_poison= perms.permitPoison;
     return cap;
   endfunction
   function getSoftPerms (cap) = zeroExtend (cap.perms.soft);
