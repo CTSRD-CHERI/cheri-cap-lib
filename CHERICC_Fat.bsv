@@ -1273,7 +1273,7 @@ instance CHERICap #(CapReg, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3)
 
   // poison  version 
   //////////////////////////////////////////////////////////////////////////////
-  function getPVer (cap) = cap.pver;
+  function getPVer (cap) = zeroExtend (cap.pver);
   function setPVer (cap, pver);
     cap.pver = pver;
     return cap;
