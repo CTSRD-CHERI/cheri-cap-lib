@@ -40,6 +40,7 @@ export CapPipe;
 export CapFat;
 export MW;
 export PVerW;
+export PoisonW;
 export OTypeW;
 export FlagsW;
 export Perms;
@@ -93,6 +94,7 @@ typedef 64 CapW;
 typedef 3   UPermW; // reduced by 1, using the top bit of the UPERM as permitPoison
 typedef 14  MW;
 typedef 6   ExpW;
+typedef 1   PoisonW;
 typedef 8   PVerW;
 typedef 10  OTypeW;
 typedef `FLAGSW FlagsW;
@@ -141,16 +143,18 @@ typedef struct {
 } Perms deriving(Bits, Eq, FShow);
 typedef SizeOf#(Perms) PermsW;
 // The reserved bits
-typedef TSub#(CapW,   TAdd#( PVerW,
+typedef TSub#(CapW, TAdd#( PoisonW,  
+                      TAdd#( PVerW,
                         TAdd#( CapAddrW
                          , TAdd#( OTypeW
                                 , TAdd#( CBoundsW
-                                       , TAdd#(PermsW, FlagsW)))))) ResW;
+                                       , TAdd#(PermsW, FlagsW))))))) ResW;
 // The full capability structure, including the "tag" bit.
 typedef struct {
   Bool         isCapability;
   Perms        perms;
   Bit#(ResW)   reserved;
+  Bit#(PoisonW) poison;
   Bit#(FlagsW) flags;
   Bit#(PVerW)  pver;
   Bit#(OTypeW) otype;
@@ -188,6 +192,7 @@ typedef struct {
   Perms          perms;
   Bit#(FlagsW)   flags;
   Bit#(ResW)     reserved;
+  Bit#(PoisonW)  poison;
   Bit#(PVerW)    pver;
   Bit#(OTypeW)   otype;
   Format         format;
@@ -235,6 +240,7 @@ function CapFat unpackCap(Capability thin);
   fat.perms        = memCap.perms;
   fat.flags        = memCap.flags;
   fat.reserved     = memCap.reserved;
+  fat.poison       = memCap.poison;
   fat.pver         = memCap.pver;
   fat.otype        = memCap.otype;
   match {.f, .b}   = decBounds(memCap.bounds);
@@ -259,6 +265,7 @@ function Capability packCap(CapFat fat);
     , perms:        fat.perms
     , flags:        fat.flags
     , reserved:     fat.reserved
+    , poison:       fat.poison
     , pver:         fat.pver
     , otype:        fat.otype
     , bounds:       encBounds(fat.format,fat.bounds)
@@ -878,6 +885,7 @@ instance DefaultValue #(CapFat);
     , perms       : unpack(~0)
     , flags       : 0
     , reserved    : 0
+    , poison      : 0
     , pver        : 0
     , otype       : otype_unsealed
     , format      : EmbeddedExp
@@ -891,6 +899,7 @@ CapFat null_cap = CapFat {
   , perms       : unpack(0)
   , flags       : 0
   , reserved    : 0
+  , poison      : 0
   , pver        : 0 
   , otype       : otype_unsealed
   , format      : EmbeddedExp
@@ -1049,7 +1058,7 @@ typedef struct {
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapMem, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
+instance CHERICap #(CapMem, PVerW, PoisonW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1106,6 +1115,8 @@ instance CHERICap #(CapMem, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3)
   function setKind = error ("setKind not implemented for CapMem");
   function getPVer = error ("getPver not implemented for CapMem");
   function setPVer = error ("setPVer not implemented for CapMem");
+  function getCapPoison = error ("getCapPoison not implemented for CapMem");
+  function setCapPoison = error ("setCapPoison not implemented for CapMem");
   function validAsType (dummy, checkType);
     UInt #(CapAddrW) checkTypeUnsigned = unpack (checkType);
     UInt #(CapAddrW) otypeMaxUnsigned = unpack (zeroExtend (otype_max));
@@ -1118,6 +1129,7 @@ instance CHERICap #(CapMem, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3)
     CapabilityInMemory cap = unpack (capMem);
     return { pack (cap.perms)
            , pack (cap.reserved)
+           , pack (cap.poison)
            , pack (cap.flags)
            , pack (cap.pver)
            , pack (cap.otype)
@@ -1195,6 +1207,7 @@ instance FShow #(CapPipe);
                         " hp: ", fshow(pack(getHardPerms(cap))),
                         " ot: ", fshow(cap.capFat.otype),
                         " pv: ", fshow(cap.capFat.pver),
+                        " p: ", fshow(cap.capFat.poison),
                         " f: ", fshow(getFlags(cap)));
 endinstance
 
@@ -1212,7 +1225,7 @@ endinstance
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapReg, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
+instance CHERICap #(CapReg, PVerW, PoisonW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1274,11 +1287,15 @@ instance CHERICap #(CapReg, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3)
   // poison  version 
   //////////////////////////////////////////////////////////////////////////////
   function getPVer (cap) = zeroExtend (cap.pver);
+  function getCapPoison (cap) = zeroExtend(cap.poison);
   function setPVer (cap, pver);
     cap.pver = pver;
     return cap;
   endfunction 
-
+  function setCapPoison (cap);
+    cap.poison = 1'b1;
+    return cap;
+  endfunction 
   // capability kind
   //////////////////////////////////////////////////////////////////////////////
   function getKind (cap) = case (cap.otype)
@@ -1370,7 +1387,7 @@ instance CHERICap #(CapReg, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3)
 
 endinstance
 
-instance CHERICap #(CapPipe, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
+instance CHERICap #(CapPipe, PVerW, PoisonW, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
 
   //Functions supported by CapReg are just passed through
 
@@ -1393,6 +1410,10 @@ instance CHERICap #(CapPipe, PVerW, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3)
   function getPVer (cap) = getPVer(cap.capFat);
   function setPVer (cap, pver) =
     CapPipe { capFat:setPVer(cap.capFat,pver)
+            , tempFields: cap.tempFields };
+  function getCapPoison (cap) = getCapPoison(cap.capFat);
+  function setCapPoison (cap) =
+    CapPipe { capFat:setCapPoison(cap.capFat)
             , tempFields: cap.tempFields };
   function getKind (cap) = getKind(cap.capFat);
   function setKind (cap, kind) =
@@ -1570,6 +1591,7 @@ function CapMem untrimCap(CapTrim ct);
                 isCapability: True,
                 perms: ct.perms,
                 reserved: 0,
+                poison: 0,
                 flags: ct.flags,
                 pver: 0,
                 otype: otype_unsealed,

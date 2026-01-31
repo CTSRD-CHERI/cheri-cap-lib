@@ -297,6 +297,13 @@ instance CHERICap#(CHERICCCap#(addr_, bounds_, e_, t_), t_, addr_) provisos (
     return cap;
   endfunction
   //////////////////////////////////////////////////////////////////////////////
+  function getCapPoison(cap) = zeroExtend(cap.poison);
+  //////////////////////////////////////////////////////////////////////////////
+  function setCapPoison(cap);
+    cap.poison = 1'b1;
+    return cap;
+  endfunction
+  //////////////////////////////////////////////////////////////////////////////
   function getKind(cap) = case (cap.bounds) matches
     tagged Sealed ._: return SEALED_WITH_TYPE;
     default: return UNSEALED;

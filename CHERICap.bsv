@@ -120,7 +120,7 @@ endfunction
 
 // XXX TODO augment with all architectural bounds/ repbounds ?
 function Fmt showCHERICap (capT cap)
-  provisos (CHERICap #(capT , pverW,  otypeW, flgW, addrW, inMemW, maskableW));
+  provisos (CHERICap #(capT , pverW, poisonW, otypeW, flgW, addrW, inMemW, maskableW));
   return $format( "Valid: 0x%0x", isValidCap(cap)) +
          $format(" Perms: 0x%0x", getPerms(cap)) +
          $format(" Kind: ", fshow(getKind(cap))) +
@@ -150,13 +150,14 @@ endinstance
 
 typeclass CHERICap #( type capT              // type of the CHERICap capability
                     , numeric type pverW     // width of the poison version
+                    , numeric type poisonW      // width of the flags field
                     , numeric type otypeW    // width of the object type
                     , numeric type flgW      // width of the flags field
                     , numeric type addrW     // width of the address
                     , numeric type inMemW    // width of the capability in mem
                     , numeric type maskableW // width of maskable bits
                     )
-  dependencies (capT determines (pverW, otypeW, flgW, addrW, inMemW, maskableW));
+  dependencies (capT determines (pverW, poisonW, otypeW, flgW, addrW, inMemW, maskableW));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -200,9 +201,11 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
 
   // get the kind of a capability
   function Bit #(pverW) getPVer (capT cap);
+  function Bit #(poisonW) getCapPoison (capT cap);
   function Kind #(otypeW) getKind (capT cap);
   // set the kind of a capability
   function capT setPVer (capT cap, Bit #(pverW) pver);
+  function capT setCapPoison (capT cap);
   function capT setKind (capT cap, Kind #(otypeW) kind);
   // Check if a type is valid (requires a dummy proxy)
   function Bool validAsType (capT dummy, Bit #(addrW) checkType);

@@ -70,6 +70,10 @@ function Bit#(PVerW) `W(getPVer) (`CAPTYPE cap) = getPVer(capArg(cap));
 (* noinline *)
 function `CAPTYPE `W(setPVer) (`CAPTYPE cap, Bit#(PVerW) kind) = capRet(setPVer(capArg(cap), kind));
 (* noinline *)
+function Bit#(PoisonW) `W(getCapPoison) (`CAPTYPE cap) = getCapPoison(capArg(cap));
+(* noinline *)
+function `CAPTYPE `W(setCapPoison) (`CAPTYPE cap) = capRet(setCapPoison(capArg(cap)));
+(* noinline *)
 function Kind#(OTypeW) `W(getKind) (`CAPTYPE cap) = getKind(capArg(cap));
 (* noinline *)
 function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind#(OTypeW) kind) = capRet(setKind(capArg(cap), kind));
