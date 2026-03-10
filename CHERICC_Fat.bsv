@@ -39,6 +39,8 @@ export CapPipe;
 
 export CapFat;
 export MW;
+export MTEW;
+export TlocW;
 export OTypeW;
 export FlagsW;
 export Perms;
@@ -83,6 +85,8 @@ typedef struct {
 typedef 0  UPermW;
 typedef 8  MW;
 typedef 6  ExpW;
+typedef 0  TlocW;
+typedef 0  MTEW;
 typedef 4  OTypeW;
 typedef `FLAGSW FlagsW;
 typedef 32 CapAddrW;
@@ -91,7 +95,9 @@ typedef 64 CapW;
 typedef 4   UPermW;
 typedef 14  MW;
 typedef 6   ExpW;
-typedef 18  OTypeW;
+typedef 3  TlocW;
+typedef 8  MTEW;
+typedef 9  OTypeW;
 typedef `FLAGSW FlagsW;
 typedef 64  CapAddrW;
 typedef 128 CapW;
@@ -137,16 +143,20 @@ typedef struct {
 } Perms deriving(Bits, Eq, FShow);
 typedef SizeOf#(Perms) PermsW;
 // The reserved bits
-typedef TSub#(CapW, TAdd#( CapAddrW
+typedef TSub#(CapW, TAdd#( TlocW,  
+                      TAdd#( MTEW,
+                        TAdd#( CapAddrW
                          , TAdd#( OTypeW
                                 , TAdd#( CBoundsW
-                                       , TAdd#(PermsW, FlagsW))))) ResW;
+                                       , TAdd#(PermsW, FlagsW))))))) ResW;
 // The full capability structure, including the "tag" bit.
 typedef struct {
   Bool         isCapability;
   Perms        perms;
   Bit#(ResW)   reserved;
   Bit#(FlagsW) flags;
+  Bit#(MTEW)   mte;
+  Bit#(TlocW)   tloc;
   Bit#(OTypeW) otype;
   CBounds      bounds;
   CapAddr      address;
@@ -182,6 +192,8 @@ typedef struct {
   Perms          perms;
   Bit#(FlagsW)   flags;
   Bit#(ResW)     reserved;
+  Bit#(MTEW)     mte;
+  Bit#(TlocW)    tloc;
   Bit#(OTypeW)   otype;
   Format         format;
   Bounds         bounds;
@@ -228,6 +240,8 @@ function CapFat unpackCap(Capability thin);
   fat.perms        = memCap.perms;
   fat.flags        = memCap.flags;
   fat.reserved     = memCap.reserved;
+  fat.mte          = memCap.mte;
+  fat.tloc         = memCap.tloc;
   fat.otype        = memCap.otype;
   match {.f, .b}   = decBounds(memCap.bounds);
   fat.format       = f;
@@ -251,6 +265,8 @@ function Capability packCap(CapFat fat);
     , perms:        fat.perms
     , flags:        fat.flags
     , reserved:     fat.reserved
+    , mte:          fat.mte
+    , tloc:         fat.tloc
     , otype:        fat.otype
     , bounds:       encBounds(fat.format,fat.bounds)
     , address:      fat.address };
@@ -869,6 +885,8 @@ instance DefaultValue #(CapFat);
     , perms       : unpack(~0)
     , flags       : 0
     , reserved    : 0
+    , mte         : 0
+    , tloc        : 0
     , otype       : otype_unsealed
     , format      : EmbeddedExp
     , bounds      : defaultValue
@@ -881,6 +899,8 @@ CapFat null_cap = CapFat {
   , perms       : unpack(0)
   , flags       : 0
   , reserved    : 0
+  , mte         : 0
+  , tloc        : 0
   , otype       : otype_unsealed
   , format      : EmbeddedExp
   , bounds      : defaultValue
@@ -1038,7 +1058,7 @@ typedef struct {
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
+instance CHERICap #(CapMem, TlocW, MTEW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1092,6 +1112,10 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   //////////////////////////////////////////////////////////////////////////////
   function getKind = error ("getKind not implemented for CapMem");
   function setKind = error ("setKind not implemented for CapMem");
+  function getTloc = error ("getTloc not implemented for CapMem");
+  function setTloc = error ("setTloc not implemented for CapMem");
+  function getMTE = error ("getMTE not implemented for CapMem");
+  function setMTE = error ("setMTE not implemented for CapMem");
   function validAsType (dummy, checkType);
     UInt #(CapAddrW) checkTypeUnsigned = unpack (checkType);
     UInt #(CapAddrW) otypeMaxUnsigned = unpack (zeroExtend (otype_max));
@@ -1105,6 +1129,8 @@ instance CHERICap #(CapMem, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
     return { pack (cap.perms)
            , pack (cap.reserved)
            , pack (cap.flags)
+           , pack (cap.tloc)
+           , pack (cap.mte)
            , pack (cap.otype)
            , pack (cap.bounds) };
   endfunction
@@ -1178,6 +1204,8 @@ instance FShow #(CapPipe);
                         " t: ", fshow(getTop(cap)),
                         " sp: ", fshow(pack(getSoftPerms(cap))),
                         " hp: ", fshow(pack(getHardPerms(cap))),
+                        " tloc: ", fshow(cap.capFat.tloc),
+                        " mte: ", fshow(cap.capFat.mte),
                         " ot: ", fshow(cap.capFat.otype),
                         " f: ", fshow(getFlags(cap)));
 endinstance
@@ -1196,7 +1224,7 @@ endinstance
 // Note: commented out methods have a provided default implementation in the
 //       CHERICap typeclass definition
 
-instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
+instance CHERICap #(CapReg, TlocW, MTEW, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -1252,7 +1280,16 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
   endfunction
   //function getPerms = error ("getPerms not implemented for CapReg");
   //function setPerms = error ("setPerms not implemented for CapReg");
-
+  function getMTE (cap) = zeroExtend (cap.mte);
+  function getTloc (cap) = zeroExtend(cap.tloc);
+  function setMTE (cap, mte);
+    cap.mte = mte;
+    return cap;
+  endfunction 
+  function setTloc (cap, tloc);
+    cap.tloc = tloc;
+    return cap;
+  endfunction 
   // capability kind
   //////////////////////////////////////////////////////////////////////////////
   function getKind (cap) = case (cap.otype)
@@ -1344,7 +1381,7 @@ instance CHERICap #(CapReg, OTypeW, FlagsW, CapAddrW, CapW, TSub #(MW, 3));
 
 endinstance
 
-instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
+instance CHERICap #(CapPipe, TlocW, MTEW, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
 
   //Functions supported by CapReg are just passed through
 
@@ -1363,6 +1400,14 @@ instance CHERICap #(CapPipe, OTypeW, FlagsW, CapAddrW, CapW, TSub#(MW, 3));
   function getSoftPerms (cap) = getSoftPerms(cap.capFat);
   function setSoftPerms (cap, perms) =
     CapPipe { capFat: setSoftPerms(cap.capFat, perms)
+            , tempFields: cap.tempFields };
+  function getMTE (cap) = getMTE(cap.capFat);
+  function setMTE (cap, mte) =
+    CapPipe { capFat:setMTE(cap.capFat,mte)
+            , tempFields: cap.tempFields };
+  function getTloc (cap) = getTloc(cap.capFat);
+  function setTloc (cap, tloc) =
+    CapPipe { capFat:setTloc(cap.capFat,tloc)
             , tempFields: cap.tempFields };
   function getKind (cap) = getKind(cap.capFat);
   function setKind (cap, kind) =
@@ -1541,6 +1586,8 @@ function CapMem untrimCap(CapTrim ct);
                 perms: ct.perms,
                 reserved: 0,
                 flags: ct.flags,
+                mte: 0,
+                tloc: 0,
                 otype: otype_unsealed,
                 bounds: ct.bounds,
                 address: signExtend({addressMsb,ct.address})

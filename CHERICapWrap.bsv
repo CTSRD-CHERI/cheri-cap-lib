@@ -66,6 +66,14 @@ function Bit#(31) `W(getPerms) (`CAPTYPE cap) = getPerms(capArg(cap));
 (* noinline *)
 function `CAPTYPE `W(setPerms) (`CAPTYPE cap, Bit#(31) perms) = capRet(setPerms(capArg(cap), perms));
 (* noinline *)
+function Bit#(TlocW) `W(getTloc) (`CAPTYPE cap) = getTloc(capArg(cap));
+(* noinline *)
+function Bit#(MTEW) `W(getMTE) (`CAPTYPE cap) = getMTE(capArg(cap));
+(* noinline *)
+function `CAPTYPE `W(setTloc) (`CAPTYPE cap, Bit#(TlocW) tloc) = capRet(setTloc(capArg(cap), tloc));
+(* noinline *)
+function `CAPTYPE `W(setMTE) (`CAPTYPE cap, Bit#(MTEW) mte) = capRet(setMTE(capArg(cap), mte));
+(* noinline *)
 function Kind#(OTypeW) `W(getKind) (`CAPTYPE cap) = getKind(capArg(cap));
 (* noinline *)
 function `CAPTYPE `W(setKind) (`CAPTYPE cap, Kind#(OTypeW) kind) = capRet(setKind(capArg(cap), kind));
