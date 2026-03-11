@@ -203,8 +203,8 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   // get the kind of a capability
   function Kind #(otypeW) getKind (capT cap);
 
-  function capT setTloc (capT cap, Bit #(tlocW) pver);
-  function capT setMTE (capT cap, Bit #(mteW) pver);
+  function capT setTloc (capT cap, Bit #(tlocW) tloc);
+  function capT setMTE (capT cap, Bit #(mteW) mte);
   // set the kind of a capability
   function capT setKind (capT cap, Kind #(otypeW) kind);
   // Check if a type is valid (requires a dummy proxy)

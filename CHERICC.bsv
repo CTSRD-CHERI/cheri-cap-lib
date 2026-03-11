@@ -283,12 +283,19 @@ instance CHERICap#(CHERICCCap#(addr_, bounds_, e_, t_), t_, addr_) provisos (
     return cap;
   endfunction
   //////////////////////////////////////////////////////////////////////////////
-  function getPVer(cap) = zeroExtend(cap.pver);
+  function getMTE(cap) = zeroExtend(cap.mte);
   //////////////////////////////////////////////////////////////////////////////
-  function setPVer(cap, pver);
-    cap.pver = truncate(pver);
+  function setMTE(cap, mte);
+    cap.mte = truncate(mte);
     return cap;
   endfunction
+  function getTloc(cap) = zeroExtend(cap.tloc);
+  //////////////////////////////////////////////////////////////////////////////
+  function setTloc(cap, tloc);
+    cap.tloc = truncate(tloc);
+    return cap;
+  endfunction
+
   //////////////////////////////////////////////////////////////////////////////
   function getSoftPerms(cap) = zeroExtend(cap.softperms);
   //////////////////////////////////////////////////////////////////////////////
