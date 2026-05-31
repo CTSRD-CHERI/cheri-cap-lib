@@ -289,10 +289,18 @@ instance CHERICap#(CHERICCCap#(addr_, bounds_, e_, t_), t_, addr_) provisos (
     cap.mte = truncate(mte);
     return cap;
   endfunction
+
   function getTloc(cap) = zeroExtend(cap.tloc);
   //////////////////////////////////////////////////////////////////////////////
   function setTloc(cap, tloc);
     cap.tloc = truncate(tloc);
+    return cap;
+  endfunction
+
+  function getTmode(cap) = zeroExtend(cap.tmode);
+  //////////////////////////////////////////////////////////////////////////////
+  function setTmode(cap, tmode);
+    cap.tmode = truncate(tmode);
     return cap;
   endfunction
 

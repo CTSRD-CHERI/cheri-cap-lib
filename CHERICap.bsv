@@ -119,7 +119,7 @@ endfunction
 
 // XXX TODO augment with all architectural bounds/ repbounds ?
 function Fmt showCHERICap (capT cap)
-  provisos (CHERICap #(capT , tlocW, mteW,  otypeW, flgW, addrW, inMemW, maskableW));
+  provisos (CHERICap #(capT , tmodeW, tlocW, mteW,  otypeW, flgW, addrW, inMemW, maskableW));
   return $format( "Valid: 0x%0x", isValidCap(cap)) +
          $format(" Perms: 0x%0x", getPerms(cap)) +
          $format(" Kind: ", fshow(getKind(cap))) +
@@ -148,6 +148,7 @@ endinstance
 //       lines of haskell's "@type" type application mechanism)
 
 typeclass CHERICap #( type capT              // type of the CHERICap capability
+                    , numeric type tmodeW
                     , numeric type tlocW
                     , numeric type mteW
                     , numeric type otypeW    // width of the object type
@@ -156,7 +157,7 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
                     , numeric type inMemW    // width of the capability in mem
                     , numeric type maskableW // width of maskable bits
                     )
-  dependencies (capT determines (tlocW, mteW, otypeW, flgW, addrW, inMemW, maskableW));
+  dependencies (capT determines (tmodeW, tlocW, mteW, otypeW, flgW, addrW, inMemW, maskableW));
 
   // capability validity
   //////////////////////////////////////////////////////////////////////////////
@@ -197,12 +198,13 @@ typeclass CHERICap #( type capT              // type of the CHERICap capability
   //////////////////////////////////////////////////////////////////////////////
   // Manipulate the kind of the capability, i.e. whether it is sealed, sentry,
   // unsealed, ...
-
+  function Bit #(tmodeW) getTmode (capT cap);
   function Bit #(tlocW) getTloc (capT cap);
   function Bit #(mteW) getMTE (capT cap);
   // get the kind of a capability
   function Kind #(otypeW) getKind (capT cap);
 
+  function capT setTmode (capT cap, Bit #(tmodeW) tmode);
   function capT setTloc (capT cap, Bit #(tlocW) tloc);
   function capT setMTE (capT cap, Bit #(mteW) mte);
   // set the kind of a capability
