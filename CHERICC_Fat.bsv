@@ -99,10 +99,10 @@ typedef 4   UPermW;
 typedef 14  MW;
 typedef 6   ExpW;
 typedef 6  TlocW;
-typedef 2  TmodeW;
+typedef 3  TmodeW;
 
 typedef 8  MTEW;
-typedef 4  OTypeW;
+typedef 3  OTypeW;
 typedef `FLAGSW FlagsW;
 typedef 64  CapAddrW;
 typedef 128 CapW;
@@ -186,11 +186,11 @@ typedef enum {Exp0, EmbeddedExp} Format deriving (Bits, Eq, FShow);
 typedef UInt#(ExpW) Exp;
 // Type for capability otype field
 typedef VnD#(Bit#(OTypeW)) CType;
-Bit#(OTypeW) otype_max      = -5;
+Bit#(OTypeW) otype_max      = -3;
 Bit#(OTypeW) otype_unsealed = -1;
 Bit#(OTypeW) otype_sentry   = -2;
 Bit#(OTypeW) otype_res0     = -3;
-Bit#(OTypeW) otype_res1     = -4;
+Bit#(OTypeW) otype_res1     = -3;
 
 // unpacked capability format
 typedef struct {
